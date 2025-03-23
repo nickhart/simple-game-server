@@ -17,8 +17,8 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create game_session" do
     assert_difference("GameSession.count") do
-      post game_sessions_url, params: { 
-        game_session: { min_players: 2, max_players: 4 } 
+      post game_sessions_url, params: {
+        game_session: { min_players: 2, max_players: 4 }
       }
     end
 
@@ -32,8 +32,8 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create invalid game_session" do
     assert_no_difference("GameSession.count") do
-      post game_sessions_url, params: { 
-        game_session: { min_players: 4, max_players: 2 } 
+      post game_sessions_url, params: {
+        game_session: { min_players: 4, max_players: 2 }
       }
     end
 

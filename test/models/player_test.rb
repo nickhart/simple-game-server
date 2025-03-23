@@ -30,7 +30,7 @@ class PlayerTest < ActiveSupport::TestCase
     game = GameSession.create!(min_players: 2, max_players: 4)
     game.add_player(@player)
 
-    assert_difference 'GamePlayer.count', -1 do
+    assert_difference "GamePlayer.count", -1 do
       @player.destroy
     end
   end

@@ -1,0 +1,14 @@
+{
+  "ruby.lint": {
+    "rubocop": true
+  },
+  "ruby.format": "rubocop",
+  "editor.formatOnSave": true,
+  "ruby.useBundler": true,
+  "ruby.useLanguageServer": true,
+  "ruby.lintDebounceTime": 500,
+  "[ruby]": {
+    "editor.defaultFormatter": "rebornix.ruby",
+    "editor.formatOnSave": true
+  }
+} 
