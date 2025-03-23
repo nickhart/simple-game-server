@@ -26,13 +26,22 @@ jobs:
     - name: Check for outdated gems
       id: outdated
       run: |
-        echo "### Outdated Dependencies Report" >> $GITHUB_STEP_SUMMARY
-        echo "The following dependencies have updates available:" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        bundle outdated | tee -a $GITHUB_STEP_SUMMARY || true
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Note: This is for information only and does not block merging. Updates are handled automatically by Dependabot." >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Dependency Status Check" > dependency_report.md
+        echo "" >> dependency_report.md
+        echo "Checking for outdated dependencies..." >> dependency_report.md
+        echo "" >> dependency_report.md
+        
+        if bundle outdated | grep -q '^'; then
+          echo "#### The following dependencies have updates available:" >> dependency_report.md
+          echo '```' >> dependency_report.md
+          bundle outdated >> dependency_report.md
+          echo '```' >> dependency_report.md
+        else
+          echo "✅ All dependencies are up to date!" >> dependency_report.md
+        fi
+        
+        echo "" >> dependency_report.md
+        echo "_Note: This is for information only and does not block merging. Updates are handled automatically by Dependabot._" >> dependency_report.md
 
     - name: Comment on PR
       uses: actions/github-script@v7
@@ -40,11 +49,11 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+          const reportContent = fs.readFileSync('dependency_report.md', 'utf8');
           
-          github.rest.issues.createComment({
+          await github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: summary
+            body: reportContent
           }); 
