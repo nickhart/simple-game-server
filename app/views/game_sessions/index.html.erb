@@ -1,0 +1,33 @@
+<h1>Game Sessions</h1>
+
+<%= link_to "Create New Game", new_game_session_path, class: "button" %>
+
+<% if @game_sessions.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Game ID</th>
+        <th>Status</th>
+        <th>Players</th>
+        <th>Player Limits</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% @game_sessions.each do |game| %>
+        <tr>
+          <td><%= game.id %></td>
+          <td><%= game.status %></td>
+          <td><%= game.players.count %></td>
+          <td><%= "#{game.min_players}-#{game.max_players}" %></td>
+          <td>
+            <%= link_to "View", game_session_path(game) %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>No game sessions available.</p>
+<% end %>

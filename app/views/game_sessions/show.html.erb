@@ -1,0 +1,30 @@
+<h1>Game Session #<%= @game_session.id %></h1>
+
+<div class="game-details">
+  <p>
+    <strong>Status:</strong>
+    <%= @game_session.status %>
+  </p>
+
+  <p>
+    <strong>Player Limits:</strong>
+    <%= @game_session.min_players %> - <%= @game_session.max_players %> players
+  </p>
+
+  <p>
+    <strong>Current Players (<%= @game_session.players.count %>):</strong>
+    <% if @game_session.players.any? %>
+      <ul>
+        <% @game_session.players.each do |player| %>
+          <li><%= player.name %></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p>No players have joined yet.</p>
+    <% end %>
+  </p>
+</div>
+
+<div class="actions">
+  <%= link_to "Back to Games List", game_sessions_path %>
+</div>
