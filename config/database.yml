@@ -14,7 +14,7 @@ development:
   database: simple_game_server_development
   username: <%= ENV['DATABASE_USERNAME'] %>
   password: <%= ENV['DATABASE_PASSWORD'] %>
-  host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+  host: <%= ENV['DATABASE_HOST'] || '127.0.0.1' %>
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -23,7 +23,8 @@ test:
   <<: *default
   url: <%= ENV['DATABASE_URL'] %>
   database: simple_game_server_test
-  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || 'localhost' %>
+  host: <%= ENV['PGHOST'] || ENV['DATABASE_HOST'] || '127.0.0.1' %>
+  port: <%= ENV['PGPORT'] || 5432 %>
   username: <%= ENV['PGUSER'] || ENV['DATABASE_USERNAME'] || 'postgres' %>
   password: <%= ENV['PGPASSWORD'] || ENV['DATABASE_PASSWORD'] || 'postgres' %>
 

@@ -27,8 +27,9 @@ jobs:
 
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
-      PGHOST: localhost
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/simple_game_server_test
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
       PGUSER: postgres
       PGPASSWORD: postgres
       SECRET_KEY_BASE: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -42,19 +43,25 @@ jobs:
         ruby-version: '3.2.2'
         bundler-cache: true
 
+    - name: Install PostgreSQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
     - name: Run linter
       run: bundle exec rubocop
 
     - name: Wait for PostgreSQL
       run: |
-        while ! pg_isready -h localhost -p 5432; do
+        until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
           echo "Waiting for PostgreSQL to start..."
-          sleep 1
+          sleep 2
         done
+        echo "PostgreSQL is ready!"
 
     - name: Setup test database
       run: |
-        bin/rails db:test:prepare
+        bin/rails db:drop db:create db:schema:load db:test:prepare
 
     - name: Run all tests
       run: |
