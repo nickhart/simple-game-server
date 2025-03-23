@@ -81,9 +81,9 @@ class GameSession < ApplicationRecord
     return if status_was.nil? # Allow initial status setting
 
     valid_transitions = {
-      'waiting' => ['active'],
-      'active' => ['finished'],
-      'finished' => []
+      "waiting" => [ "active" ],
+      "active" => [ "finished" ],
+      "finished" => []
     }
 
     unless valid_transitions[status_was]&.include?(status)

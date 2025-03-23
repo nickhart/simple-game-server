@@ -4,4 +4,4 @@ require "active_support/testing/autorun"
 
 class UnitTest < Minitest::Test
   # Add any shared test helper methods here
-end 
+end

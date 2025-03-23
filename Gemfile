@@ -59,7 +59,7 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
-  
+
   # Null database adapter for testing without database
   gem "activerecord-nulldb-adapter"
 end
