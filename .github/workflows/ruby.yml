@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    env:
+      RAILS_ENV: test_unit
+      DISABLE_DATABASE: true
 
     steps:
     - uses: actions/checkout@v4
