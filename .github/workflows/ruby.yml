@@ -23,6 +23,9 @@ jobs:
         ruby-version: '3.4.2'
         bundler-cache: true
 
+    - name: Run linter
+      run: bundle exec rubocop
+
     - name: Run unit tests
       run: |
-        bundle exec rake test:units 
+        bundle exec rake test:units RAILS_ENV=test_unit DISABLE_DATABASE=true 

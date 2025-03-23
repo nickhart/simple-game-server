@@ -1,11 +1,16 @@
 namespace :test do
   desc "Run unit tests that do not require database access"
-  task units: :environment do
-    $: << "test"
-    test_files = FileList["test/unit/**/*_test.rb"]
+  task :units do  # Remove environment dependency
+    require "rake/testtask"
 
-    puts "Running #{test_files.size} unit test files..."
-    ruby "-I test test/unit/game_logic_test.rb"
+    Rake::TestTask.new(:run_units) do |t|
+      t.libs << "test"
+      t.pattern = "test/unit/**/*_test.rb"
+      t.warning = false
+      t.verbose = true
+    end
+
+    Rake::Task["run_units"].invoke
   end
 end
 
