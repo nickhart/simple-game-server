@@ -29,8 +29,13 @@ jobs:
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: '3.2.2'
-        bundler-cache: true
+        ruby-version: '3.4.2'
+        bundler-cache: false
+
+    - name: Configure Bundler
+      run: |
+        bundle config set --local frozen false
+        bundle config set --local path 'vendor/bundle'
 
     - name: Install dependencies
       run: |
