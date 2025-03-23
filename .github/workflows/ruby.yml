@@ -1,4 +1,4 @@
-name: Ruby Tests
+name: Tests
 
 on:
   push:
@@ -83,4 +83,12 @@ jobs:
 
     - name: Run all tests
       run: |
-        bin/rails test test:system 
+        bin/rails test test:system
+
+    - name: Keep screenshots from failed system tests
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: screenshots
+        path: tmp/screenshots
+        if-no-files-found: ignore 
