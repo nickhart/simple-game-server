@@ -32,7 +32,7 @@ class GameSession < ApplicationRecord
 
   def advance_turn
     return false unless active?
-    
+
     next_index = (current_player_index + 1) % players.count
     update(current_player_index: next_index)
   end
@@ -54,7 +54,7 @@ class GameSession < ApplicationRecord
 
   def player_count_within_limits
     return unless active?
-    
+
     if players.count < min_players
       errors.add(:base, "Not enough players to start the game")
     elsif players.count > max_players

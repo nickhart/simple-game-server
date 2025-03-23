@@ -9,7 +9,7 @@ class GameSessionsController < ApplicationController
   def show
     @game_session = GameSession.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to game_sessions_path, alert: 'Game session not found.'
+    redirect_to game_sessions_path, alert: "Game session not found."
   end
 
   def new
@@ -18,15 +18,15 @@ class GameSessionsController < ApplicationController
 
   def create
     @game_session = GameSession.new(game_session_params)
-    
+
     if @game_session.save
-      redirect_to @game_session, notice: 'Game session was successfully created.'
+      redirect_to @game_session, notice: "Game session was successfully created."
     else
       render :new, status: :unprocessable_entity
     end
   rescue => e
     Rails.logger.error "Error creating game session: #{e.message}"
-    flash.now[:alert] = 'Error creating game session. Please try again.'
+    flash.now[:alert] = "Error creating game session. Please try again."
     render :new, status: :unprocessable_entity
   end
 
