@@ -3,7 +3,7 @@
 A Ruby on Rails server that manages turn-based game sessions. This server provides a flexible foundation for implementing various turn-based games by handling core game mechanics such as player management, session creation, and turn progression.
 
 [![Ruby Tests](https://github.com/nickhart/simple_game_server/actions/workflows/ruby.yml/badge.svg)](https://github.com/nickhart/simple_game_server/actions/workflows/ruby.yml)
-[![Dependency Status](https://img.shields.io/github/dependabot/nickhart/simple_game_server)](https://github.com/nickhart/simple_game_server/pulls?q=is%3Apr+is%3Aopen+label%3Adependencies)
+[![Dependency Status](https://img.shields.io/badge/dependencies-Dependabot-025E8C.svg)](https://github.com/nickhart/simple_game_server/pulls?q=is%3Apr+is%3Aopen+label%3Adependencies)
 [![Ruby Style](https://img.shields.io/badge/Ruby%20Style-RuboCop-ruby.svg)](https://github.com/rubocop/rubocop)
 [![Ruby](https://img.shields.io/badge/Ruby-3.4.2-ruby.svg)](https://www.ruby-lang.org/en/)
 [![Rails](https://img.shields.io/badge/Rails-8.0.2-red.svg)](https://rubyonrails.org/)
