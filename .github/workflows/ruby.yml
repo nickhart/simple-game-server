@@ -14,7 +14,9 @@ jobs:
       postgres:
         image: postgres:14
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: simple_game_server_test
         ports:
           - 5432:5432
         options: >-
@@ -30,29 +32,29 @@ jobs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.4.2'
-        bundler-cache: false
+        bundler-cache: true
 
-    - name: Configure Bundler
-      run: |
-        bundle config set --local frozen false
-        bundle config set --local path 'vendor/bundle'
-
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y postgresql-client libpq-dev
-        bundle install
 
     - name: Setup test database
       env:
         RAILS_ENV: test
         DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
+        PGHOST: localhost
+        PGUSER: postgres
+        PGPASSWORD: postgres
       run: |
-        bundle exec rails db:create
-        bundle exec rails db:schema:load
+        bin/rails db:create db:schema:load
 
     - name: Run tests
       env:
         RAILS_ENV: test
         DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
-      run: bundle exec rails test 
+        PGHOST: localhost
+        PGUSER: postgres
+        PGPASSWORD: postgres
+      run: |
+        bin/rails test 
