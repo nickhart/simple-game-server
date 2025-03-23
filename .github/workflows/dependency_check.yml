@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ '*' ]
 
+permissions:
+  pull-requests: write
+  issues: write
+
 jobs:
   outdated:
     name: Check for Outdated Dependencies
