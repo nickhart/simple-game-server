@@ -13,7 +13,7 @@ A Ruby on Rails server that manages turn-based game sessions. This server provid
 
 ## Prerequisites
 
-- Ruby 3.4.2
+- Ruby 3.2.2
 - Rails 8.0.2
 - PostgreSQL 14+
 
