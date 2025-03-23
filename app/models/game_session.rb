@@ -1,3 +1,6 @@
+# GameSession represents a single instance of a game with its players and current state.
+# It manages the lifecycle of a game from waiting for players to join,
+# through active gameplay with turn management, to game completion.
 class GameSession < ApplicationRecord
   has_many :game_players, dependent: :destroy
   has_many :players, through: :game_players
