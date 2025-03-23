@@ -12,6 +12,7 @@ jobs:
     env:
       RAILS_ENV: test_unit
       DISABLE_DATABASE: true
+      SECRET_KEY_BASE: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
     steps:
     - uses: actions/checkout@v4
