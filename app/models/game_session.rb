@@ -4,8 +4,10 @@ class GameSession < ApplicationRecord
 
   enum :status, { waiting: 0, active: 1, finished: 2 }
 
-  validates :min_players, presence: true, numericality: { greater_than: 0 }
-  validates :max_players, presence: true, numericality: { greater_than_or_equal_to: :min_players }
+  validates :min_players, presence: true
+  validates :max_players, presence: true
+  validates :min_players, numericality: { greater_than: 0, only_integer: true }, if: -> { min_players.present? }
+  validates :max_players, numericality: { greater_than_or_equal_to: :min_players, only_integer: true }, if: -> { max_players.present? && min_players.present? }
   validates :status, presence: true
   validate :player_count_within_limits
 
