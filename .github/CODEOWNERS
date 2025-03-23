@@ -1,0 +1,25 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# they will be requested for review when someone opens a pull request.
+*       @nickhart
+
+# Security-related files
+/config/credentials.yml.enc    @nickhart
+/config/master.key            @nickhart
+/config/secrets.yml          @nickhart
+
+# Database schema and migrations
+/db/schema.rb               @nickhart
+/db/migrate/                @nickhart
+
+# Core game logic
+/app/models/game_session.rb @nickhart
+/app/models/player.rb       @nickhart
+
+# Test configurations
+/test/                     @nickhart
+/.github/workflows/        @nickhart
+
+# Documentation
+*.md                      @nickhart
+/docs/                    @nickhart 
