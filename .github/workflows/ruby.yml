@@ -51,17 +51,35 @@ jobs:
     - name: Run linter
       run: bundle exec rubocop
 
+    - name: Debug PostgreSQL
+      run: |
+        echo "Checking PostgreSQL service status..."
+        sudo systemctl status postgresql || true
+        echo "Checking listening ports..."
+        sudo netstat -tulpn | grep LISTEN || true
+        echo "Checking PostgreSQL logs..."
+        sudo find /var/log -name "postgresql*" -exec ls -l {} \; || true
+
     - name: Wait for PostgreSQL
       run: |
-        until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
-          echo "Waiting for PostgreSQL to start..."
-          sleep 2
+        echo "Waiting for PostgreSQL to be ready..."
+        for i in {1..30}; do
+          if pg_isready -h 127.0.0.1 -p 5432 -U postgres; then
+            echo "PostgreSQL is ready!"
+            psql -h 127.0.0.1 -p 5432 -U postgres -c '\l' || echo "Failed to list databases"
+            break
+          fi
+          echo "Attempt $i: PostgreSQL is not ready yet..."
+          sleep 5
         done
-        echo "PostgreSQL is ready!"
+        echo "Maximum wait time reached"
 
     - name: Setup test database
       run: |
-        bin/rails db:drop db:create db:schema:load db:test:prepare
+        echo "Current environment variables:"
+        env | grep -E 'PG|DATABASE'
+        echo "Attempting to create test database..."
+        bin/rails db:drop db:create db:schema:load db:test:prepare RAILS_ENV=test || (echo "Database setup failed. Checking connection..." && psql -h 127.0.0.1 -p 5432 -U postgres -c '\l')
 
     - name: Run all tests
       run: |
