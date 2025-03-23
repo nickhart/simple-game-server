@@ -10,22 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-22.04
 
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: simple_game_server_test
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - uses: actions/checkout@v4
     
@@ -35,34 +19,6 @@ jobs:
         ruby-version: '3.4.2'
         bundler-cache: true
 
-    - name: Install system dependencies
+    - name: Run unit tests
       run: |
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client libpq-dev
-
-    - name: Verify PostgreSQL connection
-      env:
-        PGHOST: 127.0.0.1
-        PGUSER: postgres
-        PGPASSWORD: postgres
-      run: |
-        pg_isready
-        psql -h 127.0.0.1 -U postgres -d postgres -c '\l'
-
-    - name: Setup test database
-      env:
-        RAILS_ENV: test
-        PGHOST: 127.0.0.1
-        PGUSER: postgres
-        PGPASSWORD: postgres
-      run: |
-        bin/rails db:create db:schema:load
-
-    - name: Run tests
-      env:
-        RAILS_ENV: test
-        PGHOST: 127.0.0.1
-        PGUSER: postgres
-        PGPASSWORD: postgres
-      run: |
-        bin/rails test 
+        bundle exec rake test:units 

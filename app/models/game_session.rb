@@ -13,6 +13,7 @@ class GameSession < ApplicationRecord
   validates :max_players, numericality: { greater_than_or_equal_to: :min_players, only_integer: true }, if: -> { max_players.present? && min_players.present? }
   validates :status, presence: true
   validate :player_count_within_limits
+  validate :valid_state_transition
 
   before_validation :set_default_status
   before_save :initialize_current_player_index, if: :status_changed_to_active?
@@ -42,6 +43,11 @@ class GameSession < ApplicationRecord
     players.order(:created_at)[current_player_index]
   end
 
+  def finish_game
+    return false unless active?
+    update(status: :finished)
+  end
+
   private
 
   def set_default_status
@@ -68,5 +74,20 @@ class GameSession < ApplicationRecord
 
   def initialize_current_player_index
     self.current_player_index = 0
+  end
+
+  def valid_state_transition
+    return unless status_changed?
+    return if status_was.nil? # Allow initial status setting
+
+    valid_transitions = {
+      'waiting' => ['active'],
+      'active' => ['finished'],
+      'finished' => []
+    }
+
+    unless valid_transitions[status_was]&.include?(status)
+      errors.add(:status, "cannot transition from #{status_was} to #{status}")
+    end
   end
 end

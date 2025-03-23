@@ -53,6 +53,8 @@ GEM
       activemodel (= 8.0.2)
       activesupport (= 8.0.2)
       timeout (>= 0.4.0)
+    activerecord-nulldb-adapter (1.1.1)
+      activerecord (>= 6.0, < 8.1)
     activestorage (8.0.2)
       actionpack (= 8.0.2)
       activejob (= 8.0.2)
@@ -360,6 +362,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  activerecord-nulldb-adapter
   bootsnap
   brakeman
   capybara
