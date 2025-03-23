@@ -9,9 +9,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: simple_game_server_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      RAILS_ENV: test_unit
-      DISABLE_DATABASE: true
+      RAILS_ENV: test
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
       SECRET_KEY_BASE: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
     steps:
@@ -26,6 +44,10 @@ jobs:
     - name: Run linter
       run: bundle exec rubocop
 
-    - name: Run unit tests
+    - name: Setup test database
       run: |
-        bundle exec rake test:units RAILS_ENV=test_unit DISABLE_DATABASE=true 
+        bundle exec rails db:create db:schema:load
+
+    - name: Run all tests
+      run: |
+        bundle exec rails test test:system 
