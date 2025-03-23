@@ -1,0 +1,59 @@
+name: Dependency Check
+
+on:
+  pull_request:
+    branches: [ '*' ]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  outdated:
+    name: Check for Outdated Dependencies
+    runs-on: ubuntu-22.04
+    continue-on-error: true  # This ensures the check won't block PR merging
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.4.2'
+        bundler-cache: true
+
+    - name: Check for outdated gems
+      id: outdated
+      run: |
+        echo "### 📦 Dependency Status Check" > dependency_report.md
+        echo "" >> dependency_report.md
+        echo "Checking for outdated dependencies..." >> dependency_report.md
+        echo "" >> dependency_report.md
+        
+        if bundle outdated | grep -q '^'; then
+          echo "#### The following dependencies have updates available:" >> dependency_report.md
+          echo '```' >> dependency_report.md
+          bundle outdated >> dependency_report.md
+          echo '```' >> dependency_report.md
+        else
+          echo "✅ All dependencies are up to date!" >> dependency_report.md
+        fi
+        
+        echo "" >> dependency_report.md
+        echo "_Note: This is for information only and does not block merging. Updates are handled automatically by Dependabot._" >> dependency_report.md
+
+    - name: Comment on PR
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        script: |
+          const fs = require('fs');
+          const reportContent = fs.readFileSync('dependency_report.md', 'utf8');
+          
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: reportContent
+          }); 

@@ -2,6 +2,12 @@
 
 A Ruby on Rails server that manages turn-based game sessions. This server provides a flexible foundation for implementing various turn-based games by handling core game mechanics such as player management, session creation, and turn progression.
 
+[![Ruby Tests](https://github.com/nickhart/simple_game_server/actions/workflows/ruby.yml/badge.svg)](https://github.com/nickhart/simple_game_server/actions/workflows/ruby.yml)
+[![Dependency Status](https://img.shields.io/github/dependabot/nickhart/simple_game_server)](https://github.com/nickhart/simple_game_server/pulls?q=is%3Apr+is%3Aopen+label%3Adependencies)
+[![Ruby Style](https://img.shields.io/badge/Ruby%20Style-RuboCop-ruby.svg)](https://github.com/rubocop/rubocop)
+[![Ruby](https://img.shields.io/badge/Ruby-3.4.2-ruby.svg)](https://www.ruby-lang.org/en/)
+[![Rails](https://img.shields.io/badge/Rails-8.0.2-red.svg)](https://rubyonrails.org/)
+
 ## Features
 
 - Create game sessions with customizable player limits
@@ -10,6 +16,19 @@ A Ruby on Rails server that manages turn-based game sessions. This server provid
 - Support for 2-10 players per game
 - Game state management (waiting, active, finished)
 - RESTful API for game interactions
+
+## Dependencies
+
+This project uses Dependabot to keep dependencies up to date. Dependency update pull requests are created automatically and can be found [here](https://github.com/nickhart/simple_game_server/pulls?q=is%3Apr+is%3Aopen+label%3Adependencies).
+
+### Main Dependencies
+- Ruby 3.4.2
+- Rails 8.0.2
+- PostgreSQL 14+
+
+Updates are checked weekly for:
+- Ruby gems (both production and development dependencies)
+- GitHub Actions workflows
 
 ## Prerequisites
 
@@ -21,7 +40,7 @@ A Ruby on Rails server that manages turn-based game sessions. This server provid
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/simple_game_server.git
+git clone https://github.com/nickhart/simple_game_server.git
 cd simple_game_server
 ```
 
