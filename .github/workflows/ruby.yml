@@ -17,6 +17,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: simple_game_server_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -39,11 +40,19 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y postgresql-client libpq-dev
 
+    - name: Verify PostgreSQL connection
+      env:
+        PGHOST: 127.0.0.1
+        PGUSER: postgres
+        PGPASSWORD: postgres
+      run: |
+        pg_isready
+        psql -h 127.0.0.1 -U postgres -d postgres -c '\l'
+
     - name: Setup test database
       env:
         RAILS_ENV: test
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
-        PGHOST: localhost
+        PGHOST: 127.0.0.1
         PGUSER: postgres
         PGPASSWORD: postgres
       run: |
@@ -52,8 +61,7 @@ jobs:
     - name: Run tests
       env:
         RAILS_ENV: test
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
-        PGHOST: localhost
+        PGHOST: 127.0.0.1
         PGUSER: postgres
         PGPASSWORD: postgres
       run: |
