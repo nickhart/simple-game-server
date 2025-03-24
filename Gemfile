@@ -88,4 +88,5 @@ group :test do
   gem "selenium-webdriver"
   gem "simplecov", require: false
   gem "simplecov-cobertura", require: false  # For CodeClimate compatibility
+  gem "rails-controller-testing"
 end

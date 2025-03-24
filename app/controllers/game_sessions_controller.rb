@@ -24,8 +24,13 @@ class GameSessionsController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActionController::ParameterMissing => e
+    @game_session = GameSession.new
+    flash.now[:alert] = e.message
+    render :new, status: :unprocessable_entity
   rescue => e
     Rails.logger.error "Error creating game session: #{e.message}"
+    @game_session = GameSession.new
     flash.now[:alert] = "Error creating game session. Please try again."
     render :new, status: :unprocessable_entity
   end

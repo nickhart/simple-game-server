@@ -5,30 +5,26 @@ class GameSession < ApplicationRecord
   has_many :game_players, dependent: :destroy
   has_many :players, through: :game_players
 
-  enum :status, { waiting: 0, active: 1, finished: 2 }
-
-  validates :min_players, presence: true
-  validates :max_players, presence: true
-  validates :min_players, numericality: { greater_than: 0, only_integer: true }, if: -> { min_players.present? }
-  validates :max_players, numericality: { greater_than_or_equal_to: :min_players, only_integer: true }, if: -> { max_players.present? && min_players.present? }
+  validates :min_players, presence: true, numericality: { greater_than: 0 }
+  validates :max_players, presence: true, numericality: { greater_than: 0 }
   validates :status, presence: true
-  validate :player_count_within_limits
-  validate :valid_state_transition
+  validate :max_players_must_be_greater_than_min_players
+  validate :validate_state_transition, if: :status_changed?
 
-  before_validation :set_default_status
-  before_save :initialize_current_player_index, if: :status_changed_to_active?
+  enum :status, [:waiting, :active, :finished]
+
+  before_save :initialize_current_player_index, if: :becoming_active?
 
   def add_player(player)
     return false if active? || finished?
-    return false if players.count >= max_players
-
+    return false if game_players.count >= max_players
     game_players.create(player: player)
   end
 
   def start_game
     return false unless can_start?
-
-    update(status: :active)
+    self.status = :active
+    save
   end
 
   def advance_turn
@@ -45,49 +41,50 @@ class GameSession < ApplicationRecord
 
   def finish_game
     return false unless active?
-    update(status: :finished)
+    self.status = :finished
+    save
   end
 
   private
 
-  def set_default_status
-    self.status ||= :waiting
-  end
-
-  def can_start?
-    waiting? && players.count >= min_players && players.count <= max_players
-  end
-
-  def player_count_within_limits
-    return unless active?
-
-    if players.count < min_players
-      errors.add(:base, "Not enough players to start the game")
-    elsif players.count > max_players
-      errors.add(:base, "Too many players in the game")
+  def max_players_must_be_greater_than_min_players
+    return unless min_players.present? && max_players.present?
+    if max_players < min_players
+      errors.add(:max_players, "must be greater than or equal to min players")
     end
   end
 
-  def status_changed_to_active?
+  def validate_state_transition
+    return if status.nil? # Let presence validation handle nil status
+    return unless status_was # Allow setting initial status
+    
+    case status_was.to_sym
+    when :waiting
+      if active?
+        if game_players.count < min_players
+          errors.add(:status, "cannot transition to active with insufficient players")
+        end
+      else
+        errors.add(:status, "can only transition from waiting to active")
+      end
+    when :active
+      unless finished?
+        errors.add(:status, "can only transition from active to finished")
+      end
+    when :finished
+      errors.add(:status, "cannot transition from finished state")
+    end
+  end
+
+  def can_start?
+    waiting? && game_players.count >= min_players
+  end
+
+  def becoming_active?
     status_changed? && active?
   end
 
   def initialize_current_player_index
     self.current_player_index = 0
-  end
-
-  def valid_state_transition
-    return unless status_changed?
-    return if status_was.nil? # Allow initial status setting
-
-    valid_transitions = {
-      "waiting" => [ "active" ],
-      "active" => [ "finished" ],
-      "finished" => []
-    }
-
-    unless valid_transitions[status_was]&.include?(status)
-      errors.add(:status, "cannot transition from #{status_was} to #{status}")
-    end
   end
 end
