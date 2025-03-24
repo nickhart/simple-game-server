@@ -1,0 +1,262 @@
+openapi: 3.0.0
+info:
+  title: SimpleGameServer API
+  version: 1.0.0
+  description: API for managing game sessions, currently supporting TicTacToe
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+components:
+  schemas:
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the player
+        name:
+          type: string
+          description: Display name of the player
+      required:
+        - id
+        - name
+
+    GameSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the game session
+        status:
+          type: string
+          enum: [waiting, active, finished]
+          description: Current state of the game session
+        min_players:
+          type: integer
+          description: Minimum number of players required
+        max_players:
+          type: integer
+          description: Maximum number of players allowed
+        current_player_index:
+          type: integer
+          description: Index of the current player in the players array
+        game_type:
+          type: string
+          enum: [tictactoe]
+          description: Type of game being played
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          description: List of players in the game
+        board:
+          type: array
+          items:
+            type: string
+          maxItems: 9
+          description: Current state of the game board
+        winner:
+          type: integer
+          nullable: true
+          description: ID of the winning player, null if game is not finished
+      required:
+        - id
+        - status
+        - min_players
+        - max_players
+        - current_player_index
+        - game_type
+        - players
+        - board
+
+    CreateGameSessionRequest:
+      type: object
+      properties:
+        game_type:
+          type: string
+          enum: [tictactoe]
+          description: Type of game to create
+      required:
+        - game_type
+
+    JoinGameSessionRequest:
+      type: object
+      properties:
+        player_name:
+          type: string
+          description: Name of the player joining the game
+      required:
+        - player_name
+
+    MakeMoveRequest:
+      type: object
+      properties:
+        player_id:
+          type: integer
+          description: ID of the player making the move
+        position:
+          type: integer
+          minimum: 0
+          maximum: 8
+          description: Position on the board (0-8)
+      required:
+        - player_id
+        - position
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
+
+paths:
+  /game_sessions:
+    get:
+      summary: List all game sessions
+      operationId: listGameSessions
+      responses:
+        '200':
+          description: List of game sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  game_sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GameSession'
+                required:
+                  - game_sessions
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new game session
+      operationId: createGameSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGameSessionRequest'
+      responses:
+        '200':
+          description: Game session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSession'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /game_sessions/{id}/join:
+    post:
+      summary: Join an existing game session
+      operationId: joinGameSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the game session to join
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinGameSessionRequest'
+      responses:
+        '200':
+          description: Successfully joined the game session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSession'
+        '404':
+          description: Game session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /game_sessions/{id}/move:
+    post:
+      summary: Make a move in the game
+      operationId: makeMove
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the game session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MakeMoveRequest'
+      responses:
+        '200':
+          description: Move made successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSession'
+        '400':
+          description: Invalid move
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Game session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
