@@ -11,7 +11,7 @@ class GameSession < ApplicationRecord
   validate :max_players_must_be_greater_than_min_players
   validate :validate_state_transition, if: :status_changed?
 
-  enum :status, [:waiting, :active, :finished]
+  enum :status, [ :waiting, :active, :finished ]
 
   before_save :initialize_current_player_index, if: :becoming_active?
 
@@ -57,7 +57,7 @@ class GameSession < ApplicationRecord
   def validate_state_transition
     return if status.nil? # Let presence validation handle nil status
     return unless status_was # Allow setting initial status
-    
+
     case status_was.to_sym
     when :waiting
       if active?

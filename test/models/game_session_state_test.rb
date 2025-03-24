@@ -26,7 +26,7 @@ class GameSessionStateTest < ActiveSupport::TestCase
     @game_session.game_players.create!(player: @player2)
     @game_session.status = :active
     assert @game_session.save, "Should transition to active"
-    
+
     @game_session.status = :waiting
     assert_not @game_session.save, "Should not allow transition from active back to waiting"
   end
