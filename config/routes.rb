@@ -15,6 +15,11 @@ Rails.application.routes.draw do
     post 'login', to: 'sessions#create'
     
     resources :game_sessions, only: [:index, :create, :show, :update, :destroy] do
+      member do
+        post :join
+        delete :leave
+        post :start
+      end
       post 'cleanup', on: :collection
     end
   end

@@ -16,6 +16,50 @@
             "item": [
                 {
                     "name": "Login",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Debug environment variables",
+                                    "console.log('Environment:', pm.environment.name);",
+                                    "console.log('api_email value:', pm.environment.get('api_email'));",
+                                    "console.log('api_password value:', pm.environment.get('api_password'));",
+                                    "",
+                                    "// Debug request body",
+                                    "const rawBody = pm.request.body.raw;",
+                                    "console.log('Raw request body:', rawBody);",
+                                    "",
+                                    "// Debug variable resolution",
+                                    "const resolvedBody = pm.variables.replaceIn(rawBody);",
+                                    "console.log('Resolved request body:', resolvedBody);",
+                                    ""
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Log the full response for debugging",
+                                    "console.log('Response status:', pm.response.status);",
+                                    "console.log('Response body:', pm.response.text());",
+                                    "",
+                                    "// Save the token if we get one",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.token) {",
+                                    "    pm.environment.set('jwt_token', response.token);",
+                                    "    console.log('Token saved to environment');",
+                                    "}",
+                                    ""
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -38,47 +82,7 @@
                                 "login"
                             ]
                         },
-                        "description": "Authenticate and get JWT token",
-                        "event": [
-                            {
-                                "listen": "prerequest",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "// Debug environment variables",
-                                        "console.log('Environment:', pm.environment.name);",
-                                        "console.log('api_email value:', pm.environment.get('api_email'));",
-                                        "console.log('api_password value:', pm.environment.get('api_password'));",
-                                        "",
-                                        "// Debug request body",
-                                        "const rawBody = pm.request.body.raw;",
-                                        "console.log('Raw request body:', rawBody);",
-                                        "",
-                                        "// Debug variable resolution",
-                                        "const resolvedBody = pm.variables.replaceIn(rawBody);",
-                                        "console.log('Resolved request body:', resolvedBody);"
-                                    ]
-                                }
-                            },
-                            {
-                                "listen": "test",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "// Log the full response for debugging",
-                                        "console.log('Response status:', pm.response.status);",
-                                        "console.log('Response body:', pm.response.text());",
-                                        "",
-                                        "// Save the token if we get one",
-                                        "const response = pm.response.json();",
-                                        "if (response && response.token) {",
-                                        "    pm.environment.set('jwt_token', response.token);",
-                                        "    console.log('Token saved to environment');",
-                                        "}"
-                                    ]
-                                }
-                            }
-                        ]
+                        "description": "Authenticate and get JWT token"
                     }
                 }
             ]
@@ -88,6 +92,26 @@
             "item": [
                 {
                     "name": "Create Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has game session', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.environment.set('game_session_id', response.id);",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -102,7 +126,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"status\": \"waiting\"\n}"
+                            "raw": "{\n    \"game_session\": {\n        \"status\": \"waiting\",\n        \"min_players\": 2,\n        \"max_players\": 4\n    }\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/game_sessions",
@@ -114,30 +138,30 @@
                                 "game_sessions"
                             ]
                         },
-                        "description": "Create a new game session",
-                        "event": [
-                            {
-                                "listen": "test",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "pm.test('Status code is 201', function () {",
-                                        "    pm.response.to.have.status(201);",
-                                        "});",
-                                        "",
-                                        "pm.test('Response has game session', function () {",
-                                        "    const response = pm.response.json();",
-                                        "    pm.expect(response).to.have.property('id');",
-                                        "    pm.environment.set('game_session_id', response.id);",
-                                        "});"
-                                    ]
-                                }
-                            }
-                        ]
+                        "description": "Create a new game session"
                     }
                 },
                 {
                     "name": "List Game Sessions",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response is an array', function () {",
+                                    "    pm.response.to.be.json;",
+                                    "    pm.response.to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [
@@ -156,29 +180,31 @@
                                 "game_sessions"
                             ]
                         },
-                        "description": "Get all game sessions",
-                        "event": [
-                            {
-                                "listen": "test",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "pm.test('Status code is 200', function () {",
-                                        "    pm.response.to.have.status(200);",
-                                        "});",
-                                        "",
-                                        "pm.test('Response is an array', function () {",
-                                        "    pm.response.to.be.json;",
-                                        "    pm.response.to.be.an('array');",
-                                        "});"
-                                    ]
-                                }
-                            }
-                        ]
+                        "description": "Get all game sessions"
                     }
                 },
                 {
                     "name": "Get Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has game session', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.expect(response.id).to.equal(pm.environment.get('game_session_id'));",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [
@@ -198,30 +224,246 @@
                                 "{{game_session_id}}"
                             ]
                         },
-                        "description": "Get a specific game session",
-                        "event": [
-                            {
-                                "listen": "test",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "pm.test('Status code is 200', function () {",
-                                        "    pm.response.to.have.status(200);",
-                                        "});",
-                                        "",
-                                        "pm.test('Response has game session', function () {",
-                                        "    const response = pm.response.json();",
-                                        "    pm.expect(response).to.have.property('id');",
-                                        "    pm.expect(response.id).to.equal(pm.environment.get('game_session_id'));",
-                                        "});"
-                                    ]
-                                }
+                        "description": "Get a specific game session"
+                    }
+                },
+                {
+                    "name": "Join Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has player data', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.expect(response).to.have.property('name');",
+                                    "    pm.environment.set('player_id', response.id);",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
                             }
-                        ]
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player\": {\n        \"name\": \"Player {{$randomInt}}\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/join",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}",
+                                "join"
+                            ]
+                        },
+                        "description": "Join an existing game session"
+                    }
+                },
+                {
+                    "name": "Leave Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has success message', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('message');",
+                                    "    pm.expect(response.message).to.include('successfully left');",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/leave?player_id={{player_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}",
+                                "leave"
+                            ],
+                            "query": [
+                                {
+                                    "key": "player_id",
+                                    "value": "{{player_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Leave a game session"
+                    }
+                },
+                {
+                    "name": "Start Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has active game session', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.expect(response.status).to.equal('active');",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/start",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}",
+                                "start"
+                            ]
+                        },
+                        "description": "Start a game session when enough players have joined"
+                    }
+                },
+                {
+                    "name": "Update Game Session",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has updated game session', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.expect(response.status).to.equal('active');",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"game_session\": {\n        \"status\": \"active\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}"
+                            ]
+                        },
+                        "description": "Update a game session's status"
                     }
                 },
                 {
                     "name": "Cleanup Unused Games",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Log the cleanup date for debugging",
+                                    "const cleanupDate = pm.variables.replaceIn('{{$datetime iso8601 -1 d}}');",
+                                    "console.log('Cleaning up games created before:', cleanupDate);"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has message and count', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('message');",
+                                    "    pm.expect(response).to.have.property('deleted_count');",
+                                    "    pm.expect(response.deleted_count).to.be.a('number');",
+                                    "});"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -249,38 +491,7 @@
                                 "cleanup"
                             ]
                         },
-                        "description": "Delete unused game sessions created before the specified date",
-                        "event": [
-                            {
-                                "listen": "prerequest",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "// Log the cleanup date for debugging",
-                                        "const cleanupDate = pm.variables.replaceIn('{{$datetime iso8601 -1 d}}');",
-                                        "console.log('Cleaning up games created before:', cleanupDate);"
-                                    ]
-                                }
-                            },
-                            {
-                                "listen": "test",
-                                "script": {
-                                    "type": "text/javascript",
-                                    "exec": [
-                                        "pm.test('Status code is 200', function () {",
-                                        "    pm.response.to.have.status(200);",
-                                        "});",
-                                        "",
-                                        "pm.test('Response has message and count', function () {",
-                                        "    const response = pm.response.json();",
-                                        "    pm.expect(response).to.have.property('message');",
-                                        "    pm.expect(response).to.have.property('deleted_count');",
-                                        "    pm.expect(response.deleted_count).to.be.a('number');",
-                                        "});"
-                                    ]
-                                }
-                            }
-                        ]
+                        "description": "Delete unused game sessions created before the specified date"
                     }
                 }
             ]
