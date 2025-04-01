@@ -1,6 +1,11 @@
 Rails.application.routes.draw do
   devise_for :users
   root "game_sessions#index"
+  
+  # Web player registration
+  resources :users, only: [:new, :create]
+  resources :players, only: [:new, :create]
+  
   resources :game_sessions do
     member do
       post :join
@@ -13,6 +18,7 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     post 'login', to: 'sessions#create'
+    resources :players, only: [:create]
     
     resources :game_sessions, only: [:index, :create, :show, :update, :destroy] do
       member do

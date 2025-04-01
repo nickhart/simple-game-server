@@ -14,6 +14,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_01_182802) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
+  create_table "applications", force: :cascade do |t|
+    t.string "name"
+    t.string "api_key"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_applications_on_active"
+    t.index ["api_key"], name: "index_applications_on_api_key", unique: true
+  end
+
   create_table "game_players", force: :cascade do |t|
     t.integer "game_session_id", null: false
     t.integer "player_id", null: false

@@ -141,3 +141,6 @@ docker-compose.override.yml
 
 # Ignore Heroku files
 *.heroku
+
+# Ignore API key config
+examples/tic_tac_toe/config.rb
