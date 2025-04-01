@@ -86,7 +86,9 @@ class GameClient
       data = JSON.parse(response.body)
       @game_session_id = data['id']
       puts "Created game session: #{@game_session_id}"
-      true
+      
+      # Automatically join the game we just created
+      join_game_session(@game_session_id)
     else
       error_message = extract_error_message(response.body)
       puts "Failed to create game session: #{error_message}"

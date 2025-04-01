@@ -11,9 +11,9 @@ class Board
 
   def display
     puts "\n"
-    @board.each_slice(3).with_index do |row, i|
-      puts " #{row.map { |cell| cell || (i * 3 + row.index(cell) + 1) }.join(' | ')} "
-      puts "-----------" unless i == 2
+    @board.each_slice(3).with_index do |row, row_index|
+      puts " #{row.map.with_index { |cell, col_index| cell || (row_index * 3 + col_index + 1) }.join(' | ')} "
+      puts "-----------" unless row_index == 2
     end
     puts "\n"
   end

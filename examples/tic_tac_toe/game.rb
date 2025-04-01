@@ -31,19 +31,19 @@ class Game
     end
   end
 
-  private
-
   def login
     if @email && @password
       @client.login(@email, @password)
     else
       print "Email: "
-      email = gets.chomp
+      email = STDIN.gets.chomp
       print "Password: "
-      password = gets.chomp
+      password = STDIN.gets.chomp
       @client.login(email, password)
     end
   end
+
+  private
 
   def show_menu
     puts "\n=== Tic Tac Toe ==="
@@ -53,7 +53,7 @@ class Game
     puts "4. Register new player"
     puts "5. Exit"
     print "\nChoice: "
-    gets.chomp
+    STDIN.gets.chomp
   end
 
   def create_new_game
@@ -78,7 +78,7 @@ class Game
     end
 
     print "\nEnter game ID to join: "
-    game_id = gets.chomp.to_i
+    game_id = STDIN.gets.chomp.to_i
 
     if @client.join_game_session(game_id)
       wait_for_opponent
@@ -86,25 +86,34 @@ class Game
   end
 
   def wait_for_opponent
+    puts "\nWaiting for opponent to join..."
     loop do
       session = @client.get_game_session
       break unless session
 
-      if session['status'] == 'active'
+      case session['status']
+      when 'active'
+        puts "\nGame is starting!"
         play_game(session)
         break
-      end
-
-      # If we have enough players and we're the creator, start the game
-      if session['status'] == 'waiting' && session['players'].size >= 2
-        if @client.start_game
-          play_game(session)
-          break
+      when 'waiting'
+        if session['players'].size >= 2
+          puts "\nBoth players have joined! Starting game..."
+          if @client.start_game
+            play_game(session)
+            break
+          else
+            puts "Failed to start game. Please try again."
+            break
+          end
+        else
+          print "\rWaiting for opponent... (#{session['players'].size}/2 players) (Press Ctrl+C to cancel)"
+          sleep 2
         end
+      else
+        puts "\nUnexpected game status: #{session['status']}"
+        break
       end
-
-      puts "Waiting for opponent... (Press Ctrl+C to cancel)"
-      sleep 2
     end
   end
 
@@ -119,7 +128,7 @@ class Game
     loop do
       @board.display
       print "Enter position (1-9): "
-      position = gets.chomp.to_i
+      position = STDIN.gets.chomp.to_i
 
       if @board.make_move(position, current_player['name'])
         @board.display
@@ -146,11 +155,11 @@ class Game
 
   def register_new_player
     print "Email: "
-    email = gets.chomp
+    email = STDIN.gets.chomp
     print "Password: "
-    password = gets.chomp
+    password = STDIN.gets.chomp
     print "Confirm Password: "
-    confirm_password = gets.chomp
+    confirm_password = STDIN.gets.chomp
 
     if password != confirm_password
       puts "Passwords don't match!"
@@ -165,41 +174,124 @@ class Game
 end
 
 # Parse command line arguments
-if ARGV[0] == '--register'
-  if ARGV.length != 3
-    puts "Usage: ruby game.rb --register email password"
-    exit 1
-  end
-  email = ARGV[1]
-  password = ARGV[2]
-  
-  # Create a new client and attempt to register
-  client = GameClient.new
-  
-  # First try to login to get a token
-  if client.login(email, password)
-    puts "Player already exists. Please use:"
-    puts "ruby game.rb #{email} #{password}"
+if ARGV.any?
+  case ARGV[0]
+  when '--help', '-h'
+    puts <<~HELP
+      Tic Tac Toe Game Client
+      Usage: ruby game.rb [options] [arguments]
+
+      Options:
+        --help, -h           Show this help message
+        --register           Register a new player
+        --login             Login with existing credentials
+        --create            Create a new game session
+        --join <session_id> Join an existing game session
+        --list              List available game sessions
+        --leave             Leave current game session
+
+      Examples:
+        ruby game.rb --register email@example.com password
+        ruby game.rb --login email@example.com password
+        ruby game.rb --create
+        ruby game.rb --join 123
+        ruby game.rb --list
+        ruby game.rb --leave
+    HELP
     exit 0
-  end
-  
-  # If login failed, try to register
-  if client.register(email, password)
-    puts "Registration successful! You can now log in with:"
-    puts "ruby game.rb #{email} #{password}"
+  when '--register'
+    if ARGV.length != 3
+      puts "Error: --register requires email and password arguments"
+      puts "Usage: ruby game.rb --register email@example.com password"
+      exit 1
+    end
+    email = ARGV[1]
+    password = ARGV[2]
+    game = Game.new
+    if game.register_new_player(email, password)
+      puts "Registration successful! You can now log in."
+      game.login
+    end
+    exit 0
+  when '--login'
+    if ARGV.length != 3
+      puts "Error: --login requires email and password arguments"
+      puts "Usage: ruby game.rb --login email@example.com password"
+      exit 1
+    end
+    email = ARGV[1]
+    password = ARGV[2]
+    game = Game.new(email, password)
+    if game.login
+      puts "Login successful! Starting game..."
+      game.start
+    else
+      puts "Login failed. Please check your credentials."
+      exit 1
+    end
+    exit 0
+  when '--create'
+    game = Game.new
+    if game.login
+      game.create_new_game
+    else
+      puts "Please login first."
+      exit 1
+    end
+    exit 0
+  when '--join'
+    if ARGV.length != 2
+      puts "Error: --join requires a session ID"
+      puts "Usage: ruby game.rb --join <session_id>"
+      exit 1
+    end
+    game = Game.new
+    if game.login
+      game.join_existing_game
+    else
+      puts "Please login first."
+      exit 1
+    end
+    exit 0
+  when '--list'
+    game = Game.new
+    if game.login
+      sessions = game.client.list_game_sessions
+      waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
+      
+      if waiting_sessions.empty?
+        puts "No waiting games found."
+        exit 0
+      end
+
+      puts "\nAvailable games:"
+      waiting_sessions.each do |session|
+        puts "ID: #{session['id']} - Players: #{session['players'].size}/2"
+      end
+    else
+      puts "Please login first."
+      exit 1
+    end
+    exit 0
+  when '--leave'
+    game = Game.new
+    if game.login
+      game.leave_current_game
+    else
+      puts "Please login first."
+      exit 1
+    end
+    exit 0
   else
-    puts "Registration failed. Please try again."
+    puts "Error: Unknown command '#{ARGV[0]}'"
+    puts "Run 'ruby game.rb --help' for usage information"
     exit 1
   end
-  exit 0
-else
-  email = ARGV[0]
-  password = ARGV[1]
 end
 
-# Start the game
+# Start the game if no arguments provided
 begin
-  Game.new(email, password).start
+  Game.new.start
 rescue Interrupt
   puts "\nGame interrupted. Goodbye!"
 end 
