@@ -1,6 +1,24 @@
 Rails.application.routes.draw do
+  devise_for :users
   root "game_sessions#index"
-  resources :game_sessions
+  resources :game_sessions do
+    member do
+      post :join
+    end
+  end
+
+  # Add cleanup endpoint
+  post 'game_sessions/cleanup', to: 'game_sessions#cleanup'
+
+  # API routes
+  namespace :api do
+    post 'login', to: 'sessions#create'
+    
+    resources :game_sessions, only: [:index, :create, :show, :update, :destroy] do
+      post 'cleanup', on: :collection
+    end
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

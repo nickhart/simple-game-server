@@ -1,182 +1,167 @@
 # SimpleGameServer Architecture
 
-This document outlines the architectural decisions and design patterns used in the SimpleGameServer project.
-
 ## Overview
 
-SimpleGameServer is built as a Ruby on Rails application that provides a foundation for turn-based games. The architecture focuses on flexibility and extensibility, allowing for various game types to be implemented while maintaining core game session management functionality.
+SimpleGameServer is a Ruby on Rails application that provides a REST API for managing multiplayer games. The server is designed to be extensible, currently supporting TicTacToe with the ability to add more game types in the future. In addition to the API, it includes a web-based management interface for monitoring and managing game sessions.
 
-## Core Models
+## Project Structure
 
-### GameSession
-
-The central model that represents an instance of a game. It manages:
-
-- Player limits (min and max players)
-- Game state (waiting, active, finished)
-- Turn progression
-- Player participation
-
-```ruby
-class GameSession
-  # Associations
-  has_many :game_players
-  has_many :players, through: :game_players
-
-  # States
-  enum status: { waiting: 0, active: 1, finished: 2 }
+```
+simple_game_server/
+├── app/                    # Application code
+│   ├── models/            # Data models and business logic
+│   ├── controllers/       # API endpoints and request handling
+│   ├── views/            # Web interface templates for game management
+│   ├── javascript/       # Client-side JavaScript for web interface
+│   └── assets/           # Static assets and styling for web interface
+├── config/               # Rails configuration files
+├── db/                   # Database migrations and schema
+├── test/                # Test suite
+├── public/              # Public static files
+├── API.md               # API documentation
+└── openapi.yaml         # OpenAPI/Swagger specification
 ```
 
-Key responsibilities:
-- Enforcing player limits
-- Managing game state transitions
-- Coordinating turn progression
-- Validating game rules
+## Core Components
 
-### Player
+### Models
 
-Represents a participant in the game system. Features:
-- Can participate in multiple games
-- Maintains player identity
-- Links to game sessions through GamePlayer join model
+#### GameSession
+`app/models/game_session.rb`
+- Central model for managing game state
+- Handles game logic, turn management, and win conditions
+- Supports different game types (currently TicTacToe)
+- Key attributes:
+  - `game_type`: Type of game (e.g., "tictactoe")
+  - `status`: Current game state (waiting, in_progress, completed)
+  - `board`: Game board state
+  - `current_player_index`: Index of the current player's turn
+  - `winner_id`: ID of the winning player (if game is completed)
 
-### GamePlayer (Join Model)
+#### Player
+`app/models/player.rb`
+- Represents a player in the system
+- Can participate in multiple game sessions
+- Connected to game sessions through GamePlayer join model
 
-Manages the many-to-many relationship between games and players:
-- Tracks player participation in specific games
-- Prevents duplicate player entries in the same game
-- Handles clean-up when players leave games
+#### GamePlayer
+`app/models/game_player.rb`
+- Join model connecting Players and GameSessions
+- Tracks player-specific game information
+- Manages player order and game piece assignments
 
-## State Management
+### Controllers
 
-### Game States
+#### GameSessionsController
+`app/controllers/game_sessions_controller.rb`
+- Handles all game-related API endpoints
+- Key actions:
+  - `index`: List all game sessions
+  - `show`: Get details of a specific game
+  - `create`: Start a new game
+  - `join`: Join an existing game
+  - `move`: Make a move in the game
+  - `cleanup`: Remove unused game sessions
 
-1. **Waiting**
-   - Initial state for new games
-   - Players can join
-   - Game can't start until minimum players reached
-   - Default state on creation
+#### ApplicationController
+`app/controllers/application_controller.rb`
+- Base controller providing shared functionality
+- Handles authentication and error responses
 
-2. **Active**
-   - Game is in progress
-   - Turn management is active
-   - No new players can join
-   - Player count must be within limits
+### Web Interface
 
-3. **Finished**
-   - Game is complete
-   - No further actions allowed
-   - Historical record maintained
+The application includes a web-based management interface for monitoring and managing game sessions:
 
-### Turn Management
+#### Views (`app/views/`)
+- `game_sessions/index.html.erb`: List of all game sessions
+- `game_sessions/show.html.erb`: Detailed view of a game session
+- `game_sessions/new.html.erb`: Form for creating new game sessions
+- `layouts/application.html.erb`: Main application layout
 
-Turn progression is handled through:
-- `current_player_index` tracking
-- Circular player rotation
-- Automatic index updates
-- Creation timestamp-based player ordering
+#### JavaScript (`app/javascript/`)
+- `application.js`: Main JavaScript entry point
+- `controllers/`: Stimulus controllers for interactive features
+  - `application.js`: Base Stimulus controller setup
+  - `hello_controller.js`: Example controller (can be removed)
+  - `index.js`: Controller registration
 
-## Validation Layer
-
-### Game Session Validations
-
-```ruby
-validates :min_players, presence: true
-validates :max_players, presence: true
-validates :min_players, numericality: { greater_than: 0, only_integer: true }
-validates :max_players, numericality: { greater_than_or_equal_to: :min_players }
-```
-
-Additional custom validations:
-- Player count limits
-- State transition rules
-- Turn progression constraints
+#### Assets (`app/assets/`)
+- Stylesheets and other static assets for the web interface
+- Currently using Bootstrap for styling
 
 ## Database Schema
 
-### Core Tables
+### game_sessions
+- `id`: Primary key
+- `game_type`: string
+- `status`: string
+- `board`: jsonb
+- `current_player_index`: integer
+- `winner_id`: integer (foreign key to players)
+- timestamps
 
-```sql
-create_table "game_sessions" do |t|
-  t.integer "status"
-  t.integer "min_players"
-  t.integer "max_players"
-  t.integer "current_player_index"
-  t.timestamps
-end
+### players
+- `id`: Primary key
+- `name`: string
+- timestamps
 
-create_table "players" do |t|
-  t.string "name"
-  t.timestamps
-end
+### game_players
+- `id`: Primary key
+- `game_session_id`: integer (foreign key)
+- `player_id`: integer (foreign key)
+- timestamps
 
-create_table "game_players" do |t|
-  t.references "game_session"
-  t.references "player"
-  t.timestamps
-end
+## API Documentation
+
+The API is documented in two formats:
+1. `API.md`: Markdown documentation with examples and explanations
+2. `openapi.yaml`: OpenAPI/Swagger specification for automated tooling
+
+## Testing
+
+The test suite is organized into:
+- Unit tests for models
+- Integration tests for controllers
+- System tests for end-to-end scenarios
+
+Tests can be run using:
+```bash
+bin/rails test
 ```
 
-## Testing Strategy
+## Development Setup
 
-The project employs a comprehensive testing approach:
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   bundle install
+   ```
+3. Set up the database:
+   ```bash
+   bin/rails db:setup
+   ```
+4. Start the server:
+   ```bash
+   bin/rails server
+   ```
 
-1. **Unit Tests**
-   - Model validations
-   - Business logic
-   - State transitions
-   - Turn management
+## Security
 
-2. **Integration Tests**
-   - Player interactions
-   - Game flow
-   - State changes
-
-3. **Controller Tests**
-   - API endpoints
-   - Request/response cycles
-   - Error handling
+Security measures are documented in `SECURITY.md`, including:
+- Authentication requirements
+- Rate limiting
+- Input validation
+- CSRF protection
 
 ## Future Considerations
 
-1. **Scalability**
-   - Potential for background job processing
-   - Caching strategies for active games
-   - Database optimization for large player counts
-
-2. **Feature Extensions**
-   - Real-time updates via ActionCable
-   - Game type specialization
-   - Player authentication/authorization
-   - Game history and statistics
-
-3. **API Evolution**
-   - Versioning strategy
-   - Documentation automation
-   - Client SDK development
-
-## Security Considerations
-
-1. **Data Protection**
-   - Validation of game state changes
-   - Player action authorization
-   - Rate limiting for game actions
-
-2. **Access Control**
-   - Game session ownership
-   - Player verification
-   - State transition guards
-
-## Development Guidelines
-
-1. **Code Organization**
-   - Follow Rails conventions
-   - Keep models focused and single-responsibility
-   - Use service objects for complex game logic
-   - Maintain comprehensive test coverage
-
-2. **Best Practices**
-   - Write descriptive commit messages
-   - Document public interfaces
-   - Follow Ruby style guide
-   - Regular security updates 
+1. Support for additional game types
+2. Real-time updates for game state changes
+3. Player statistics and leaderboards
+4. Game replay functionality
+5. AI opponents
+6. Enhanced web interface features:
+   - Real-time game viewing
+   - Player management dashboard
+   - Game analytics and statistics
+   - Custom game type configuration 

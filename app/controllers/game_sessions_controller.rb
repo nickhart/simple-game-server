@@ -35,6 +35,23 @@ class GameSessionsController < ApplicationController
     render :new, status: :unprocessable_entity
   end
 
+  def cleanup
+    cutoff_date = Time.parse(params[:before])
+    
+    # Find and delete games that:
+    # 1. Are older than the cutoff date
+    # 2. Have no players (haven't been joined)
+    # 3. Are in 'waiting' status
+    deleted_count = GameSession.where('created_at < ? AND players_count = 0 AND status = ?', 
+                                    cutoff_date, 
+                                    'waiting').destroy_all.count
+
+    render json: { 
+      message: "Deleted #{deleted_count} unused game sessions created before #{cutoff_date}",
+      deleted_count: deleted_count
+    }
+  end
+
   private
 
   def game_session_params

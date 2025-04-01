@@ -23,5 +23,12 @@ module SimpleGameServer
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Disable CSRF protection for API requests
+    config.action_controller.forgery_protection_origin_check = false
+    config.middleware.use ActionDispatch::Flash
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore
+    config.middleware.use ActionDispatch::ContentSecurityPolicy::Middleware
   end
 end

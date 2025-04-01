@@ -140,6 +140,37 @@ POST /game_sessions/:id/move
 }
 ```
 
+#### Cleanup Unused Game Sessions
+```http
+POST /game_sessions/cleanup
+```
+
+**Request Body**
+```json
+{
+  "before": "2024-03-26T00:00:00Z"
+}
+```
+
+**Response**
+```json
+{
+  "message": "Deleted 5 unused game sessions created before 2024-03-26T00:00:00Z",
+  "deleted_count": 5
+}
+```
+
+**Description**
+Deletes all game sessions that:
+- Were created before the specified date
+- Have no players (haven't been joined)
+- Are in 'waiting' status
+
+**Status Codes**
+- `200 OK`: Cleanup completed successfully
+- `400 Bad Request`: Invalid date format
+- `422 Unprocessable Entity`: Date is in the future
+
 ## Game Rules
 
 ### TicTacToe
