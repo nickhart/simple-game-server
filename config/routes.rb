@@ -25,6 +25,7 @@ Rails.application.routes.draw do
         post :join
         delete :leave
         post :start
+        post :update_game_state
       end
       post 'cleanup', on: :collection
     end

@@ -1,21 +1,35 @@
 class Board
+  attr_reader :board
+
   WINNING_COMBINATIONS = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], # Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], # Columns
-    [0, 4, 8], [2, 4, 6]             # Diagonals
+    [ 0, 1, 2 ], [ 3, 4, 5 ], [ 6, 7, 8 ], # Rows
+    [ 0, 3, 6 ], [ 1, 4, 7 ], [ 2, 5, 8 ], # Columns
+    [ 0, 4, 8 ], [ 2, 4, 6 ]             # Diagonals
   ]
 
-  def initialize
-    @board = Array.new(9) { nil }
+  def initialize(initial_state = nil)
+    @board = if initial_state
+      initial_state.map { |cell| cell.nil? ? nil : cell.to_i }
+    else
+      Array.new(9) { nil }
+    end
   end
 
   def display
-    puts "\n"
-    @board.each_slice(3).with_index do |row, row_index|
-      puts " #{row.map.with_index { |cell, col_index| cell || (row_index * 3 + col_index + 1) }.join(' | ')} "
-      puts "-----------" unless row_index == 2
+    puts "\nCurrent board state:"
+    @board.each_slice(3).each_with_index do |row, i|
+      row_display = row.map.with_index do |cell, j|
+        position = (i * 3) + j + 1
+        if cell.nil?
+          position.to_s
+        else
+          cell == 0 ? 'X' : 'O'
+        end
+      end.join(' | ')
+      puts row_display
+      puts '-----------' unless i == 2
     end
-    puts "\n"
+    puts
   end
 
   def make_move(position, player)
@@ -27,10 +41,24 @@ class Board
   end
 
   def winner
-    WINNING_COMBINATIONS.each do |combo|
-      values = combo.map { |i| @board[i] }
-      return values[0] if values.uniq.size == 1 && values[0]
+    # Check rows
+    @board.each_slice(3) do |row|
+      return row[0] if row.uniq.size == 1 && !row[0].nil?
     end
+
+    # Check columns
+    3.times do |col|
+      column = [@board[col], @board[col + 3], @board[col + 6]]
+      return column[0] if column.uniq.size == 1 && !column[0].nil?
+    end
+
+    # Check diagonals
+    diagonal1 = [@board[0], @board[4], @board[8]]
+    return diagonal1[0] if diagonal1.uniq.size == 1 && !diagonal1[0].nil?
+
+    diagonal2 = [@board[2], @board[4], @board[6]]
+    return diagonal2[0] if diagonal2.uniq.size == 1 && !diagonal2[0].nil?
+
     nil
   end
 
@@ -48,7 +76,15 @@ class Board
 
   def self.from_s(string)
     board = new
-    board.instance_variable_set(:@board, string.split(',').map { |c| c == '' ? nil : c })
+    board.instance_variable_set(:@board, string.split(',').map { |cell| cell == 'nil' ? nil : cell.to_i })
     board
   end
-end 
+
+  def [](index)
+    @board[index]
+  end
+
+  def []=(index, value)
+    @board[index] = value
+  end
+end

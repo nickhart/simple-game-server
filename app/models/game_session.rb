@@ -2,41 +2,107 @@
 # It manages the lifecycle of a game from waiting for players to join,
 # through active gameplay with turn management, to game completion.
 class GameSession < ApplicationRecord
-  has_many :game_players, dependent: :destroy
-  has_many :players, through: :game_players
+  has_many :players, dependent: :destroy
+  has_many :users, through: :players
 
+  enum :status, { waiting: 0, active: 1, finished: 2 }
+
+  validates :status, presence: true
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
-  validates :status, presence: true
-  validate :max_players_must_be_greater_than_min_players
-  validate :validate_state_transition, if: :status_changed?
+  validate :max_players_greater_than_min_players
+  validate :valid_status_transition
 
-  enum :status, [ :waiting, :active, :finished ]
+  before_validation :set_defaults
 
-  before_save :initialize_current_player_index, if: :becoming_active?
-
-  def add_player(player)
+  def add_player(user)
     return false if active? || finished?
-    return false if game_players.count >= max_players
-    game_players.create(player: player)
+    return false if players.count >= max_players
+    players.create(user: user)
   end
 
-  def start_game
-    return false unless can_start?
-    self.status = :active
-    save
+  def current_player
+    return nil if players.empty?
+    players[current_player_index]
   end
 
   def advance_turn
     return false unless active?
-
-    next_index = (current_player_index + 1) % players.count
-    update(current_player_index: next_index)
+    Rails.logger.info "Advancing turn in game session #{id}"
+    Rails.logger.info "Current player index: #{current_player_index}"
+    Rails.logger.info "Current state: #{state}"
+    
+    # Update the state JSON with the new player index
+    self.state['current_player_index'] = (current_player_index + 1) % players.count
+    self.current_player_index = self.state['current_player_index']
+    
+    if save
+      Rails.logger.info "Turn advanced successfully"
+      Rails.logger.info "New player index: #{current_player_index}"
+      Rails.logger.info "New state: #{state}"
+      true
+    else
+      Rails.logger.error "Failed to advance turn: #{errors.full_messages.join(', ')}"
+      false
+    end
   end
 
-  def current_player
-    return nil unless active?
-    players.order(:created_at)[current_player_index]
+  def waiting?
+    status == 'waiting'
+  end
+
+  def active?
+    status == 'active'
+  end
+
+  def finished?
+    status == 'finished'
+  end
+
+  def start(player_id)
+    Rails.logger.info "Starting game session #{id} with player #{player_id}"
+    Rails.logger.info "Current status: #{status}"
+    Rails.logger.info "Player count: #{players.count}"
+    Rails.logger.info "Min players: #{min_players}"
+    Rails.logger.info "Max players: #{max_players}"
+    Rails.logger.info "Current state: #{state}"
+
+    unless waiting?
+      Rails.logger.info "Game is not in waiting status"
+      return false
+    end
+
+    if players.count < min_players || players.count > max_players
+      Rails.logger.info "Invalid player count: #{players.count} (min: #{min_players}, max: #{max_players})"
+      return false
+    end
+
+    player = players.find_by(id: player_id)
+    unless player
+      Rails.logger.info "Player #{player_id} not found in game"
+      return false
+    end
+
+    Rails.logger.info "All conditions met, starting game"
+    self.status = :active
+    self.current_player_index = players.to_a.index(player)
+    
+    # Initialize the game state as JSON
+    self.state = {
+      board: Array.new(9) { nil },
+      current_player_index: current_player_index,
+      last_move: nil
+    }
+    
+    if save
+      Rails.logger.info "Game started successfully"
+      Rails.logger.info "Initial player index: #{current_player_index}"
+      Rails.logger.info "Initial state: #{state}"
+      true
+    else
+      Rails.logger.info "Failed to save game: #{errors.full_messages.join(', ')}"
+      false
+    end
   end
 
   def finish_game
@@ -47,44 +113,36 @@ class GameSession < ApplicationRecord
 
   private
 
-  def max_players_must_be_greater_than_min_players
-    return unless min_players.present? && max_players.present?
+  def set_defaults
+    self.status ||= :waiting
+    self.min_players ||= 2
+    self.max_players ||= 2
+    self.state ||= {}
+  end
+
+  def max_players_greater_than_min_players
     if max_players < min_players
-      errors.add(:max_players, "must be greater than or equal to min players")
+      errors.add(:max_players, "must be greater than or equal to min_players")
     end
   end
 
-  def validate_state_transition
-    return if status.nil? # Let presence validation handle nil status
-    return unless status_was # Allow setting initial status
+  def valid_status_transition
+    return unless status_changed?
+    
+    Rails.logger.info "Validating status transition from #{status_was} to #{status}"
+    
+    valid_transitions = {
+      'waiting' => ['active'],
+      'active' => ['finished'],
+      'finished' => ['waiting']
+    }
 
-    case status_was.to_sym
-    when :waiting
-      if active?
-        if game_players.count < min_players
-          errors.add(:status, "cannot transition to active with insufficient players")
-        end
-      else
-        errors.add(:status, "can only transition from waiting to active")
-      end
-    when :active
-      unless finished?
-        errors.add(:status, "can only transition from active to finished")
-      end
-    when :finished
-      errors.add(:status, "cannot transition from finished state")
+    unless valid_transitions[status_was]&.include?(status)
+      Rails.logger.info "Invalid transition: from #{status_was} to #{status}"
+      Rails.logger.info "Valid transitions for #{status_was}: #{valid_transitions[status_was]}"
+      errors.add(:status, "cannot transition from #{status_was} to #{status}")
+    else
+      Rails.logger.info "Valid transition: from #{status_was} to #{status}"
     end
-  end
-
-  def can_start?
-    waiting? && game_players.count >= min_players
-  end
-
-  def becoming_active?
-    status_changed? && active?
-  end
-
-  def initialize_current_player_index
-    self.current_player_index = 0
   end
 end

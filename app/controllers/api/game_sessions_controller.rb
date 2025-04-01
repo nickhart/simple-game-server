@@ -16,6 +16,10 @@ module Api
 
     def show
       @game_session = GameSession.find(params[:id])
+      Rails.logger.info "GET /api/game_sessions/#{params[:id]}"
+      Rails.logger.info "Game session state: #{@game_session.state}"
+      Rails.logger.info "Current player index: #{@game_session.current_player_index}"
+      Rails.logger.info "Players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
       render json: @game_session.as_json(include: { players: { only: [:id, :name] } })
     end
 
@@ -36,27 +40,23 @@ module Api
 
     def join
       @game_session = GameSession.find(params[:id])
-      
-      # Check if game is in waiting state
-      unless @game_session.waiting?
-        render json: { error: "Game session is not available to join" }, status: :unprocessable_entity
+
+      if @game_session.active? || @game_session.finished?
+        render json: { error: "Cannot join a game that is already #{@game_session.status}" }, status: :unprocessable_entity
         return
       end
 
-      # Create a new player
-      @player = Player.new(player_params)
-      
-      if @player.save
-        # Associate player with game session
-        if @game_session.add_player(@player)
-          render json: @player, status: :created
-        else
-          @player.destroy
-          render json: { error: "Could not add player to game session" }, status: :unprocessable_entity
-        end
-      else
-        render json: @player.errors, status: :unprocessable_entity
+      if @game_session.players.count >= @game_session.max_players
+        render json: { error: "Game is full" }, status: :unprocessable_entity
+        return
       end
+
+      player = @game_session.players.create!(
+        user: current_user,
+        name: "Player #{@game_session.players.count + 1}"
+      )
+
+      render json: @game_session.as_json(include: { players: { only: [:id, :name] } })
     end
 
     def leave
@@ -85,25 +85,14 @@ module Api
 
     def start
       @game_session = GameSession.find(params[:id])
-      
-      # Check if game is in waiting state
-      unless @game_session.waiting?
-        render json: { error: "Game can only be started when in waiting state" }, status: :unprocessable_entity
+      player_id = params[:player_id]
+
+      unless player_id
+        render json: { error: "player_id is required" }, status: :unprocessable_entity
         return
       end
 
-      # Check if we have enough players
-      if @game_session.players.count < @game_session.min_players
-        render json: { 
-          error: "Not enough players to start game",
-          current_players: @game_session.players.count,
-          min_players: @game_session.min_players
-        }, status: :unprocessable_entity
-        return
-      end
-
-      # Start the game
-      if @game_session.start_game
+      if @game_session.start(player_id)
         render json: @game_session.as_json(include: { players: { only: [:id, :name] } })
       else
         render json: { error: "Could not start game" }, status: :unprocessable_entity
@@ -129,10 +118,39 @@ module Api
       end
     end
 
+    def update_game_state
+      @game_session = GameSession.find(params[:id])
+      Rails.logger.info "PATCH /api/game_sessions/#{params[:id]}/update_game_state"
+      Rails.logger.info "Request params: #{params}"
+      Rails.logger.info "Current game state: #{@game_session.state}"
+      Rails.logger.info "Current player index: #{@game_session.current_player_index}"
+      
+      # Check if it's the player's turn
+      unless @game_session.current_player.id == params[:player_id]
+        Rails.logger.info "Not player's turn. Current player: #{@game_session.current_player.id}, Requested player: #{params[:player_id]}"
+        render json: { error: "It's not your turn" }, status: :unprocessable_entity
+        return
+      end
+
+      # Update the game state
+      @game_session.state = params[:state]
+      Rails.logger.info "Updated game state: #{@game_session.state}"
+
+      # Advance to next player's turn
+      if @game_session.advance_turn
+        Rails.logger.info "Turn advanced successfully"
+        Rails.logger.info "New current player index: #{@game_session.current_player_index}"
+        render json: @game_session.as_json(include: { players: { only: [:id, :name] } })
+      else
+        Rails.logger.error "Failed to advance turn"
+        render json: { error: "Could not advance turn" }, status: :unprocessable_entity
+      end
+    end
+
     private
 
     def game_session_params
-      params.require(:game_session).permit(:status)
+      params.require(:game_session).permit(:status, :min_players, :max_players)
     end
 
     def player_params
