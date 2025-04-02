@@ -54,6 +54,9 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
+  
+  # Testing framework for Ruby
+  gem "rspec-rails"
 end
 
 group :development do
@@ -74,4 +77,6 @@ group :test do
   gem "selenium-webdriver"
   gem "simplecov", require: false
   gem "simplecov-cobertura", require: false # For CodeClimate compatibility
+  gem "database_cleaner-active_record"
+  gem "factory_bot_rails"
 end
