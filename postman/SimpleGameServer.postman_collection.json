@@ -87,6 +87,43 @@
             "name": "Players",
             "item": [
                 {
+                    "name": "Get Current Player",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/players/current",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "players",
+                                "current"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const response = pm.response.json();",
+                                    "if (response && response.id) {",
+                                    "    pm.environment.set('player_id', response.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "Create Player",
                     "request": {
                         "method": "POST",
@@ -102,7 +139,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Test Player\",\n    \"email\": \"{{api_email}}\"\n}"
+                            "raw": "{\n    \"name\": \"Test Player\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/players",

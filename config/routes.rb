@@ -28,7 +28,11 @@ Rails.application.routes.draw do
     # Add custom sessions route
     post 'sessions', to: 'sessions#create'
 
-    resources :players, param: :id
+    resources :players, param: :id do
+      collection do
+        get :current
+      end
+    end
 
     resources :game_sessions do
       collection do

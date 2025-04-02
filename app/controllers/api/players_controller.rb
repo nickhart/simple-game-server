@@ -1,44 +1,56 @@
 module Api
   class PlayersController < ApplicationController
     skip_before_action :verify_authenticity_token
-    before_action :validate_api_key
+    before_action :authenticate_user!
+
+    def current
+      player = current_user.players.first
+      if player
+        render json: player
+      else
+        render json: { error: "No player found for current user" }, status: :not_found
+      end
+    end
 
     def create
-      @user = User.new(user_params)
+      @player = Player.new(
+        name: params[:name],
+        user: current_user
+      )
 
-      if @user.save
-        # Generate a JWT token for API authentication
-        token = generate_jwt_token(@user)
-        render json: {
-          user: @user.as_json(except: [:encrypted_password]),
-          token: token
-        }, status: :created
+      if @player.save
+        render json: @player, status: :created
       else
-        render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @player.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
+    def show
+      @player = Player.find_by(id: params[:id])
+      if @player
+        render json: @player
+      else
+        render json: { error: "Player not found" }, status: :not_found
       end
     end
 
     private
 
-    def user_params
-      params.expect(user: %i[email password password_confirmation])
-    end
+    def authenticate_user!
+      token = request.headers["Authorization"]&.split(" ")&.last
+      return render json: { error: "Missing token" }, status: :unauthorized unless token
 
-    def validate_api_key
-      api_key = request.headers["X-API-Key"]
-      unless api_key && Application.find_by(api_key: api_key)
-        render json: { error: "Invalid API key" }, status: :unauthorized
+      begin
+        decoded = JWT.decode(token, Rails.application.credentials.secret_key_base)
+        user_id = decoded[0]["sub"]
+        @current_user = User.find(user_id)
+      rescue JWT::DecodeError, ActiveRecord::RecordNotFound
+        render json: { error: "Invalid token" }, status: :unauthorized
       end
     end
 
-    def generate_jwt_token(user)
-      JWT.encode(
-        {
-          sub: user.id,
-          exp: 24.hours.from_now.to_i
-        },
-        Rails.application.credentials.secret_key_base
-      )
+    def current_user
+      @current_user
     end
   end
 end

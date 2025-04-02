@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_02_205044) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_02_220805) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -52,7 +52,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_205044) do
     t.datetime "updated_at", null: false
     t.bigint "game_session_id"
     t.bigint "user_id"
-    t.string "symbol"
     t.index ["game_session_id"], name: "index_players_on_game_session_id"
     t.index ["user_id"], name: "index_players_on_user_id"
   end
