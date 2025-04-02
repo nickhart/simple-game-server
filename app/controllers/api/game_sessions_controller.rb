@@ -1,5 +1,6 @@
 module Api
-  class GameSessionsController < ApplicationController
+  class GameSessionsController < BaseController
+    before_action :authenticate_user!
     before_action :set_game_session, except: [:index, :create]
     before_action :set_player, only: [:create, :join, :leave]
 
@@ -22,22 +23,20 @@ module Api
 
     def join
       return render json: { error: "Game is not in waiting status" }, status: :unprocessable_entity unless @game_session.waiting?
-      return render json: { error: "Player already in game" }, status: :unprocessable_entity if @game_session.players.include?(@player)
-      return render json: { error: "Game is full" }, status: :unprocessable_entity if @game_session.players.count >= @game_session.max_players
 
-      @game_session.players << @player
-      render json: @game_session, include: { players: { only: [:id, :name] } }
+      if @game_session.players.include?(@player)
+        render json: { error: "Player already in game" }, status: :unprocessable_entity
+      else
+        @game_session.players << @player
+        render json: @game_session, include: { players: { only: [:id, :name] } }
+      end
     end
 
     def leave
       return render json: { error: "Player not in game" }, status: :unprocessable_entity unless @game_session.players.include?(@player)
 
       @game_session.players.delete(@player)
-      
-      # If no players left, update game status to waiting
-      @game_session.update(status: :waiting) if @game_session.players.empty?
-      
-      render json: { message: "Successfully left the game" }
+      render json: { message: "Player left the game" }
     end
 
     private

@@ -211,7 +211,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"min_players\": 2,\n    \"max_players\": 4,\n    \"game_type\": \"tictactoe\",\n    \"player_id\": \"{{player_id}}\"\n}"
+                            "raw": "{\n    \"game_session\": {\n        \"min_players\": 2,\n        \"max_players\": 4\n    }\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/game_sessions/create/{{player_id}}",

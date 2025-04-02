@@ -1,6 +1,6 @@
 module Api
-  class SessionsController < ApplicationController
-    skip_before_action :verify_authenticity_token
+  class SessionsController < BaseController
+    skip_before_action :authenticate_user!
 
     def create
       user = User.find_by(email: params[:email])

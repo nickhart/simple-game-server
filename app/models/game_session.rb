@@ -7,10 +7,8 @@ class GameSession < ApplicationRecord
   has_many :users, through: :players
 
   enum :status, { waiting: 0, active: 1, finished: 2 }
-  enum :game_type, { tictactoe: 0, connect_four: 1 }
 
   validates :status, presence: true
-  validates :game_type, presence: true
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
   validates :creator_id, presence: true
