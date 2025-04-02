@@ -9,9 +9,7 @@ class Game
   ].freeze
 
   attr_reader :client, :board, :game_session_id
-
-  delegate :[], to: :board
-
+  
   def initialize(client = nil)
     @client = client || GameClient.new
     @board = Board.new
@@ -42,10 +40,8 @@ class Game
   end
 
   def create_new_game
-    response = @client.create_game_session
-    return false unless response
-
-    @game_session_id = response["id"]
+    return false unless @client.create_game_session
+    wait_for_opponent
     true
   end
 
@@ -57,7 +53,7 @@ class Game
     puts "\nGame started!"
     puts "You are playing as: #{current_player['name']}"
     puts "Your opponent is: #{opponent['name']}"
-    puts "You are #{current_player['name'] == session['creator']['name'] ? 'X' : 'O'}"
+    puts "You are #{players.index(current_player) == 0 ? 'X' : 'O'}"
 
     game_loop(session, players, current_player)
   end
@@ -110,32 +106,40 @@ class Game
     @client.join_game_session(game_id)
   end
 
-  def register_new_player
-    puts "\nEnter email:"
-    email = $stdin.gets.chomp
+  def register_new_player(email = nil, password = nil)
+    if email && password
+      @client.register(email, password)
+    else
+      puts "\nEnter email:"
+      email = $stdin.gets.chomp
 
-    puts "Enter password:"
-    password = $stdin.gets.chomp
+      puts "Enter password:"
+      password = $stdin.gets.chomp
 
-    puts "Confirm password:"
-    confirm_password = $stdin.gets.chomp
+      puts "Confirm password:"
+      confirm_password = $stdin.gets.chomp
 
-    if password != confirm_password
-      puts "Passwords do not match!"
-      return false
+      if password != confirm_password
+        puts "Passwords do not match!"
+        return false
+      end
+
+      @client.register(email, password)
     end
-
-    @client.register(email, password)
   end
 
-  def login
-    puts "\nEnter email:"
-    email = $stdin.gets.chomp
+  def login(email = nil, password = nil)
+    if email && password
+      @client.login(email, password)
+    else
+      puts "\nEnter email:"
+      email = $stdin.gets.chomp
 
-    puts "Enter password:"
-    password = $stdin.gets.chomp
+      puts "Enter password:"
+      password = $stdin.gets.chomp
 
-    @client.login(email, password)
+      @client.login(email, password)
+    end
   end
 
   private

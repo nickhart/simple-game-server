@@ -7,7 +7,9 @@ class Board
 
   attr_reader :board
 
-  delegate :[], to: :board
+  def [](index)
+    board[index]
+  end
 
   def initialize(board = nil)
     @board = board ? initialize_board(board) : Array.new(9, 0)
