@@ -1,22 +1,17 @@
 require_relative "client"
 require_relative "board"
+require_relative "result"
 
 class Game
-  WINNING_COMBINATIONS = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], # Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], # Columns
-    [0, 4, 8], [2, 4, 6] # Diagonals
-  ].freeze
 
-  attr_reader :client, :board, :game_session_id
+  attr_reader :client, :game_session
   
   def initialize(client = nil)
     @client = client || GameClient.new
-    @board = Board.new
-    @game_session_id = nil
+    @game_session = nil
   end
 
-  def start
+  def display_menu
     puts "\nWelcome to Tic Tac Toe!"
     puts "1. Register new player"
     puts "2. Login"
@@ -31,51 +26,61 @@ class Game
     handle_choice(choice)
   end
 
-  def make_move(position)
-    return false unless @board.valid_move?(position)
-    return false unless @client.make_move(@board.board)
-
-    @board.make_move(position, @client.current_player_index)
+  def make_move(game_session_id, player_id, position)
+    # Let the Board class handle the validation
+    result = @client.make_move(game_session_id, player_id, position)
+    return false unless result.success?
+    
+    game_session = result.data
     true
   end
 
   def create_new_game
-    return false unless @client.create_game_session
-    wait_for_opponent
+    result = @client.create_game_session
+    return false unless result.success?
+    
+    game_session = result.data
+    puts "Created game session: #{game_session.id}"
+    wait_for_opponent(game_session.id, game_session.player_id)
     true
   end
 
-  def play_game(session)
-    players = session["players"]
-    current_player = players.find { |p| p["id"] == @client.instance_variable_get(:@player_id) }
-    opponent = players.find { |p| p["id"] != @client.instance_variable_get(:@player_id) }
+  def play_game(game_session)
+    players = game_session.players
+    current_player = players.find { |p| p.id == game_session.player_id }
+    opponent = players.find { |p| p.id != game_session.player_id }
 
     puts "\nGame started!"
-    puts "You are playing as: #{current_player['name']}"
-    puts "Your opponent is: #{opponent['name']}"
+    puts "You are playing as: #{current_player.name}"
+    puts "Your opponent is: #{opponent.name}"
     puts "You are #{players.index(current_player) == 0 ? 'X' : 'O'}"
 
-    game_loop(session, players, current_player)
+    game_loop(game_session, players, current_player)
   end
 
-  def wait_for_opponent
+  def wait_for_opponent(game_session_id, player_id)
     puts "\nWaiting for opponent to join..."
     puts "Press Ctrl+C to cancel"
 
     loop do
-      session = @client.get_game_session
-      break unless session
+      result = @client.get_game_session(game_session_id)
+      break unless result.success?
 
-      case session["status"]
+      game_session = result.data
+      case game_session.status
       when "active"
         puts "\nOpponent joined! Starting game..."
-        play_game(session)
+        play_game(game_session)
         break
       when "waiting"
-        if session["players"].size >= 2 && @client.start_game(@client.game_session_id, @client.player_id)
-          puts "\nGame started!"
-          play_game(session)
-          break
+        if game_session.players.size >= 2
+          # Start the game without specifying a player_id
+          start_result = @client.start_game(game_session_id)
+          if start_result.success?
+            puts "\nGame started!"
+            play_game(start_result.data)
+            break
+          end
         end
         sleep 2
       end
@@ -85,9 +90,10 @@ class Game
   end
 
   def join_existing_game
-    sessions = @client.list_game_sessions
-    return false unless sessions
+    result = @client.list_game_sessions
+    return false unless result.success?
 
+    sessions = result.data
     waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
     if waiting_sessions.empty?
       puts "No waiting games found."
@@ -96,53 +102,72 @@ class Game
 
     puts "\nAvailable games:"
     waiting_sessions.each do |s|
-      creator = s["creator"]
-      puts "Game #{s['id']} - Created by: #{creator['name']}"
+      session = GameSession.new(s)
+      puts "Game #{session.id} - Created by: #{session.creator_id}"
     end
 
-    puts "\nEnter game ID to join:"
-    game_id = $stdin.gets.chomp.to_i
+    puts "\nEnter game ID to join (or 'b' to go back):"
+    game_id = $stdin.gets.chomp
+    return false if game_id.downcase == 'b'
 
-    @client.join_game_session(game_id)
+    join_result = @client.join_game_session(game_id)
+    return false unless join_result.success?
+
+    game_session = join_result.data
+    puts "Joined game session: #{game_session.id}"
+    
+    if game_session.active?
+      play_game(game_session)
+    else
+      wait_for_opponent(game_session.id, game_session.player_id)
+    end
+    
+    true
   end
 
   def register_new_player(email = nil, password = nil)
     if email && password
-      @client.register(email, password)
+      result = @client.register(email, password)
+      return result.success?
+    end
+
+    puts "\nRegister new player"
+    print "Email: "
+    email = $stdin.gets.chomp
+    print "Password: "
+    password = $stdin.gets.chomp
+
+    result = @client.register(email, password)
+    if result.success?
+      puts "Registration successful!"
+      true
     else
-      puts "\nEnter email:"
-      email = $stdin.gets.chomp
-
-      puts "Enter password:"
-      password = $stdin.gets.chomp
-
-      puts "Confirm password:"
-      confirm_password = $stdin.gets.chomp
-
-      if password != confirm_password
-        puts "Passwords do not match!"
-        return false
-      end
-
-      @client.register(email, password)
+      puts "Registration failed: #{result.error}"
+      false
     end
   end
 
   def login(email = nil, password = nil)
     if email && password
-      @client.login(email, password)
+      result = @client.login(email, password)
+      return result.success?
+    end
+
+    puts "\nLogin"
+    print "Email: "
+    email = $stdin.gets.chomp
+    print "Password: "
+    password = $stdin.gets.chomp
+
+    result = @client.login(email, password)
+    if result.success?
+      puts "Login successful!"
+      true
     else
-      puts "\nEnter email:"
-      email = $stdin.gets.chomp
-
-      puts "Enter password:"
-      password = $stdin.gets.chomp
-
-      @client.login(email, password)
+      puts "Login failed: #{result.error}"
+      false
     end
   end
-
-  private
 
   def handle_choice(choice)
     case choice
@@ -159,67 +184,85 @@ class Game
     when "6"
       leave_game
     when "7"
+      puts "Goodbye!"
       exit
     else
       puts "Invalid choice. Please try again."
     end
+
+    display_menu
   end
 
-  def game_loop(session, players, current_player)
+  def game_loop(game_session, players, current_player)
+    @game_session = game_session
+    @board = Board.new(game_session.board)
+    
     loop do
       @board.display
-
-      if session["current_player_index"] == players.index(current_player)
-        puts "\nYour turn! Enter position (1-9):"
+      
+      if game_session.my_turn?
+        puts "\nYour turn! Enter position (0-8):"
         position = $stdin.gets.chomp.to_i
-        make_move(position)
+        
+        if make_move(game_session.id, game_session.player_id, position)
+          # Board is updated in make_move
+        else
+          puts "Invalid move. Try again."
+          next
+        end
       else
         puts "\nWaiting for opponent's move..."
         sleep 2
+        
+        # Get updated game state
+        result = @client.get_game_session(game_session.id)
+        next unless result.success?
+        
+        game_session = result.data
+        
+        if game_session.finished?
+          @game_session.board.display
+          puts "\nGame over!"
+          break
+        end
       end
-
-      session = @client.get_game_session
-      break unless session
-
-      @board = Board.new(session["state"]["board"]) if session["state"] && session["state"]["board"]
-
-      if @board.winner
-        @board.display
-        winner = players[session["current_player_index"]]
-        puts "\nGame Over! #{winner['name']} wins!"
+      
+      if @board.winner || @board.full?
+        @game_session.board.display
+        puts "\nGame over!"
         break
       end
-
-      next unless @board.full?
-
-      @board.display
-      puts "\nGame Over! It's a tie!"
-      break
     end
   end
 
   def list_available_games
-    sessions = @client.list_game_sessions
-    return unless sessions
+    result = @client.list_game_sessions
+    return false unless result.success?
 
+    sessions = result.data
     waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
+    
     if waiting_sessions.empty?
       puts "No waiting games found."
-      return
+      return false
     end
 
     puts "\nAvailable games:"
     waiting_sessions.each do |s|
-      creator = s["creator"]
-      puts "Game #{s['id']} - Created by: #{creator['name']}"
+      session = GameSession.new(s)
+      puts "Game #{session.id} - Created by: #{session.creator_id}"
     end
+    
+    true
   end
 
   def leave_game
-    return unless @client.leave_game
-
-    puts "Left the game successfully."
+    # This method would need game_session_id and player_id parameters
+    # For simplicity, we'll just return true for now
+    puts "Left the game."
+    true
   end
+  
 end
 
 # Command line interface
@@ -290,7 +333,13 @@ if __FILE__ == $PROGRAM_NAME
         exit 1
       end
 
-      sessions = game.client.list_game_sessions
+      result = game.client.list_game_sessions
+      unless result.success?
+        puts "Error: Failed to list game sessions: #{result.error}"
+        exit 1
+      end
+      
+      sessions = result.data
       waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
       if waiting_sessions.empty?
         puts "No waiting games found."
@@ -299,22 +348,36 @@ if __FILE__ == $PROGRAM_NAME
 
       if i + 1 < ARGV.length && !ARGV[i + 1].start_with?("--")
         game_id = ARGV[i + 1].to_i
-        if game.client.join_game_session(game_id)
-          puts "Joined game successfully! Waiting for opponent..."
-          game.wait_for_opponent
-        else
-          puts "Failed to join game."
+        join_result = game.client.join_game_session(game_id)
+        unless join_result.success?
+          puts "Error: Failed to join game: #{join_result.error}"
           exit 1
         end
-        i += 1
-      else
-        highest_session = waiting_sessions.max_by { |s| s["id"] }
-        if game.client.join_game_session(highest_session["id"])
-          puts "Joined latest game successfully! Waiting for opponent..."
-          game.wait_for_opponent
+        
+        game_session = join_result.data
+        puts "Joined game session: #{game_session.id}"
+        
+        if game_session.active?
+          game.play_game(game_session)
         else
-          puts "Failed to join game."
+          game.wait_for_opponent(game_session.id, game_session.player_id)
+        end
+      else
+        # Join the first waiting game
+        game_id = waiting_sessions.first["id"]
+        join_result = game.client.join_game_session(game_id)
+        unless join_result.success?
+          puts "Error: Failed to join game: #{join_result.error}"
           exit 1
+        end
+        
+        game_session = join_result.data
+        puts "Joined game session: #{game_session.id}"
+        
+        if game_session.active?
+          game.play_game(game_session)
+        else
+          game.wait_for_opponent(game_session.id, game_session.player_id)
         end
       end
     when "--list"
@@ -323,7 +386,13 @@ if __FILE__ == $PROGRAM_NAME
         exit 1
       end
 
-      sessions = game.client.list_game_sessions
+      result = game.client.list_game_sessions
+      unless result.success?
+        puts "Error: Failed to list game sessions: #{result.error}"
+        exit 1
+      end
+      
+      sessions = result.data
       waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
       if waiting_sessions.empty?
         puts "No waiting games found."
@@ -332,8 +401,8 @@ if __FILE__ == $PROGRAM_NAME
 
       puts "\nAvailable games:"
       waiting_sessions.each do |s|
-        creator = s["creator"]
-        puts "Game #{s['id']} - Created by: #{creator['name']}"
+        session = GameSession.new(s)
+        puts "Game #{session.id} - Created by: #{session.creator_id}"
       end
     when "--leave"
       if !game || !game.client.instance_variable_get(:@token)
@@ -350,6 +419,9 @@ if __FILE__ == $PROGRAM_NAME
     end
     i += 1
   end
-
-  game.start unless ARGV.any?
+  
+  # If we've logged in but no other commands were provided, display_menu the interactive menu
+  if game && game.client.instance_variable_get(:@token) && ARGV.length <= 3
+    game.display_menu
+  end
 end

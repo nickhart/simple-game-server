@@ -33,6 +33,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_023346) do
     t.datetime "updated_at", null: false
     t.string "game_type", default: "default", null: false
     t.jsonb "state"
+    t.integer "creator_id"
+    t.index ["creator_id"], name: "index_game_sessions_on_creator_id"
   end
 
   create_table "players", force: :cascade do |t|

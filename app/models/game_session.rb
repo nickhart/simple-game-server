@@ -80,6 +80,7 @@ class GameSession < ApplicationRecord
       return false
     end
 
+    # Find the player by ID
     player = players.find_by(id: player_id)
     unless player
       Rails.logger.info "Player #{player_id} not found in game"
@@ -89,9 +90,6 @@ class GameSession < ApplicationRecord
     Rails.logger.info "All conditions met, starting game"
     self.status = :active
     self.current_player_index = players.to_a.index(player)
-
-    # Initialize the game state as JSON
-    self.state = {}
 
     if save
       Rails.logger.info "Game started successfully"
@@ -109,6 +107,15 @@ class GameSession < ApplicationRecord
 
     self.status = :finished
     save
+  end
+
+  def as_json(options = {})
+    super(options.merge(
+      methods: [:current_player_index],
+      include: { players: { only: %i[id name] } }
+    )).merge(
+      creator_id: creator_id
+    )
   end
 
   private
