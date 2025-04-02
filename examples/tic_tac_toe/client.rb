@@ -4,7 +4,7 @@ require "uri"
 require_relative "config"
 
 class GameClient
-  BASE_URL = "http://localhost:3000/api"
+  BASE_URL = "http://localhost:3000/api".freeze
   API_KEY = Config::API_KEY
 
   attr_reader :is_creator, :game_session_id, :player_id

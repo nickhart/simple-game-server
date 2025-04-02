@@ -1,7 +1,7 @@
 module Api
   class GameSessionsController < BaseController
     def index
-      @game_sessions = GameSession.all.includes(:players)
+      @game_sessions = GameSession.includes(:players)
       render json: @game_sessions.as_json(include: { players: { only: %i[id name] } })
     end
 
@@ -100,7 +100,7 @@ module Api
 
     def cleanup
       # Default to 1 day ago if no date provided
-      before = params[:before] ? Time.parse(params[:before]) : 1.day.ago
+      before = params[:before] ? Time.zone.parse(params[:before]) : 1.day.ago
 
       deleted_count = GameSession.where("created_at < ? AND status = ?", before,
                                         GameSession.statuses[:waiting]).destroy_all.count
@@ -148,11 +148,11 @@ module Api
     private
 
     def game_session_params
-      params.require(:game_session).permit(:status, :min_players, :max_players)
+      params.expect(game_session: %i[status min_players max_players])
     end
 
     def player_params
-      params.require(:player).permit(:name)
+      params.expect(player: [:name])
     end
   end
 end

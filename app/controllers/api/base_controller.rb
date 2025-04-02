@@ -6,7 +6,7 @@ module Api
     private
 
     def authenticate_user!
-      token = request.headers["Authorization"]&.split(" ")&.last
+      token = request.headers["Authorization"]&.split&.last
       return render_unauthorized unless token
 
       begin

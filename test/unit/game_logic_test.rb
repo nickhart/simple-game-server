@@ -6,8 +6,8 @@ class GameLogicTest < ActiveSupport::TestCase
     max_players = 4
 
     assert min_players <= max_players, "Minimum players should be less than or equal to maximum players"
-    assert min_players > 0, "Minimum players should be positive"
-    assert max_players > 0, "Maximum players should be positive"
+    assert min_players.positive?, "Minimum players should be positive"
+    assert max_players.positive?, "Maximum players should be positive"
   end
 
   test "game state transitions should be valid" do

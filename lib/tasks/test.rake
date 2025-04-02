@@ -1,6 +1,6 @@
 namespace :test do
   desc "Run unit tests that do not require database access"
-  task :units do # Remove environment dependency
+  task units: :environment do # Remove environment dependency
     require "rake/testtask"
 
     Rake::TestTask.new(:run_units) do |t|

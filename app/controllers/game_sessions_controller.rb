@@ -36,7 +36,7 @@ class GameSessionsController < ApplicationController
   end
 
   def cleanup
-    cutoff_date = Time.parse(params[:before])
+    cutoff_date = Time.zone.parse(params[:before])
 
     # Find and delete games that:
     # 1. Are older than the cutoff date
@@ -55,6 +55,6 @@ class GameSessionsController < ApplicationController
   private
 
   def game_session_params
-    params.require(:game_session).permit(:min_players, :max_players)
+    params.expect(game_session: %i[min_players max_players])
   end
 end
