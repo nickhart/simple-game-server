@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_04_02_023346) do
+ActiveRecord::Schema[8.0].define(version: 2025_04_02_205044) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pgcrypto"
 
   create_table "applications", force: :cascade do |t|
     t.string "name"
@@ -24,6 +25,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_023346) do
     t.index ["api_key"], name: "index_applications_on_api_key", unique: true
   end
 
+  create_table "game_players", force: :cascade do |t|
+    t.bigint "game_session_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "player_id"
+    t.index ["game_session_id"], name: "index_game_players_on_game_session_id"
+  end
+
   create_table "game_sessions", force: :cascade do |t|
     t.integer "status", default: 0, null: false
     t.integer "min_players", default: 2, null: false
@@ -33,16 +42,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_023346) do
     t.datetime "updated_at", null: false
     t.string "game_type", default: "default", null: false
     t.jsonb "state"
-    t.integer "creator_id"
-    t.index ["creator_id"], name: "index_game_sessions_on_creator_id"
+    t.string "name"
+    t.uuid "creator_id"
   end
 
-  create_table "players", force: :cascade do |t|
+  create_table "players", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "game_session_id"
     t.bigint "user_id"
+    t.string "symbol"
     t.index ["game_session_id"], name: "index_players_on_game_session_id"
     t.index ["user_id"], name: "index_players_on_user_id"
   end
@@ -59,6 +69,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_04_02_023346) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "game_players", "game_sessions"
+  add_foreign_key "game_players", "players"
   add_foreign_key "players", "game_sessions"
   add_foreign_key "players", "users"
 end

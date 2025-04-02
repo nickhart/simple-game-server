@@ -18,12 +18,19 @@ class GameSessionsController < ApplicationController
 
   def create
     @game_session = GameSession.new(game_session_params)
+    @game_session.creator_id = params[:player_id]
 
     if @game_session.save
+      # Add the creator as the first player
+      @game_session.players << Player.find(params[:player_id])
       redirect_to @game_session, notice: "Game session was successfully created."
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotFound
+    @game_session = GameSession.new
+    flash.now[:alert] = "Player not found."
+    render :new, status: :unprocessable_entity
   rescue ActionController::ParameterMissing => e
     @game_session = GameSession.new
     flash.now[:alert] = e.message
@@ -55,6 +62,6 @@ class GameSessionsController < ApplicationController
   private
 
   def game_session_params
-    params.expect(game_session: %i[min_players max_players])
+    params.require(:game_session).permit(:min_players, :max_players, :game_type)
   end
 end

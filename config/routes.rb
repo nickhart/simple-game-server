@@ -10,6 +10,9 @@ Rails.application.routes.draw do
     member do
       post :join
     end
+    collection do
+      post :create, constraints: { player_id: /[0-9a-f-]+/ }
+    end
   end
 
   # Add cleanup endpoint
@@ -21,6 +24,9 @@ Rails.application.routes.draw do
       sessions: 'api/users/sessions',
       registrations: 'api/users/registrations'
     }
+
+    # Add custom sessions route
+    post 'sessions', to: 'sessions#create'
 
     resources :players, param: :id
 
@@ -37,6 +43,17 @@ Rails.application.routes.draw do
       end
       
       post "cleanup", on: :collection
+    end
+  end
+
+  # Postman test routes
+  namespace :postman do
+    resources :players, only: %i[create show update destroy]
+    resources :game_sessions, only: %i[create show] do
+      member do
+        post :join
+        post :start
+      end
     end
   end
 
