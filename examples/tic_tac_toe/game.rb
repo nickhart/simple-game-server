@@ -49,7 +49,7 @@ class Game
 
   def make_move(position)
     return false unless position.between?(1, 9)
-    return false if @board[position - 1]
+    return false if @board.get_position(position)
 
     # Make the move locally using the Board class's make_move method
     if @board.make_move(position, @current_player_index)
@@ -64,7 +64,7 @@ class Game
       else
         puts "Server update failed"
         # If server update failed, revert the local move
-        @board.make_move(position, nil)
+        @board.make_move(position, 0)
         false
       end
     else

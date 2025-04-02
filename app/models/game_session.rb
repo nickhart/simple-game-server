@@ -31,11 +31,11 @@ class GameSession < ApplicationRecord
     Rails.logger.info "Advancing turn in game session #{id}"
     Rails.logger.info "Current player index: #{current_player_index}"
     Rails.logger.info "Current state: #{state}"
-    
+
     # Update the state JSON with the new player index
     self.state['current_player_index'] = (current_player_index + 1) % players.count
     self.current_player_index = self.state['current_player_index']
-    
+
     if save
       Rails.logger.info "Turn advanced successfully"
       Rails.logger.info "New player index: #{current_player_index}"
@@ -86,14 +86,10 @@ class GameSession < ApplicationRecord
     Rails.logger.info "All conditions met, starting game"
     self.status = :active
     self.current_player_index = players.to_a.index(player)
-    
+
     # Initialize the game state as JSON
-    self.state = {
-      board: Array.new(9) { nil },
-      current_player_index: current_player_index,
-      last_move: nil
-    }
-    
+    self.state = {}
+
     if save
       Rails.logger.info "Game started successfully"
       Rails.logger.info "Initial player index: #{current_player_index}"
@@ -128,13 +124,13 @@ class GameSession < ApplicationRecord
 
   def valid_status_transition
     return unless status_changed?
-    
+
     Rails.logger.info "Validating status transition from #{status_was} to #{status}"
-    
+
     valid_transitions = {
-      'waiting' => ['active'],
-      'active' => ['finished'],
-      'finished' => ['waiting']
+      "waiting" => [ "active" ],
+      "active" => [ "finished" ],
+      "finished" => [ "waiting" ]
     }
 
     unless valid_transitions[status_was]&.include?(status)
