@@ -1,117 +1,107 @@
 class Board
+  WINNING_COMBINATIONS = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], # Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], # Columns
+    [0, 4, 8], [2, 4, 6] # Diagonals
+  ].freeze
+
   attr_reader :board
 
-  WINNING_COMBINATIONS = [
-    [ 0, 1, 2 ], [ 3, 4, 5 ], [ 6, 7, 8 ], # Rows
-    [ 0, 3, 6 ], [ 1, 4, 7 ], [ 2, 5, 8 ], # Columns
-    [ 0, 4, 8 ], [ 2, 4, 6 ]             # Diagonals
-  ]
+  delegate :[], to: :board
 
   def initialize(board = nil)
-    @board = if board
-      # Ensure we have a 9-element array, filling with 0 (empty) if needed
-      # Convert all values to integers, using 0 for nil or invalid values
-      Array.new(9) { |i| (board[i].to_i rescue 0) }
-    else
-      Array.new(9, 0)  # 0 represents empty
-    end
+    @board = board ? initialize_board(board) : Array.new(9, 0)
   end
 
   def display
-    puts "\nCurrent board:"
-    @board.each_slice(3).each_with_index do |row, i|
-      row_display = row.map.with_index do |cell, j|
-        position = (i * 3) + j + 1
-        case cell
-        when 0
-          position.to_s
-        when 1
-          'X'
-        when 2
-          'O'
-        end
-      end.join(' | ')
-      puts row_display
-      puts '-' * 9 unless i == 2
+    @board.each_slice(3).with_index do |row, i|
+      display_row(row)
+      puts "-" * 9 unless i == 2
     end
   end
 
-  def make_move(position, player_index)
+  def valid_move?(position)
     return false unless position.between?(1, 9)
-    return false unless @board[position - 1] == 0  # Check if position is empty (0)
 
-    # Create a new array with the move
+    return false unless @board[position - 1].zero? # Check if position is empty (0)
+
+    true
+  end
+
+  def make_move(position, player_index)
+    return false unless valid_move?(position)
+
     new_board = @board.dup
-    new_board[position - 1] = player_index + 1  # Convert 0-based index to 1-based player number
+    new_board[position - 1] = player_index + 1 # Convert 0-based index to 1-based player number
     @board = new_board
     true
   end
 
-  def get_position(position)
-    @board[position - 1]
-  end
-
   def winner
-    # Check rows
-    @board.each_slice(3) do |row|
-      return row[0] if row.uniq.size == 1 && row[0] != 0
+    WINNING_COMBINATIONS.each do |combo|
+      values = combo.map { |i| @board[i] }
+      next if values.any?(&:zero?)
+      return values.first if values.uniq.size == 1
     end
-
-    # Check columns
-    3.times do |col|
-      column = [@board[col], @board[col + 3], @board[col + 6]]
-      return column[0] if column.uniq.size == 1 && column[0] != 0
-    end
-
-    # Check diagonals
-    diagonal1 = [@board[0], @board[4], @board[8]]
-    return diagonal1[0] if diagonal1.uniq.size == 1 && diagonal1[0] != 0
-
-    diagonal2 = [@board[2], @board[4], @board[6]]
-    return diagonal2[0] if diagonal2.uniq.size == 1 && diagonal2[0] != 0
-
     nil
   end
 
   def full?
-    @board.none? { |cell| cell == 0 }
+    @board.none?(&:zero?)
   end
 
   def empty?
-    @board.all? { |cell| cell == 0 }
+    @board.all?(&:zero?)
   end
 
-  def [](index)
-    @board[index]
-  end
+  def valid_move_for_board?(board, position, _player_index)
+    return false unless position.between?(1, 9)
 
-  private
+    return false unless board[position - 1].zero?
 
-  def valid_move?(board, position, player_index)
-    # Check if the position is empty (0)
-    return false unless board[position - 1] == 0
-
-    # The move is valid if the position is empty
     true
   end
 
   def winner?(board, player_index)
-    player_number = player_index + 1  # Convert 0-based index to 1-based player number
-    
-    # Check rows
-    board.each_slice(3) do |row|
-      return true if row.all? { |cell| cell == player_number }
+    player_number = player_index + 1 # Convert 0-based index to 1-based player number
+    check_winning_combinations(board, player_number)
+  end
+
+  private
+
+  def initialize_board(board)
+    Array.new(9) do |i|
+      board[i].to_i
+    rescue StandardError
+      0
     end
+  end
 
-    # Check columns
-    3.times do |col|
-      return true if [board[col], board[col + 3], board[col + 6]].all? { |cell| cell == player_number }
+  def display_row(row)
+    symbols = { 1 => "X", 2 => "O", 0 => " " }
+    puts row.map { |cell| symbols[cell] }.join(" | ")
+  end
+
+  def check_winning_combinations(board, player_number)
+    check_rows(board, player_number) ||
+      check_columns(board, player_number) ||
+      check_diagonals(board, player_number)
+  end
+
+  def check_rows(board, player_number)
+    board.each_slice(3).any? { |row| row.all?(player_number) }
+  end
+
+  def check_columns(board, player_number)
+    (0..2).any? do |col|
+      column = [board[col], board[col + 3], board[col + 6]]
+      column.all?(player_number)
     end
+  end
 
-    # Check diagonals
-    return true if [board[0], board[4], board[8]].all? { |cell| cell == player_number }
-    return true if [board[2], board[4], board[6]].all? { |cell| cell == player_number }
-
-    false
+  def check_diagonals(board, player_number)
+    diagonal1 = [board[0], board[4], board[8]]
+    diagonal2 = [board[2], board[4], board[6]]
+    diagonal1.all?(player_number) || diagonal2.all?(player_number)
   end
 end
