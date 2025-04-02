@@ -18,23 +18,26 @@ class GameSession < ApplicationRecord
   def add_player(user)
     return false if active? || finished?
     return false if players.count >= max_players
+
     players.create(user: user)
   end
 
   def current_player
     return nil if players.empty?
+
     players[current_player_index]
   end
 
   def advance_turn
     return false unless active?
+
     Rails.logger.info "Advancing turn in game session #{id}"
     Rails.logger.info "Current player index: #{current_player_index}"
     Rails.logger.info "Current state: #{state}"
 
     # Update the state JSON with the new player index
-    self.state['current_player_index'] = (current_player_index + 1) % players.count
-    self.current_player_index = self.state['current_player_index']
+    state["current_player_index"] = (current_player_index + 1) % players.count
+    self.current_player_index = state["current_player_index"]
 
     if save
       Rails.logger.info "Turn advanced successfully"
@@ -48,15 +51,15 @@ class GameSession < ApplicationRecord
   end
 
   def waiting?
-    status == 'waiting'
+    status == "waiting"
   end
 
   def active?
-    status == 'active'
+    status == "active"
   end
 
   def finished?
-    status == 'finished'
+    status == "finished"
   end
 
   def start(player_id)
@@ -103,6 +106,7 @@ class GameSession < ApplicationRecord
 
   def finish_game
     return false unless active?
+
     self.status = :finished
     save
   end
@@ -117,9 +121,7 @@ class GameSession < ApplicationRecord
   end
 
   def max_players_greater_than_min_players
-    if max_players < min_players
-      errors.add(:max_players, "must be greater than or equal to min_players")
-    end
+    errors.add(:max_players, "must be greater than or equal to min_players") if max_players < min_players
   end
 
   def valid_status_transition
@@ -128,17 +130,17 @@ class GameSession < ApplicationRecord
     Rails.logger.info "Validating status transition from #{status_was} to #{status}"
 
     valid_transitions = {
-      "waiting" => [ "active" ],
-      "active" => [ "finished" ],
-      "finished" => [ "waiting" ]
+      "waiting" => ["active"],
+      "active" => ["finished"],
+      "finished" => ["waiting"]
     }
 
-    unless valid_transitions[status_was]&.include?(status)
+    if valid_transitions[status_was]&.include?(status)
+      Rails.logger.info "Valid transition: from #{status_was} to #{status}"
+    else
       Rails.logger.info "Invalid transition: from #{status_was} to #{status}"
       Rails.logger.info "Valid transitions for #{status_was}: #{valid_transitions[status_was]}"
       errors.add(:status, "cannot transition from #{status_was} to #{status}")
-    else
-      Rails.logger.info "Valid transition: from #{status_was} to #{status}"
     end
   end
 end

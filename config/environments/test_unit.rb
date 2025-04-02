@@ -7,7 +7,7 @@ Rails.application.configure do
   config.active_record.dump_schema_after_migration = false
 
   # Prevent database connection attempts
-  config.active_record.establish_connection = ->(*) { nil }
+  config.active_record.establish_connection = ->(*) {}
 
   # Additional performance optimizations for unit tests
   config.cache_classes = true

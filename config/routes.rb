@@ -1,11 +1,11 @@
 Rails.application.routes.draw do
   devise_for :users
   root "game_sessions#index"
-  
+
   # Web player registration
-  resources :users, only: [:new, :create]
-  resources :players, only: [:new, :create]
-  
+  resources :users, only: %i[new create]
+  resources :players, only: %i[new create]
+
   resources :game_sessions do
     member do
       post :join
@@ -13,21 +13,21 @@ Rails.application.routes.draw do
   end
 
   # Add cleanup endpoint
-  post 'game_sessions/cleanup', to: 'game_sessions#cleanup'
+  post "game_sessions/cleanup", to: "game_sessions#cleanup"
 
   # API routes
   namespace :api do
-    post 'login', to: 'sessions#create'
+    post "login", to: "sessions#create"
     resources :players, only: [:create]
-    
-    resources :game_sessions, only: [:index, :create, :show, :update, :destroy] do
+
+    resources :game_sessions, only: %i[index create show update destroy] do
       member do
         post :join
         delete :leave
         post :start
         post :update_game_state
       end
-      post 'cleanup', on: :collection
+      post "cleanup", on: :collection
     end
   end
 

@@ -36,7 +36,9 @@ module ActiveSupport
       fixtures :all
     else
       def setup
-        skip "Skipping database tests in CI" if self.class.name.start_with?("Test::") && method_name.start_with?("test_")
+        if self.class.name.start_with?("Test::") && method_name.start_with?("test_")
+          skip "Skipping database tests in CI"
+        end
       end
     end
 

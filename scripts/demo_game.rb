@@ -24,7 +24,7 @@ puts "\nStarting game..."
 if game.start_game
   puts "Game started successfully! (Status: #{game.status})"
 else
-  puts "Failed to start game: #{game.errors.full_messages.join(", ")}"
+  puts "Failed to start game: #{game.errors.full_messages.join(', ')}"
   exit 1
 end
 
@@ -45,4 +45,4 @@ puts "Game finished! (Status: #{game.status})"
 puts "\nFinal game state:"
 puts "Game ID: #{game.id}"
 puts "Status: #{game.status}"
-puts "Players: #{game.players.pluck(:name).join(", ")}"
+puts "Players: #{game.players.pluck(:name).join(', ')}"

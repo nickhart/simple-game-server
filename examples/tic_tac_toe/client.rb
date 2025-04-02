@@ -1,10 +1,10 @@
-require 'net/http'
-require 'json'
-require 'uri'
-require_relative 'config'
+require "net/http"
+require "json"
+require "uri"
+require_relative "config"
 
 class GameClient
-  BASE_URL = 'http://localhost:3000/api'
+  BASE_URL = "http://localhost:3000/api"
   API_KEY = Config::API_KEY
 
   attr_reader :is_creator, :game_session_id, :player_id
@@ -19,23 +19,23 @@ class GameClient
   def register(email, password)
     uri = URI("#{BASE_URL}/players")
     request = Net::HTTP::Post.new(uri)
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
-    request.body = { 
-      user: { 
-        email: email, 
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
+    request.body = {
+      user: {
+        email: email,
         password: password,
         password_confirmation: password
-      } 
+      }
     }.to_json
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
 
-    if response.code == '201'
+    if response.code == "201"
       data = JSON.parse(response.body)
-      @token = data['token']
+      @token = data["token"]
       puts "Successfully registered user #{data['user']['email']}"
       true
     else
@@ -48,17 +48,17 @@ class GameClient
   def login(email, password)
     uri = URI("#{BASE_URL}/login")
     request = Net::HTTP::Post.new(uri)
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
     request.body = { email: email, password: password }.to_json
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
-    
-    if response.code == '200'
+
+    if response.code == "200"
       data = JSON.parse(response.body)
-      @token = data['token']
+      @token = data["token"]
       true
     else
       error_message = extract_error_message(response.body)
@@ -70,12 +70,12 @@ class GameClient
   def create_game_session
     uri = URI("#{BASE_URL}/game_sessions")
     request = Net::HTTP::Post.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
     request.body = {
       game_session: {
-        status: 'waiting',
+        status: "waiting",
         min_players: 2,
         max_players: 2
       }
@@ -85,12 +85,12 @@ class GameClient
       http.request(request)
     end
 
-    if response.code == '201'
+    if response.code == "201"
       data = JSON.parse(response.body)
-      @game_session_id = data['id']
+      @game_session_id = data["id"]
       @is_creator = true
       puts "Created game session: #{@game_session_id}"
-      
+
       # Automatically join the game we just created
       join_game_session(@game_session_id)
     else
@@ -103,20 +103,20 @@ class GameClient
   def join_game_session(game_session_id)
     uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/join")
     request = Net::HTTP::Post.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       data = JSON.parse(response.body)
       @game_session_id = game_session_id
-      @player_id = data['players'].last['id']  # Get the ID of the player we just created
+      @player_id = data["players"].last["id"] # Get the ID of the player we just created
       # Only set is_creator to false if we didn't just create this game
-      @is_creator = false unless @is_creator
+      @is_creator ||= false
       puts "Joined game session as player: #{@player_id}"
       true
     else
@@ -131,14 +131,14 @@ class GameClient
 
     uri = URI("#{BASE_URL}/game_sessions/#{@game_session_id}")
     request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["X-API-Key"] = API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       JSON.parse(response.body)
     else
       error_message = extract_error_message(response.body)
@@ -151,9 +151,9 @@ class GameClient
     puts "Starting game with session_id: #{game_session_id}, player_id: #{player_id}"
     uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/start")
     request = Net::HTTP::Post.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
     request.body = {
       player_id: player_id
     }.to_json
@@ -162,9 +162,9 @@ class GameClient
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       data = JSON.parse(response.body)
-      @current_player_index = data['current_player_index']
+      @current_player_index = data["current_player_index"]
       true
     else
       error_message = extract_error_message(response.body)
@@ -179,14 +179,14 @@ class GameClient
 
     uri = URI("#{BASE_URL}/game_sessions/#{@game_session_id}/leave?player_id=#{@player_id}")
     request = Net::HTTP::Delete.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["X-API-Key"] = API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       puts "Left game session"
       @game_session_id = nil
       @player_id = nil
@@ -202,14 +202,14 @@ class GameClient
   def list_game_sessions
     uri = URI("#{BASE_URL}/game_sessions")
     request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["X-API-Key"] = API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       JSON.parse(response.body)
     else
       error_message = extract_error_message(response.body)
@@ -224,9 +224,9 @@ class GameClient
     # Update the game state on the server
     uri = URI("#{BASE_URL}/game_sessions/#{@game_session_id}/update_game_state")
     request = Net::HTTP::Post.new(uri)
-    request['Authorization'] = "Bearer #{@token}"
-    request['Content-Type'] = 'application/json'
-    request['X-API-Key'] = API_KEY
+    request["Authorization"] = "Bearer #{@token}"
+    request["Content-Type"] = "application/json"
+    request["X-API-Key"] = API_KEY
     request.body = {
       player_id: @player_id,
       state: {
@@ -240,7 +240,7 @@ class GameClient
       http.request(request)
     end
 
-    if response.code == '200'
+    if response.code == "200"
       true
     else
       error_message = extract_error_message(response.body)
@@ -252,16 +252,14 @@ class GameClient
   private
 
   def extract_error_message(response_body)
-    begin
-      data = JSON.parse(response_body)
-      if data.is_a?(Hash)
-        data['error'] || data['message'] || response_body
-      else
-        response_body
-      end
-    rescue JSON::ParserError
-      # If the response is HTML or not JSON, return a generic error
-      "Server error occurred"
+    data = JSON.parse(response_body)
+    if data.is_a?(Hash)
+      data["error"] || data["message"] || response_body
+    else
+      response_body
     end
+  rescue JSON::ParserError
+    # If the response is HTML or not JSON, return a generic error
+    "Server error occurred"
   end
-end 
+end

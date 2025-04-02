@@ -41,7 +41,7 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should handle missing game session gracefully" do
-    get game_session_url(id: 99999)
+    get game_session_url(id: 99_999)
     assert_redirected_to game_sessions_path
     assert_equal "Game session not found.", flash[:alert]
   end
@@ -56,7 +56,6 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
     get game_sessions_url
     assert_response :success
     assert_equal [], assigns(:game_sessions)
-
   ensure
     GameSession.singleton_class.remove_method(:all)
   end
@@ -73,7 +72,6 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
     }
     assert_response :unprocessable_entity
     assert_equal "Error creating game session. Please try again.", flash[:alert]
-
   ensure
     GameSession.class_eval do
       remove_method :save
@@ -90,6 +88,6 @@ class GameSessionsControllerTest < ActionDispatch::IntegrationTest
   test "should handle missing parameters in create" do
     post game_sessions_url, params: {}
     assert_response :unprocessable_entity
-    assert_match /param is missing or the value is empty/, flash[:alert]
+    assert_match(/param is missing or the value is empty/, flash[:alert])
   end
 end

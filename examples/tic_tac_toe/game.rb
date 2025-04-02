@@ -1,5 +1,5 @@
-require_relative 'client'
-require_relative 'board'
+require_relative "client"
+require_relative "board"
 
 class Game
   def initialize(email = nil, password = nil)
@@ -9,9 +9,7 @@ class Game
     @password = password
   end
 
-  def client
-    @client
-  end
+  attr_reader :client
 
   def start
     unless login
@@ -21,15 +19,15 @@ class Game
 
     loop do
       case show_menu
-      when '1'
+      when "1"
         create_new_game
-      when '2'
+      when "2"
         join_existing_game
-      when '3'
+      when "3"
         leave_current_game
-      when '4'
+      when "4"
         register_new_player
-      when '5'
+      when "5"
         break
       end
     end
@@ -75,7 +73,7 @@ class Game
   def create_game
     response = @client.create_game_session
     if response
-      @game_session_id = response['id']
+      @game_session_id = response["id"]
       @board = Board.new
       puts "Game created! Waiting for opponent..."
       true
@@ -97,13 +95,13 @@ class Game
   end
 
   def play_game(session)
-    players = session['players']
-    current_player = players.find { |p| p['id'] == @client.instance_variable_get(:@player_id) }
-    opponent = players.find { |p| p['id'] != @client.instance_variable_get(:@player_id) }
+    players = session["players"]
+    current_player = players.find { |p| p["id"] == @client.instance_variable_get(:@player_id) }
+    opponent = players.find { |p| p["id"] != @client.instance_variable_get(:@player_id) }
 
     puts "\nGame started! You are playing against #{opponent['name']}"
     puts "You are: #{current_player['name']}"
-    
+
     # Initialize current_player_index based on whether we're the first or second player
     @current_player_index = players.index(current_player)
     puts "Initial player index: #{@current_player_index}"
@@ -122,14 +120,14 @@ class Game
       puts "Board state: #{session['state']}"
 
       # Update the board with the server state if it exists
-      if session['state'] && session['state']['board']
-        @board = Board.new(session['state']['board'])
+      if session["state"] && session["state"]["board"]
+        @board = Board.new(session["state"]["board"])
         puts "Updated board with server state:"
         @board.display
       end
 
       # Check if it's our turn
-      if session['current_player_index'] == players.index(current_player)
+      if session["current_player_index"] == players.index(current_player)
         print "Enter position (1-9): "
         position = STDIN.gets.chomp.to_i
 
@@ -174,13 +172,13 @@ class Game
       puts "Game session ID: #{@client.game_session_id}"
       puts "Player ID: #{@client.player_id}"
 
-      case session['status']
-      when 'active'
+      case session["status"]
+      when "active"
         puts "\nGame is starting!"
         play_game(session)
         break
-      when 'waiting'
-        if session['players'].size >= 2
+      when "waiting"
+        if session["players"].size >= 2
           puts "\nBoth players have joined!"
           # Only the creator should start the game
           if @client.is_creator
@@ -222,7 +220,7 @@ class Game
 
   def join_existing_game
     sessions = @client.list_game_sessions
-    waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
+    waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
 
     if waiting_sessions.empty?
       puts "No waiting games found."
@@ -237,9 +235,7 @@ class Game
     print "\nEnter game ID to join: "
     game_id = STDIN.gets.chomp.to_i
 
-    if @client.join_game_session(game_id)
-      wait_for_opponent
-    end
+    wait_for_opponent if @client.join_game_session(game_id)
   end
 
   def leave_current_game
@@ -272,13 +268,11 @@ end
 # Parse command line arguments
 if ARGV.any?
   i = 0
-  email = nil
-  password = nil
   game = nil
 
   while i < ARGV.length
     case ARGV[i]
-    when '--help', '-h'
+    when "--help", "-h"
       puts <<~HELP
         Tic Tac Toe Game Client
         Usage: ruby game.rb [options] [arguments]
@@ -300,7 +294,7 @@ if ARGV.any?
           ruby game.rb --leave
       HELP
       exit 0
-    when '--register'
+    when "--register"
       if i + 2 >= ARGV.length
         puts "Error: --register requires email and password arguments"
         puts "Usage: ruby game.rb --register email@example.com password"
@@ -314,7 +308,7 @@ if ARGV.any?
         game.login
       end
       i += 3
-    when '--login'
+    when "--login"
       if i + 2 >= ARGV.length
         puts "Error: --login requires email and password arguments"
         puts "Usage: ruby game.rb --login email@example.com password"
@@ -329,19 +323,19 @@ if ARGV.any?
         # Check for additional commands after login
         if i < ARGV.length
           case ARGV[i]
-          when '--create'
+          when "--create"
             game.create_new_game
             i += 1
-          when '--join'
+          when "--join"
             sessions = game.client.list_game_sessions
-            waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
-            
+            waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
+
             if waiting_sessions.empty?
               puts "No waiting games found."
               exit 1
             end
 
-            if i + 1 < ARGV.length && !ARGV[i + 1].start_with?('--')
+            if i + 1 < ARGV.length && !ARGV[i + 1].start_with?("--")
               # Join specific game session
               game_id = ARGV[i + 1].to_i
               if game.client.join_game_session(game_id)
@@ -353,8 +347,8 @@ if ARGV.any?
               i += 2
             else
               # Join highest numbered game session
-              highest_session = waiting_sessions.max_by { |s| s['id'] }
-              if game.client.join_game_session(highest_session['id'])
+              highest_session = waiting_sessions.max_by { |s| s["id"] }
+              if game.client.join_game_session(highest_session["id"])
                 game.wait_for_opponent
               else
                 puts "Failed to join game session #{highest_session['id']}"
@@ -362,10 +356,10 @@ if ARGV.any?
               end
               i += 1
             end
-          when '--list'
+          when "--list"
             sessions = game.client.list_game_sessions
-            waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
-            
+            waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
+
             if waiting_sessions.empty?
               puts "No waiting games found."
               exit 0
@@ -376,7 +370,7 @@ if ARGV.any?
               puts "ID: #{session['id']} - Players: #{session['players'].size}/2"
             end
             i += 1
-          when '--leave'
+          when "--leave"
             game.leave_current_game
             i += 1
           else
@@ -392,27 +386,27 @@ if ARGV.any?
         puts "Login failed. Please check your credentials."
         exit 1
       end
-    when '--create'
+    when "--create"
       if !game || !game.client.instance_variable_get(:@token)
         puts "Please login first."
         exit 1
       end
       game.create_new_game
       i += 1
-    when '--join'
+    when "--join"
       if !game || !game.client.instance_variable_get(:@token)
         puts "Please login first."
         exit 1
       end
       sessions = game.client.list_game_sessions
-      waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
-      
+      waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
+
       if waiting_sessions.empty?
         puts "No waiting games found."
         exit 1
       end
 
-      if i + 1 < ARGV.length && !ARGV[i + 1].start_with?('--')
+      if i + 1 < ARGV.length && !ARGV[i + 1].start_with?("--")
         # Join specific game session
         game_id = ARGV[i + 1].to_i
         if game.client.join_game_session(game_id)
@@ -424,8 +418,8 @@ if ARGV.any?
         i += 2
       else
         # Join highest numbered game session
-        highest_session = waiting_sessions.max_by { |s| s['id'] }
-        if game.client.join_game_session(highest_session['id'])
+        highest_session = waiting_sessions.max_by { |s| s["id"] }
+        if game.client.join_game_session(highest_session["id"])
           game.wait_for_opponent
         else
           puts "Failed to join game session #{highest_session['id']}"
@@ -433,14 +427,14 @@ if ARGV.any?
         end
         i += 1
       end
-    when '--list'
+    when "--list"
       if !game || !game.client.instance_variable_get(:@token)
         puts "Please login first."
         exit 1
       end
       sessions = game.client.list_game_sessions
-      waiting_sessions = sessions.select { |s| s['status'] == 'waiting' }
-      
+      waiting_sessions = sessions.select { |s| s["status"] == "waiting" }
+
       if waiting_sessions.empty?
         puts "No waiting games found."
         exit 0
@@ -451,7 +445,7 @@ if ARGV.any?
         puts "ID: #{session['id']} - Players: #{session['players'].size}/2"
       end
       i += 1
-    when '--leave'
+    when "--leave"
       if !game || !game.client.instance_variable_get(:@token)
         puts "Please login first."
         exit 1
@@ -472,4 +466,4 @@ begin
   Game.new.start
 rescue Interrupt
   puts "\nGame interrupted. Goodbye!"
-end 
+end
