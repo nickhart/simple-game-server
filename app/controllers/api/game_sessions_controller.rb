@@ -1,244 +1,61 @@
 module Api
-  class GameSessionsController < BaseController
-    def index
-      Rails.logger.info "GET /api/game_sessions"
-      @game_sessions = GameSession.includes(:players)
-      Rails.logger.info "Found #{@game_sessions.count} game sessions"
-      @game_sessions.each do |session|
-        Rails.logger.info "Game session #{session.id}: status=#{session.status}, state=#{session.state}, players=#{session.players.map { |p| { id: p.id, name: p.name } }}"
-      end
-      render json: @game_sessions.as_json(include: { players: { only: %i[id name] } })
-    end
+  class GameSessionsController < ApplicationController
+    before_action :set_game_session, except: [:index, :create]
+    before_action :set_player, only: [:create, :join, :leave]
 
-    def show
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "GET /api/game_sessions/#{params[:id]}"
-      Rails.logger.info "Game session state: #{@game_session.state}"
-      Rails.logger.info "Current player index: #{@game_session.current_player_index}"
-      Rails.logger.info "Players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-      render json: @game_session.as_json(include: { players: { only: %i[id name] } })
+    def index
+      @game_sessions = GameSession.includes(:players)
+      render json: @game_sessions, include: { players: { only: [:id, :name] } }
     end
 
     def create
-      Rails.logger.info "POST /api/game_sessions"
-      Rails.logger.info "Creating game session with params: #{game_session_params}"
       @game_session = GameSession.new(game_session_params)
-      
-      # Create a player for the current user
-      player = @game_session.players.build(user: current_user, name: "Player 1")
-      
+      @game_session.creator = @player
+      @game_session.players << @player
+
       if @game_session.save
-        # Set the creator_id to the player's ID
-        @game_session.update_column(:creator_id, player.id)
-        
-        Rails.logger.info "Game session created successfully"
-        Rails.logger.info "Game session state: #{@game_session.state}"
-        Rails.logger.info "Game session status: #{@game_session.status}"
-        Rails.logger.info "Creator ID: #{@game_session.creator_id}"
-        Rails.logger.info "Players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-        render json: @game_session.as_json(include: { players: { only: %i[id name] } }), status: :created
+        render json: @game_session, include: { players: { only: [:id, :name] } }, status: :created
       else
-        Rails.logger.error "Failed to create game session: #{@game_session.errors.full_messages}"
-        render json: @game_session.errors, status: :unprocessable_entity
+        render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
-    end
-
-    def update
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "PUT /api/game_sessions/#{params[:id]}"
-      Rails.logger.info "Updating game session with params: #{game_session_params}"
-      Rails.logger.info "Current game state: #{@game_session.state}"
-      Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Current players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-
-      if @game_session.update(game_session_params)
-        Rails.logger.info "Game session updated successfully"
-        Rails.logger.info "Updated game state: #{@game_session.state}"
-        Rails.logger.info "Updated status: #{@game_session.status}"
-        Rails.logger.info "Updated players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-        render json: @game_session.as_json(include: { players: { only: %i[id name] } })
-      else
-        Rails.logger.error "Failed to update game session: #{@game_session.errors.full_messages}"
-        render json: @game_session.errors, status: :unprocessable_entity
-      end
-    end
-
-    def destroy
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "DELETE /api/game_sessions/#{params[:id]}"
-      Rails.logger.info "Game session state before deletion: #{@game_session.state}"
-      Rails.logger.info "Players before deletion: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-      @game_session.destroy
-      Rails.logger.info "Game session deleted successfully"
-      head :no_content
     end
 
     def join
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "POST /api/game_sessions/#{params[:id]}/join"
-      Rails.logger.info "Current game state: #{@game_session.state}"
-      Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Current players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
+      return render json: { error: "Game is not in waiting status" }, status: :unprocessable_entity unless @game_session.waiting?
+      return render json: { error: "Player already in game" }, status: :unprocessable_entity if @game_session.players.include?(@player)
+      return render json: { error: "Game is full" }, status: :unprocessable_entity if @game_session.players.count >= @game_session.max_players
 
-      if @game_session.active? || @game_session.finished?
-        Rails.logger.info "Cannot join: Game is #{@game_session.status}"
-        render json: { error: "Cannot join a game that is already #{@game_session.status}" },
-               status: :unprocessable_entity
-        return
-      end
-
-      # Check if the player is already in the game
-      if @game_session.players.exists?(user: current_user)
-        Rails.logger.info "Player is already in the game"
-        render json: @game_session.as_json(include: { players: { only: %i[id name] } })
-        return
-      end
-
-      if @game_session.players.count >= @game_session.max_players
-        Rails.logger.info "Cannot join: Game is full (#{@game_session.players.count}/#{@game_session.max_players} players)"
-        Rails.logger.info "Current game players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-        Rails.logger.info "max players: #{@game_session.max_players}"
-        render json: { error: "Game is full" }, status: :unprocessable_entity
-        return
-      end
-
-      @game_session.players.create!(
-        user: current_user,
-        name: "Player #{@game_session.players.count + 1}"
-      )
-
-      Rails.logger.info "Player joined successfully"
-      Rails.logger.info "Updated game state: #{@game_session.state}"
-      Rails.logger.info "Updated players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-
-      render json: @game_session.as_json(include: { players: { only: %i[id name] } })
+      @game_session.players << @player
+      render json: @game_session, include: { players: { only: [:id, :name] } }
     end
 
     def leave
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "DELETE /api/game_sessions/#{params[:id]}/leave"
-      Rails.logger.info "Current game state: #{@game_session.state}"
-      Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Current players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-      @player = @game_session.players.find_by(id: params[:player_id])
+      return render json: { error: "Player not in game" }, status: :unprocessable_entity unless @game_session.players.include?(@player)
 
-      if @player
-        # Find and destroy the game_player association
-        game_player = @game_session.game_players.find_by(player: @player)
-        if game_player
-          game_player.destroy
-
-          # If no players left, update game status to waiting
-          @game_session.update(status: :waiting) if @game_session.players.empty?
-
-          Rails.logger.info "Player left successfully"
-          Rails.logger.info "Updated game state: #{@game_session.state}"
-          Rails.logger.info "Updated status: #{@game_session.status}"
-          Rails.logger.info "Updated players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-
-          render json: { message: "Player successfully left the game" }, status: :ok
-        else
-          Rails.logger.error "Player is not in this game session"
-          render json: { error: "Player is not in this game session" }, status: :not_found
-        end
-      else
-        Rails.logger.error "Player not found"
-        render json: { error: "Player not found" }, status: :not_found
-      end
-    end
-
-    def start
-      @game_session = GameSession.find(params[:id])
-      player_id = params[:player_id]
-      Rails.logger.info "POST /api/game_sessions/#{params[:id]}/start"
-      Rails.logger.info "Starting player ID: #{player_id}"
-      Rails.logger.info "Current game state: #{@game_session.state}"
-      Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Current players: #{@game_session.players.map { |p| { id: p.id, name: p.name } }}"
-
-      # If player_id is not provided, use the first player
-      if player_id.nil?
-        if @game_session.players.empty?
-          Rails.logger.info "Start failed: No players in the game"
-          render json: { error: "No players in the game" }, status: :unprocessable_entity
-          return
-        end
-        
-        player_id = @game_session.players.first.id
-        Rails.logger.info "Using first player (ID: #{player_id}) as starting player"
-      end
-
-      if @game_session.start(player_id)
-        Rails.logger.info "Game started successfully"
-        Rails.logger.info "Updated game state: #{@game_session.state}"
-        Rails.logger.info "Updated status: #{@game_session.status}"
-        Rails.logger.info "Current player index: #{@game_session.current_player_index}"
-        render json: @game_session.as_json(include: { players: { only: %i[id name] } })
-      else
-        Rails.logger.info "Failed to start game"
-        render json: { error: "Failed to start game" }, status: :unprocessable_entity
-      end
-    end
-
-    def cleanup
-      # Default to 1 day ago if no date provided
-      before = params[:before] ? Time.zone.parse(params[:before]) : 1.day.ago
-      Rails.logger.info "POST /api/game_sessions/cleanup"
-      Rails.logger.info "Cleaning up game sessions before: #{before}"
-
-      deleted_count = GameSession.where("created_at < ? AND status = ?", before,
-                                        GameSession.statuses[:waiting]).destroy_all.count
-      Rails.logger.info "Deleted #{deleted_count} unused game sessions"
-      render json: {
-        message: "Deleted #{deleted_count} unused game sessions",
-        deleted_count: deleted_count,
-        before: before.iso8601
-      }
-    rescue ArgumentError => e
-      Rails.logger.error "Invalid date format: #{e.message}"
-      render json: {
-        error: "Invalid date format. Please provide a valid ISO8601 date.",
-        details: e.message
-      }, status: :unprocessable_entity
-    end
-
-    def update_game_state
-      @game_session = GameSession.find(params[:id])
-      Rails.logger.info "PATCH /api/game_sessions/#{params[:id]}/update_game_state"
-      Rails.logger.info "Request params: #{params}"
-      Rails.logger.info "Current game state: #{@game_session.state}"
-      Rails.logger.info "Current player index: #{@game_session.current_player_index}"
-
-      # Check if it's the player's turn
-      unless @game_session.current_player.id == params[:player_id]
-        Rails.logger.info "Not player's turn. Current player: #{@game_session.current_player.id}, Requested player: #{params[:player_id]}"
-        render json: { error: "It's not your turn" }, status: :unprocessable_entity
-        return
-      end
-
-      # Update the game state
-      @game_session.state = params[:state]
-      Rails.logger.info "Updated game state: #{@game_session.state}"
-
-      # Advance to next player's turn
-      if @game_session.advance_turn
-        Rails.logger.info "Turn advanced successfully"
-        Rails.logger.info "New current player index: #{@game_session.current_player_index}"
-        render json: @game_session.as_json(include: { players: { only: %i[id name] } })
-      else
-        Rails.logger.error "Failed to advance turn"
-        render json: { error: "Could not advance turn" }, status: :unprocessable_entity
-      end
+      @game_session.players.delete(@player)
+      
+      # If no players left, update game status to waiting
+      @game_session.update(status: :waiting) if @game_session.players.empty?
+      
+      render json: { message: "Successfully left the game" }
     end
 
     private
 
-    def game_session_params
-      params.require(:game_session).permit(:status, :min_players, :max_players, state: {})
+    def set_game_session
+      @game_session = GameSession.find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: "Game session not found" }, status: :not_found
     end
 
-    def player_params
-      params.expect(player: [:name])
+    def set_player
+      @player = Player.find(params[:player_id])
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: "Player not found" }, status: :not_found
+    end
+
+    def game_session_params
+      params.require(:game_session).permit(:game_type, :min_players, :max_players)
     end
   end
 end

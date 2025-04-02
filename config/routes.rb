@@ -17,16 +17,25 @@ Rails.application.routes.draw do
 
   # API routes
   namespace :api do
-    post "login", to: "sessions#create"
-    resources :players, only: [:create]
+    devise_for :users, controllers: {
+      sessions: 'api/users/sessions',
+      registrations: 'api/users/registrations'
+    }
 
-    resources :game_sessions, only: %i[index create show update destroy] do
-      member do
-        post :join
-        delete :leave
-        post :start
-        post :update_game_state
+    resources :players, param: :id
+
+    resources :game_sessions do
+      collection do
+        post 'create/:player_id', to: 'game_sessions#create'
       end
+      
+      member do
+        post 'join/:player_id', to: 'game_sessions#join'
+        delete 'leave/:player_id', to: 'game_sessions#leave'
+        post 'start'
+        post 'update_game_state'
+      end
+      
       post "cleanup", on: :collection
     end
   end
