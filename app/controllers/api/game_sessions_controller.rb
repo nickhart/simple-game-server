@@ -1,16 +1,16 @@
 module Api
   class GameSessionsController < BaseController
     before_action :authenticate_user!
-    before_action :set_game_session, except: [:index, :create]
-    before_action :set_player, only: [:create, :join, :leave, :start]
+    before_action :set_game_session, except: %i[index create]
+    before_action :set_player, only: %i[create join leave start]
 
     def index
       @game_sessions = GameSession.includes(:players)
-      render json: @game_sessions, include: { players: { only: [:id, :name] } }
+      render json: @game_sessions, include: { players: { only: %i[id name] } }
     end
 
     def show
-      render json: @game_session, include: { players: { only: [:id, :name] } }
+      render json: @game_session, include: { players: { only: %i[id name] } }
     end
 
     def create
@@ -19,38 +19,56 @@ module Api
       @game_session.players << @player
 
       if @game_session.save
-        render json: @game_session, include: { players: { only: [:id, :name] } }, status: :created
+        render json: @game_session, include: { players: { only: %i[id name] } }, status: :created
       else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
     end
 
     def join
-      return render json: { error: "Game is not in waiting status" }, status: :unprocessable_entity unless @game_session.waiting?
+      unless @game_session.waiting?
+        return render json: { error: "Game is not in waiting status" },
+                      status: :unprocessable_entity
+      end
 
       if @game_session.players.include?(@player)
         render json: { error: "Player already in game" }, status: :unprocessable_entity
       else
         @game_session.players << @player
-        render json: @game_session, include: { players: { only: [:id, :name] } }
+        render json: @game_session, include: { players: { only: %i[id name] } }
       end
     end
 
     def leave
-      return render json: { error: "Player not in game" }, status: :unprocessable_entity unless @game_session.players.include?(@player)
+      unless @game_session.players.include?(@player)
+        return render json: { error: "Player not in game" },
+                      status: :unprocessable_entity
+      end
 
       @game_session.players.delete(@player)
       render json: { message: "Player left the game" }
     end
 
     def start
-      return render json: { error: "Only the creator can start the game" }, status: :unauthorized unless @game_session.creator_id == @player.id
-      return render json: { error: "Game is not in waiting status" }, status: :unprocessable_entity unless @game_session.waiting?
-      return render json: { error: "Not enough players" }, status: :unprocessable_entity if @game_session.players.count < @game_session.min_players
-      return render json: { error: "Too many players" }, status: :unprocessable_entity if @game_session.players.count > @game_session.max_players
+      unless @game_session.creator_id == @player.id
+        return render json: { error: "Only the creator can start the game" },
+                      status: :unauthorized
+      end
+      unless @game_session.waiting?
+        return render json: { error: "Game is not in waiting status" },
+                      status: :unprocessable_entity
+      end
+      if @game_session.players.count < @game_session.min_players
+        return render json: { error: "Not enough players" },
+                      status: :unprocessable_entity
+      end
+      if @game_session.players.count > @game_session.max_players
+        return render json: { error: "Too many players" },
+                      status: :unprocessable_entity
+      end
 
       if @game_session.start(@player.id)
-        render json: @game_session, include: { players: { only: [:id, :name] } }
+        render json: @game_session, include: { players: { only: %i[id name] } }
       else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
@@ -71,7 +89,7 @@ module Api
     end
 
     def game_session_params
-      params.require(:game_session).permit(:game_type, :min_players, :max_players)
+      params.expect(game_session: %i[game_type min_players max_players])
     end
   end
 end

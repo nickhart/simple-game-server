@@ -54,11 +54,11 @@ class GameClient
 
   def create_game_session(player_id, min_players, max_players)
     response = post("/api/game_sessions/create/#{player_id}", {
-      game_session: {
-        min_players: min_players,
-        max_players: max_players
-      }
-    })
+                      game_session: {
+                        min_players: min_players,
+                        max_players: max_players
+                      }
+                    })
     GameSession.new(response)
   end
 
@@ -74,10 +74,10 @@ class GameClient
 
   def update_game_state(game_session_id, state)
     response = put("/api/game_sessions/#{game_session_id}", {
-      game_session: {
-        state: state
-      }
-    })
+                     game_session: {
+                       state: state
+                     }
+                   })
     GameSession.new(response)
   end
 
@@ -116,11 +116,11 @@ class GameClient
     request["Authorization"] = "Bearer #{@token}"
     request["Content-Type"] = "application/json"
     request["X-API-Key"] = Config::API_KEY
-    
+
     # Only include player_id in the request body if it's provided
     request_body = {}
     request_body[:player_id] = player_id if player_id
-    
+
     request.body = request_body.to_json
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
@@ -247,23 +247,21 @@ class GameClient
   end
 
   def extract_error_message(response_body)
-    begin
-      data = JSON.parse(response_body)
-      if data.is_a?(Hash) && data["error"]
-        data["error"]
-      elsif data.is_a?(Hash) && data["errors"]
-        if data["errors"].is_a?(Array)
-          data["errors"].join(", ")
-        elsif data["errors"].is_a?(Hash)
-          data["errors"].map { |k, v| "#{k}: #{v.join(", ")}" }.join(", ")
-        else
-          data["errors"].to_s
-        end
+    data = JSON.parse(response_body)
+    if data.is_a?(Hash) && data["error"]
+      data["error"]
+    elsif data.is_a?(Hash) && data["errors"]
+      if data["errors"].is_a?(Array)
+        data["errors"].join(", ")
+      elsif data["errors"].is_a?(Hash)
+        data["errors"].map { |k, v| "#{k}: #{v.join(', ')}" }.join(", ")
       else
-        response_body
+        data["errors"].to_s
       end
-    rescue JSON::ParserError
+    else
       response_body
     end
+  rescue JSON::ParserError
+    response_body
   end
 end

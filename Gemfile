@@ -9,7 +9,6 @@ gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 
-
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
@@ -18,7 +17,6 @@ gem "puma", ">= 5.0"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[windows jruby]
-
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -54,7 +52,7 @@ group :development, :test do
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
   gem "rubocop-rspec", require: false
-  
+
   # Testing framework for Ruby
   gem "rspec-rails"
 end
@@ -73,10 +71,10 @@ end
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
+  gem "database_cleaner-active_record"
+  gem "factory_bot_rails"
   gem "rails-controller-testing"
   gem "selenium-webdriver"
   gem "simplecov", require: false
   gem "simplecov-cobertura", require: false # For CodeClimate compatibility
-  gem "database_cleaner-active_record"
-  gem "factory_bot_rails"
 end

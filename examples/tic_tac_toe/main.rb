@@ -52,7 +52,7 @@ class TicTacToeCLI
     end
 
     # Validate that --create and --join can only be used with login credentials
-    if (@options[:command] == :create || @options[:command] == :join) && !(@options[:email] && @options[:password])
+    if %i[create join].include?(@options[:command]) && !(@options[:email] && @options[:password])
       puts "Error: --create and --join can only be used with --email and --password"
       exit 1
     end
@@ -113,9 +113,9 @@ class TicTacToeCLI
     game_session = @client.create_game_session(@current_player.id, 2, 2)
     puts "Game created with ID: #{game_session.id}"
     puts "Waiting for another player to join..."
-    
+
     wait_for_players(game_session)
-    
+
     # Start the game after players have joined
     start_game(game_session)
   end
@@ -124,20 +124,20 @@ class TicTacToeCLI
     loop do
       # Refresh the game session to get the latest player count
       result = @client.get_game_session(game_session.id)
-      
+
       if result.failure?
         puts "Error refreshing game session: #{result.error}"
         sleep(2) # Wait before retrying
         next
       end
-      
+
       updated_session = result.data
-      
+
       if updated_session.players.size >= 2
         puts "Another player has joined! Starting the game..."
         break
       end
-      
+
       print "."
       sleep(2) # Check every 2 seconds
     end
@@ -146,10 +146,10 @@ class TicTacToeCLI
   def start_game(game_session)
     # Refresh the game session to get the latest state
     updated_session = @client.get_game_session(game_session.id).data
-    
+
     # Start the game on the server
     result = @client.start_game(updated_session.id, @current_player.id)
-    
+
     if result.success?
       puts "Game started successfully!"
       game = Game.new(@client, result.data)
@@ -177,9 +177,9 @@ class TicTacToeCLI
 
     puts "Joined game with ID: #{game_session.id}"
     puts "Waiting for the game creator to start the game..."
-    
+
     wait_for_game_start(game_session)
-    
+
     # Start playing once the game has started
     game = Game.new(@client, game_session)
     game.play
@@ -189,20 +189,20 @@ class TicTacToeCLI
     loop do
       # Refresh the game session to get the latest state
       result = @client.get_game_session(game_session.id)
-      
+
       if result.failure?
         puts "Error refreshing game session: #{result.error}"
         sleep(2) # Wait before retrying
         next
       end
-      
+
       updated_session = result.data
-      
+
       if updated_session.status == "active"
         puts "Game has started! Let's play!"
         break
       end
-      
+
       print "."
       sleep(2) # Check every 2 seconds
     end
@@ -214,7 +214,7 @@ class TicTacToeCLI
       puts "No waiting games found"
       return nil
     end
-    newest_session = waiting_sessions.max_by { |s| s.id }
+    newest_session = waiting_sessions.max_by(&:id)
     @client.join_game_session(@current_player.id, newest_session.id)
   end
 
@@ -227,24 +227,24 @@ class TicTacToeCLI
 
     puts "\nAvailable games:"
     game_sessions.each do |session|
-      puts "Game #{session["id"]} (#{session["players"].size}/#{session["max_players"]} players)"
+      puts "Game #{session['id']} (#{session['players'].size}/#{session['max_players']} players)"
     end
   end
 
   def prompt(message, secret = false, default = nil)
     print message
     input = if secret
-      `stty -echo`
-      result = gets.chomp
-      `stty echo`
-      puts
-      result
-    else
-      gets.chomp
-    end
+              `stty -echo`
+              result = gets.chomp
+              `stty echo`
+              puts
+              result
+            else
+              gets.chomp
+            end
     input.empty? ? default : input
   end
 end
 
 # Start the CLI if this file is run directly
-TicTacToeCLI.new.run if __FILE__ == $0 
+TicTacToeCLI.new.run if __FILE__ == $PROGRAM_NAME

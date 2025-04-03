@@ -22,4 +22,4 @@ class Result
   def failure?
     !@success
   end
-end 
+end

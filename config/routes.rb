@@ -21,12 +21,12 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     devise_for :users, controllers: {
-      sessions: 'api/users/sessions',
-      registrations: 'api/users/registrations'
+      sessions: "api/users/sessions",
+      registrations: "api/users/registrations"
     }
 
     # Add custom sessions route
-    post 'sessions', to: 'sessions#create'
+    post "sessions", to: "sessions#create"
 
     resources :players, param: :id do
       collection do
@@ -36,16 +36,16 @@ Rails.application.routes.draw do
 
     resources :game_sessions do
       collection do
-        post 'create/:player_id', to: 'game_sessions#create'
+        post "create/:player_id", to: "game_sessions#create"
       end
-      
+
       member do
-        post 'join/:player_id', to: 'game_sessions#join'
-        delete 'leave/:player_id', to: 'game_sessions#leave'
-        post 'start'
-        post 'update_game_state'
+        post "join/:player_id", to: "game_sessions#join"
+        delete "leave/:player_id", to: "game_sessions#leave"
+        post "start"
+        post "update_game_state"
       end
-      
+
       post "cleanup", on: :collection
     end
   end

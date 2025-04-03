@@ -11,7 +11,6 @@ class GameSession < ApplicationRecord
   validates :status, presence: true
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
-  validates :creator_id, presence: true
   validate :max_players_greater_than_min_players
   validate :valid_status_transition
   validate :creator_must_be_valid_player
@@ -110,17 +109,15 @@ class GameSession < ApplicationRecord
   end
 
   def creator_must_be_valid_player
-    return unless creator_id.present?
-    
+    return if creator_id.blank?
+
     player = Player.find_by(id: creator_id)
     unless player
       errors.add(:creator_id, "must be a valid player")
       return
     end
-    
-    unless player.user_id == Current.user&.id
-      errors.add(:creator_id, "must belong to the current user")
-    end
+
+    errors.add(:creator_id, "must belong to the current user") unless player.user_id == Current.user&.id
   end
 
   def log_turn_advancement

@@ -19,12 +19,23 @@ class Board
 
   def make_move(position, player_value)
     return false unless valid_move?(position)
+
     @board[position] = player_value
     true
   end
 
   def valid_move?(position)
-    position.between?(0, 8) && @board[position] == CELL_VALUES[:empty]
+    unless position.between?(0, 8)
+      puts "Invalid move: Position #{position} is out of range (must be between 0-8)"
+      return false
+    end
+
+    if @board[position] != CELL_VALUES[:empty]
+      puts "Invalid move: Position #{position} is already taken (value: #{@board[position]})"
+      return false
+    end
+
+    true
   end
 
   def winner
@@ -36,18 +47,21 @@ class Board
   end
 
   def full?
-    !@board.include?(CELL_VALUES[:empty])
+    @board.exclude?(CELL_VALUES[:empty])
   end
 
   def display
     puts "\n"
+    puts "Board contents: #{@board.inspect}"
     index = 0
     @board.each_slice(3) do |row|
-      puts row.map { |cell| index += 1; cell_to_symbol(cell, index)   }.join(" | ")
-      if index < 7
-        puts "---------"
-      end
-      
+      puts row.map do |cell|
+        symbol = cell_to_symbol(cell, index)
+        puts "symbol: #{index} -> #{symbol}"
+        index += 1
+        symbol
+      end.join(" | ")
+      puts "---------" if index < 6
     end
     puts "\n"
   end

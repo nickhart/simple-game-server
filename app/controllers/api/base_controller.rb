@@ -12,7 +12,7 @@ module Api
     def ensure_json_request
       # Accept if content type is application/json or if the request format is json
       return if request.content_type == "application/json" || request.format.json?
-      
+
       # Also accept if the request body is JSON
       begin
         JSON.parse(request.body.read)
@@ -21,7 +21,7 @@ module Api
       rescue JSON::ParserError
         # Not JSON, continue to error
       end
-      
+
       render json: { error: "Only JSON requests are accepted" }, status: :not_acceptable
     end
 

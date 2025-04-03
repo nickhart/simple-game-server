@@ -12,6 +12,15 @@ module Api
       end
     end
 
+    def show
+      @player = Player.find_by(id: params[:id])
+      if @player
+        render json: @player
+      else
+        render json: { error: "Player not found" }, status: :not_found
+      end
+    end
+
     def create
       @player = Player.new(
         name: params[:name],
@@ -25,19 +34,10 @@ module Api
       end
     end
 
-    def show
-      @player = Player.find_by(id: params[:id])
-      if @player
-        render json: @player
-      else
-        render json: { error: "Player not found" }, status: :not_found
-      end
-    end
-
     private
 
     def authenticate_user!
-      token = request.headers["Authorization"]&.split(" ")&.last
+      token = request.headers["Authorization"]&.split&.last
       return render json: { error: "Missing token" }, status: :unauthorized unless token
 
       begin
@@ -49,8 +49,6 @@ module Api
       end
     end
 
-    def current_user
-      @current_user
-    end
+    attr_reader :current_user
   end
 end

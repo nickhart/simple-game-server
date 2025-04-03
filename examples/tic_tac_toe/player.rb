@@ -9,4 +9,4 @@ class Player
   def to_s
     name
   end
-end 
+end
