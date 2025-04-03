@@ -84,22 +84,28 @@ class GameClient
   def get_game_session(game_session_id)
     return Result.failure("No game session ID provided") unless game_session_id
 
-    uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@token}"
-    request["X-API-Key"] = Config::API_KEY
+    begin
+      uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}")
+      request = Net::HTTP::Get.new(uri)
+      request["Authorization"] = "Bearer #{@token}"
+      request["Content-Type"] = "application/json"
+      request["X-API-Key"] = Config::API_KEY
 
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
-    end
+      response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+        http.request(request)
+      end
 
-    if response.code == "200"
-      data = JSON.parse(response.body)
-      Result.success(GameSession.new(data))
-    else
-      error_message = extract_error_message(response.body)
-      puts "Failed to get game session: #{error_message}"
-      Result.failure(error_message)
+      if response.code == "200"
+        data = JSON.parse(response.body)
+        Result.success(GameSession.new(data))
+      else
+        error_message = extract_error_message(response.body)
+        puts "Failed to get game session: #{error_message}"
+        Result.failure(error_message)
+      end
+    rescue StandardError => e
+      puts "Error getting game session: #{e.message}"
+      Result.failure(e.message)
     end
   end
 
@@ -139,6 +145,7 @@ class GameClient
     uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
     request = Net::HTTP::Delete.new(uri)
     request["Authorization"] = "Bearer #{@token}"
+    request["Content-Type"] = "application/json"
     request["X-API-Key"] = Config::API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
@@ -194,6 +201,7 @@ class GameClient
   def get(path)
     uri = URI("#{@server_url}#{path}")
     request = Net::HTTP::Get.new(uri)
+    request["Content-Type"] = "application/json"
     add_auth_header(request)
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)

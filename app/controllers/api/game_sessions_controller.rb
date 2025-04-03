@@ -2,11 +2,15 @@ module Api
   class GameSessionsController < BaseController
     before_action :authenticate_user!
     before_action :set_game_session, except: [:index, :create]
-    before_action :set_player, only: [:create, :join, :leave]
+    before_action :set_player, only: [:create, :join, :leave, :start]
 
     def index
       @game_sessions = GameSession.includes(:players)
       render json: @game_sessions, include: { players: { only: [:id, :name] } }
+    end
+
+    def show
+      render json: @game_session, include: { players: { only: [:id, :name] } }
     end
 
     def create
@@ -37,6 +41,19 @@ module Api
 
       @game_session.players.delete(@player)
       render json: { message: "Player left the game" }
+    end
+
+    def start
+      return render json: { error: "Only the creator can start the game" }, status: :unauthorized unless @game_session.creator_id == @player.id
+      return render json: { error: "Game is not in waiting status" }, status: :unprocessable_entity unless @game_session.waiting?
+      return render json: { error: "Not enough players" }, status: :unprocessable_entity if @game_session.players.count < @game_session.min_players
+      return render json: { error: "Too many players" }, status: :unprocessable_entity if @game_session.players.count > @game_session.max_players
+
+      if @game_session.start(@player.id)
+        render json: @game_session, include: { players: { only: [:id, :name] } }
+      else
+        render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
+      end
     end
 
     private

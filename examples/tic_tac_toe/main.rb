@@ -111,8 +111,52 @@ class TicTacToeCLI
 
   def create_game
     game_session = @client.create_game_session(@current_player.id, 2, 2)
-    game = Game.new(@client, game_session)
-    game.play
+    puts "Game created with ID: #{game_session.id}"
+    puts "Waiting for another player to join..."
+    
+    wait_for_players(game_session)
+    
+    # Start the game after players have joined
+    start_game(game_session)
+  end
+
+  def wait_for_players(game_session)
+    loop do
+      # Refresh the game session to get the latest player count
+      result = @client.get_game_session(game_session.id)
+      
+      if result.failure?
+        puts "Error refreshing game session: #{result.error}"
+        sleep(2) # Wait before retrying
+        next
+      end
+      
+      updated_session = result.data
+      
+      if updated_session.players.size >= 2
+        puts "Another player has joined! Starting the game..."
+        break
+      end
+      
+      print "."
+      sleep(2) # Check every 2 seconds
+    end
+  end
+
+  def start_game(game_session)
+    # Refresh the game session to get the latest state
+    updated_session = @client.get_game_session(game_session.id).data
+    
+    # Start the game on the server
+    result = @client.start_game(updated_session.id, @current_player.id)
+    
+    if result.success?
+      puts "Game started successfully!"
+      game = Game.new(@client, result.data)
+      game.play
+    else
+      puts "Failed to start game: #{result.error}"
+    end
   end
 
   def join_game
@@ -127,17 +171,51 @@ class TicTacToeCLI
       game_session = @client.join_game_session(@current_player.id, @options[:game_id])
     else
       # Join newest waiting game
-      waiting_sessions = game_sessions.select { |s| s["status"] == "waiting" }
-      if waiting_sessions.empty?
-        puts "No waiting games found"
-        return
-      end
-      newest_session = waiting_sessions.max_by { |s| s["id"] }
-      game_session = @client.join_game_session(@current_player.id, newest_session["id"])
+      game_session = find_newest_waiting_game(game_sessions)
+      return unless game_session
     end
 
+    puts "Joined game with ID: #{game_session.id}"
+    puts "Waiting for the game creator to start the game..."
+    
+    wait_for_game_start(game_session)
+    
+    # Start playing once the game has started
     game = Game.new(@client, game_session)
     game.play
+  end
+
+  def wait_for_game_start(game_session)
+    loop do
+      # Refresh the game session to get the latest state
+      result = @client.get_game_session(game_session.id)
+      
+      if result.failure?
+        puts "Error refreshing game session: #{result.error}"
+        sleep(2) # Wait before retrying
+        next
+      end
+      
+      updated_session = result.data
+      
+      if updated_session.status == "active"
+        puts "Game has started! Let's play!"
+        break
+      end
+      
+      print "."
+      sleep(2) # Check every 2 seconds
+    end
+  end
+
+  def find_newest_waiting_game(game_sessions)
+    waiting_sessions = game_sessions.select { |s| s.status == "waiting" }
+    if waiting_sessions.empty?
+      puts "No waiting games found"
+      return nil
+    end
+    newest_session = waiting_sessions.max_by { |s| s.id }
+    @client.join_game_session(@current_player.id, newest_session.id)
   end
 
   def list_games

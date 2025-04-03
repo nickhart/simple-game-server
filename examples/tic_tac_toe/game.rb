@@ -21,6 +21,9 @@ class Game
     puts "Game session ID: #{@game_session.id}"
 
     loop do
+      # Wait for our turn
+      @game_session = wait_for_turn
+      
       display_board
       position = get_player_move
       result = make_move(position)
@@ -38,6 +41,31 @@ class Game
   end
 
   private
+
+  def wait_for_turn
+    puts "Waiting for your turn..."
+    
+    loop do
+      # Refresh the game session to get the latest state
+      result = @client.get_game_session(@game_session.id)
+      
+      if result.failure?
+        puts "Error refreshing game session: #{result.error}"
+        sleep(2) # Wait before retrying
+        next
+      end
+      
+      updated_session = result.data
+      
+      if updated_session.current_player && updated_session.current_player.id == @current_player.id
+        puts "It's your turn!"
+        return updated_session
+      end
+      
+      print "."
+      sleep(2) # Check every 2 seconds
+    end
+  end
 
   def display_board
     puts "\nCurrent board:"
