@@ -1,13 +1,12 @@
 class Player
-  attr_reader :id, :name, :user_id
+  attr_reader :id, :name
 
-  def initialize(data)
-    @id = data["id"]
-    @name = data["name"]
-    @user_id = data["user_id"]
+  def initialize(attributes)
+    @id = attributes["id"]
+    @name = attributes["name"]
   end
 
   def to_s
-    "#{name} (ID: #{id})"
+    name
   end
 end 

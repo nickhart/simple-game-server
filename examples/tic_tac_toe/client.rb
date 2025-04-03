@@ -6,18 +6,18 @@ require_relative "game_session"
 require_relative "result"
 
 class GameClient
-  BASE_URL = "http://localhost:3000/api".freeze
-  API_KEY = Config::API_KEY
+  attr_reader :token
 
-  def initialize
+  def initialize(server_url = "http://localhost:3000")
+    @server_url = server_url
     @token = nil
   end
 
   def register(email, password)
-    uri = URI("#{BASE_URL}/players")
+    uri = URI("#{@server_url}/api/players")
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
+    request["X-API-Key"] = Config::API_KEY
     request.body = {
       user: {
         email: email,
@@ -43,104 +43,51 @@ class GameClient
   end
 
   def login(email, password)
-    uri = URI("#{BASE_URL}/login")
-    request = Net::HTTP::Post.new(uri)
-    request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
-    request.body = { email: email, password: password }.to_json
-
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
-    end
-
-    if response.code == "200"
-      data = JSON.parse(response.body)
-      @token = data["token"]
-      Result.success(data)
-    else
-      error_message = extract_error_message(response.body)
-      puts "Login failed: #{error_message}"
-      Result.failure(error_message)
-    end
+    response = post("/api/sessions", { email: email, password: password })
+    @token = response["token"]
   end
 
-  def create_game_session
-    uri = URI("#{BASE_URL}/game_sessions")
-    request = Net::HTTP::Post.new(uri)
-    request["Authorization"] = "Bearer #{@token}"
-    request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
-    request.body = {
+  def get_current_player
+    response = get("/api/players/current")
+    Player.new(response)
+  end
+
+  def create_game_session(player_id, min_players, max_players)
+    response = post("/api/game_sessions/create/#{player_id}", {
       game_session: {
-        status: "waiting",
-        min_players: 2,
-        max_players: 2,
-        state: { board: Board.new.board }
+        min_players: min_players,
+        max_players: max_players
       }
-    }.to_json
-
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
-    end
-
-    if response.code == "201"
-      data = JSON.parse(response.body)
-      # Ensure the creator_id is set to the current user's ID
-      # This is needed for the GameSession to correctly assign the player_id
-      data['creator_id'] = data['players'].first['user_id'] if data['players'] && data['players'].any?
-      game_session = GameSession.new(data)
-      puts "Created game session: #{game_session.id}"
-      Result.success(game_session)
-    else
-      error_message = extract_error_message(response.body)
-      puts "Failed to create game session: #{error_message}"
-      Result.failure(error_message)
-    end
+    })
+    GameSession.new(response)
   end
 
-  def join_game_session(game_session_id)
-    result = get_game_session(game_session_id)
-    return result unless result.success?
-    game_session = result.data
-    puts "current players (before join): #{game_session.players}"
-    puts "current player (before join): #{game_session.current_player_index}"
-    puts "creator (before join): #{game_session.creator_id}"
+  def join_game_session(player_id, game_session_id)
+    response = post("/api/game_sessions/#{game_session_id}/join/#{player_id}")
+    GameSession.new(response)
+  end
 
-    uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/join")
-    request = Net::HTTP::Post.new(uri)
-    request["Authorization"] = "Bearer #{@token}"
-    request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
+  def list_game_sessions
+    response = get("/api/game_sessions")
+    response.map { |session| GameSession.new(session) }
+  end
 
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
-    end
-    
-    # Get the updated game session after joining
-    result = get_game_session(game_session_id)
-    return result unless result.success?
-    game_session = result.data
-    puts "current players (after join): #{game_session.players}"
-    puts "current player (after join): #{game_session.current_player_index}"
-    puts "creator (after join): #{game_session.creator_id}"
-
-    if response.code == "200"
-      puts "Joined game session as player: #{game_session.player_id}"
-      Result.success(game_session)
-    else
-      error_message = extract_error_message(response.body)
-      puts "Failed to join game session: #{error_message}"
-      Result.failure(error_message)
-    end
+  def update_game_state(game_session_id, state)
+    response = put("/api/game_sessions/#{game_session_id}", {
+      game_session: {
+        state: state
+      }
+    })
+    GameSession.new(response)
   end
 
   def get_game_session(game_session_id)
     return Result.failure("No game session ID provided") unless game_session_id
 
-    uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}")
+    uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}")
     request = Net::HTTP::Get.new(uri)
     request["Authorization"] = "Bearer #{@token}"
-    request["X-API-Key"] = API_KEY
+    request["X-API-Key"] = Config::API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
@@ -158,11 +105,11 @@ class GameClient
 
   def start_game(game_session_id, player_id = nil)
     puts "Starting game with session_id: #{game_session_id}, player_id: #{player_id}"
-    uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/start")
+    uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}/start")
     request = Net::HTTP::Post.new(uri)
     request["Authorization"] = "Bearer #{@token}"
     request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
+    request["X-API-Key"] = Config::API_KEY
     
     # Only include player_id in the request body if it's provided
     request_body = {}
@@ -189,10 +136,10 @@ class GameClient
   def leave_game(game_session_id, player_id)
     return Result.failure("No game session ID or player ID provided") unless game_session_id && player_id
 
-    uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
+    uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
     request = Net::HTTP::Delete.new(uri)
     request["Authorization"] = "Bearer #{@token}"
-    request["X-API-Key"] = API_KEY
+    request["X-API-Key"] = Config::API_KEY
 
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
@@ -208,26 +155,6 @@ class GameClient
     end
   end
 
-  def list_game_sessions
-    uri = URI("#{BASE_URL}/game_sessions")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@token}"
-    request["X-API-Key"] = API_KEY
-
-    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
-      http.request(request)
-    end
-
-    if response.code == "200"
-      data = JSON.parse(response.body)
-      Result.success(data)
-    else
-      error_message = extract_error_message(response.body)
-      puts "Failed to list game sessions: #{error_message}"
-      Result.failure(error_message)
-    end
-  end
-
   def make_move(game_session_id, player_id, position)
     return Result.failure("No game session ID or player ID provided") unless game_session_id && player_id
 
@@ -236,11 +163,11 @@ class GameClient
     return game_session_result if game_session_result.failure?
 
     # Update the game state on the server
-    uri = URI("#{BASE_URL}/game_sessions/#{game_session_id}/update_game_state")
+    uri = URI("#{@server_url}/api/game_sessions/#{game_session_id}/update_game_state")
     request = Net::HTTP::Post.new(uri)
     request["Authorization"] = "Bearer #{@token}"
     request["Content-Type"] = "application/json"
-    request["X-API-Key"] = API_KEY
+    request["X-API-Key"] = Config::API_KEY
     request.body = {
       player_id: player_id,
       state: {
@@ -264,7 +191,52 @@ class GameClient
 
   private
 
-  attr_reader :token
+  def get(path)
+    uri = URI("#{@server_url}#{path}")
+    request = Net::HTTP::Get.new(uri)
+    add_auth_header(request)
+    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+      http.request(request)
+    end
+    handle_response(response)
+  end
+
+  def post(path, body = {})
+    uri = URI("#{@server_url}#{path}")
+    request = Net::HTTP::Post.new(uri)
+    request["Content-Type"] = "application/json"
+    add_auth_header(request)
+    request.body = body.to_json
+    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+      http.request(request)
+    end
+    handle_response(response)
+  end
+
+  def put(path, body = {})
+    uri = URI("#{@server_url}#{path}")
+    request = Net::HTTP::Put.new(uri)
+    request["Content-Type"] = "application/json"
+    add_auth_header(request)
+    request.body = body.to_json
+    response = Net::HTTP.start(uri.hostname, uri.port) do |http|
+      http.request(request)
+    end
+    handle_response(response)
+  end
+
+  def add_auth_header(request)
+    request["Authorization"] = "Bearer #{@token}" if @token
+  end
+
+  def handle_response(response)
+    case response
+    when Net::HTTPSuccess
+      JSON.parse(response.body)
+    else
+      raise "HTTP Error: #{response.code} - #{response.body}"
+    end
+  end
 
   def extract_error_message(response_body)
     begin
