@@ -46,4 +46,4 @@ module Api
       assert_includes JSON.parse(response.body)["error"], "Invalid email or password"
     end
   end
-end 
+end

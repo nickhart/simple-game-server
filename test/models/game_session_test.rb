@@ -149,10 +149,10 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.save!
     @game.add_player(@player1)
     @game.add_player(@player2)
-    
+
     initial_player = @game.current_player
     @game.advance_turn
-    
+
     assert_equal initial_player, @game.current_player
   end
 

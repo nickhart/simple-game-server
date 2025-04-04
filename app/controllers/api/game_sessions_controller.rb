@@ -17,6 +17,18 @@ module Api
       render json: @game_session, include: { players: { only: %i[id name] } }
     end
 
+    def create
+      @game_session = GameSession.new(game_session_params)
+      @game_session.creator = @player
+      @game_session.players << @player
+
+      if @game_session.save
+        render json: @game_session, include: { players: { only: %i[id name] } }, status: :created
+      else
+        render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     def update
       Rails.logger.info "Updating game session #{@game_session.id}"
       Rails.logger.info "Current state: #{@game_session.state.inspect}"
@@ -34,7 +46,7 @@ module Api
         Rails.logger.info "New state: #{@game_session.state.inspect}"
         Rails.logger.info "New status: #{@game_session.status}"
         Rails.logger.info "Is game active? #{@game_session.active?}"
-        
+
         # If status is being set to finished, ensure the game is properly terminated
         if game_session_params[:status] == "finished"
           Rails.logger.info "Setting status to finished"
@@ -59,18 +71,6 @@ module Api
         render json: @game_session, include: { players: { only: %i[id name] } }
       else
         Rails.logger.error "Failed to update game session: #{@game_session.errors.full_messages}"
-        render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
-      end
-    end
-
-    def create
-      @game_session = GameSession.new(game_session_params)
-      @game_session.creator = @player
-      @game_session.players << @player
-
-      if @game_session.save
-        render json: @game_session, include: { players: { only: %i[id name] } }, status: :created
-      else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
     end
@@ -127,8 +127,8 @@ module Api
     def cleanup
       before_time = params[:before] ? Time.parse(params[:before]) : 1.day.ago
       old_games = GameSession.where(status: "waiting")
-                           .where("created_at < ?", before_time)
-      
+                             .where("created_at < ?", before_time)
+
       old_games.destroy_all
       render json: { message: "Cleanup completed" }
     end

@@ -116,9 +116,7 @@ class GameSession < ApplicationRecord
     return unless active?
     return if current_player_index.nil?
 
-    unless players[current_player_index]
-      errors.add(:current_player_index, "must be a valid player index")
-    end
+    errors.add(:current_player_index, "must be a valid player index") unless players[current_player_index]
   end
 
   def creator_must_be_valid_player

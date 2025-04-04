@@ -70,7 +70,7 @@ module Api
       post "/api/game_sessions/cleanup",
            params: { before: 1.day.ago.iso8601 }.to_json,
            headers: @headers
-      
+
       assert_response :success
       assert_not GameSession.exists?(old_game.id)
     end
@@ -81,7 +81,7 @@ module Api
       post "/api/game_sessions/cleanup",
            params: { before: 1.day.ago.iso8601 }.to_json,
            headers: @headers
-      
+
       assert_response :success
       assert GameSession.exists?(@active_game.id)
     end
@@ -89,7 +89,7 @@ module Api
     # Game Session Update Tests
     test "should update game state and advance turn when active" do
       initial_player_index = @active_game.current_player_index
-      
+
       put api_game_session_path(@active_game),
           params: {
             game_session: {
@@ -98,7 +98,7 @@ module Api
             }
           }.to_json,
           headers: @headers
-      
+
       assert_response :success
       @active_game.reload
       assert_equal [1, 0, 0, 0, 0, 0, 0, 0, 0], @active_game.state["board"]
@@ -107,7 +107,7 @@ module Api
 
     test "should not advance turn when game is finished" do
       initial_player_index = @finished_game.current_player_index
-      
+
       put api_game_session_path(@finished_game),
           params: {
             game_session: {
@@ -116,7 +116,7 @@ module Api
             }
           }.to_json,
           headers: @headers
-      
+
       assert_response :success
       @finished_game.reload
       assert_equal initial_player_index, @finished_game.current_player_index
@@ -130,7 +130,7 @@ module Api
 
       get api_game_session_path(@active_game),
           headers: @headers
-      
+
       assert_response :success
       response_state = JSON.parse(response.body)["state"]
       assert_equal initial_state["board"], response_state["board"]
@@ -159,7 +159,7 @@ module Api
       @waiting_game.players << players(:three)
       @waiting_game.players << players(:four)
       @waiting_game.update!(max_players: 3)
-      
+
       assert_no_difference("@waiting_game.players.count") do
         post "/api/game_sessions/#{@waiting_game.id}/join/#{@player.id}",
              headers: @headers
@@ -175,7 +175,7 @@ module Api
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers
-      
+
       assert_response :success
       assert_equal "active", @waiting_game.reload.status
     end
@@ -186,7 +186,7 @@ module Api
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers
-      
+
       assert_response :unprocessable_entity
       assert_equal "waiting", @waiting_game.reload.status
     end
@@ -201,7 +201,7 @@ module Api
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers
-      
+
       assert_response :unprocessable_entity
       assert_equal "waiting", @waiting_game.reload.status
     end
@@ -215,4 +215,4 @@ module Api
       )
     end
   end
-end 
+end

@@ -26,7 +26,7 @@ class Game
       if @game_session.status == "finished"
         display_board
         if @game_session.state["winner"]
-          puts "Player #{@game_session.state["winner"] + 1} wins!"
+          puts "Player #{@game_session.state['winner'] + 1} wins!"
         else
           puts "It's a draw!"
         end
@@ -66,9 +66,7 @@ class Game
 
       updated_session = result.data
 
-      if updated_session.status == "finished"
-        return updated_session
-      end
+      return updated_session if updated_session.status == "finished"
 
       if updated_session.current_player && updated_session.current_player.id == @current_player.id
         puts "It's your turn!"
@@ -127,7 +125,7 @@ class Game
       @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished")
       Result.success(game_over: true, message: "It's a draw!")
     else
-      player_id = @game_session.players.find { |p| p.id != @current_player.id }.id
+      @game_session.players.find { |p| p.id != @current_player.id }.id
       @client.update_game_state(@game_session.id, { board: @game_session.board.board })
       Result.success(game_over: false)
     end

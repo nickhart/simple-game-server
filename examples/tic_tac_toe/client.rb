@@ -83,12 +83,12 @@ class GameClient
 
   def register(email, password)
     response = @http.post("/api/players", {
-      user: {
-        email: email,
-        password: password,
-        password_confirmation: password
-      }
-    })
+                            user: {
+                              email: email,
+                              password: password,
+                              password_confirmation: password
+                            }
+                          })
 
     if response["token"]
       @token = response["token"]
@@ -115,11 +115,11 @@ class GameClient
 
   def create_game_session(player_id, min_players, max_players)
     response = @http.post("/api/game_sessions/create/#{player_id}", {
-      game_session: {
-        min_players: min_players,
-        max_players: max_players
-      }
-    })
+                            game_session: {
+                              min_players: min_players,
+                              max_players: max_players
+                            }
+                          })
     GameSession.new(response)
   end
 
@@ -134,19 +134,17 @@ class GameClient
   end
 
   def update_game_state(game_session_id, state, status = "active", winner = nil)
-    begin
-      state["winner"] = winner if winner
-      response = @http.put("/api/game_sessions/#{game_session_id}", {
-        game_session: {
-          state: state,
-          status: status
-        }
-      })
-      Result.success(GameSession.new(response))
-    rescue StandardError => e
-      puts "Error updating game state: #{e.message}"
-      Result.failure(e.message)
-    end
+    state["winner"] = winner if winner
+    response = @http.put("/api/game_sessions/#{game_session_id}", {
+                           game_session: {
+                             state: state,
+                             status: status
+                           }
+                         })
+    Result.success(GameSession.new(response))
+  rescue StandardError => e
+    puts "Error updating game state: #{e.message}"
+    Result.failure(e.message)
   end
 
   def get_game_session(game_session_id)
@@ -176,7 +174,7 @@ class GameClient
   def leave_game(game_session_id, player_id)
     return Result.failure("No game session ID or player ID provided") unless game_session_id && player_id
 
-    response = @http.delete("/api/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
+    @http.delete("/api/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
     puts "Left game session"
     Result.success(true)
   rescue StandardError => e
