@@ -66,11 +66,11 @@ class TicTacToeCLI
     else
       # Prompt for credentials
       email = prompt("Enter your email: ")
-      password = prompt("Enter your password: ", true)
+      password = prompt("Enter your password: ", secret: true)
     end
 
     @client.login(email, password)
-    @current_player = @client.get_current_player
+    @current_player = @client.current_player
     puts "Logged in as #{@current_player.name}"
   end
 
@@ -231,7 +231,7 @@ class TicTacToeCLI
     end
   end
 
-  def prompt(message, secret = false, default = nil)
+  def prompt(message, secret: false, default: nil)
     print message
     input = if secret
               `stty -echo`

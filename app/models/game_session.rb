@@ -13,7 +13,8 @@ class GameSession < ApplicationRecord
   validates :max_players, presence: true, numericality: { greater_than: 0 }
   validate :max_players_greater_than_min_players
   validate :valid_status_transition
-  validate :creator_must_be_valid_player
+  validate :current_player_must_be_valid
+  validate :creator_must_be_valid_player, if: :starting_game?
 
   before_validation :set_defaults
 
@@ -108,6 +109,15 @@ class GameSession < ApplicationRecord
     end
   end
 
+  def current_player_must_be_valid
+    return unless active?
+    return if current_player_index.nil?
+
+    unless players[current_player_index]
+      errors.add(:current_player_index, "must be a valid player index")
+    end
+  end
+
   def creator_must_be_valid_player
     return if creator_id.blank?
 
@@ -120,6 +130,10 @@ class GameSession < ApplicationRecord
     errors.add(:creator_id, "must belong to the current user") unless player.user_id == Current.user&.id
   end
 
+  def starting_game?
+    status_changed? && status == "active"
+  end
+
   def log_turn_advancement
     Rails.logger.info "Advancing turn in game session #{id}"
     Rails.logger.info "Current player index: #{current_player_index}"
@@ -127,8 +141,7 @@ class GameSession < ApplicationRecord
   end
 
   def update_turn_state
-    state["current_player_index"] = (current_player_index + 1) % players.count
-    self.current_player_index = state["current_player_index"]
+    self.current_player_index = (current_player_index + 1) % players.count
   end
 
   def save_turn_changes

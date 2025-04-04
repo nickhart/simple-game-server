@@ -13,6 +13,22 @@ module Api
       render json: @game_session, include: { players: { only: %i[id name] } }
     end
 
+    def update
+      if @game_session.update(game_session_params)
+        # If status is being set to finished, ensure the game is properly terminated
+        if game_session_params[:status] == "finished"
+          @game_session.status = :finished
+          @game_session.save
+        # Only advance turn if game is still active and state is being updated
+        elsif game_session_params[:state].present? && @game_session.active?
+          @game_session.advance_turn
+        end
+        render json: @game_session, include: { players: { only: %i[id name] } }
+      else
+        render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     def create
       @game_session = GameSession.new(game_session_params)
       @game_session.creator = @player
@@ -89,7 +105,12 @@ module Api
     end
 
     def game_session_params
-      params.expect(game_session: %i[game_type min_players max_players])
+      params.require(:game_session).permit(
+        :current_player_index,
+        :status,
+        :current_player_id,
+        state: {}
+      )
     end
   end
 end

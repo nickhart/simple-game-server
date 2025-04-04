@@ -14,7 +14,7 @@ class Game
   end
 
   def play
-    @current_player = @client.get_current_player
+    @current_player = @client.current_player
     puts "Welcome to TicTacToe!"
     puts "You are playing as #{@current_player.name}"
     puts "Game session ID: #{@game_session.id}"
@@ -23,13 +23,20 @@ class Game
       # Wait for our turn
       @game_session = wait_for_turn
 
+      if @game_session.status == "finished"
+        display_board
+        puts result.data[:message]
+        break
+      end
+
       display_board
-      position = get_player_move
+      position = player_move
       result = make_move(position)
+      display_board
 
       if result.success?
         if result.data[:game_over]
-          display_board
+          # display_board
           puts result.data[:message]
           break
         end
@@ -73,7 +80,7 @@ class Game
     Board.new(@game_session.state["board"]).display
   end
 
-  def get_player_move
+  def player_move
     loop do
       print "Enter your move (0-8): "
       position = gets.chomp.to_i
@@ -83,18 +90,38 @@ class Game
     end
   end
 
+  def player_cell_value
+    player_index = @game_session.players.find_index { |p| p.id == @current_player.id }
+    case player_index
+    when 0
+      Board::CELL_VALUES[:player1]
+    when 1
+      Board::CELL_VALUES[:player2]
+    else
+      raise "Invalid player index: #{player_index}"
+    end
+  end
+
   def make_move(position)
     return Result.failure("Invalid position") unless position.between?(0, 8)
     return Result.failure("Position already taken") unless @game_session.board.valid_move?(position)
 
-    @game_session.board.make_move(position, @current_player.id)
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board })
+    cell_value = player_cell_value
 
-    if @game_session.board.winner?
-      Result.success(game_over: true, message: "Player #{@current_player.name} wins!")
-    elsif @game_session.board.draw?
+    @game_session.board.make_move(position, cell_value)
+    @game_session.state["board"] = @game_session.board.board
+
+    winner = @game_session.board.winner
+    if winner && winner != Board::CELL_VALUES[:empty]
+      player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
+      @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished", player_index)
+      Result.success(game_over: true, message: "Player #{winner} wins!")
+    elsif @game_session.board.full?
+      @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished")
       Result.success(game_over: true, message: "It's a draw!")
     else
+      player_id = @game_session.players.find { |p| p.id != @current_player.id }.id
+      @client.update_game_state(@game_session.id, { board: @game_session.board.board })
       Result.success(game_over: false)
     end
   end

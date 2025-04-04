@@ -47,7 +47,7 @@ class Board
   end
 
   def full?
-    @board.exclude?(CELL_VALUES[:empty])
+    !@board.include?(CELL_VALUES[:empty])
   end
 
   def display
@@ -55,13 +55,13 @@ class Board
     puts "Board contents: #{@board.inspect}"
     index = 0
     @board.each_slice(3) do |row|
-      puts row.map do |cell|
+      symbols = row.map do |cell|
         symbol = cell_to_symbol(cell, index)
-        puts "symbol: #{index} -> #{symbol}"
         index += 1
         symbol
-      end.join(" | ")
-      puts "---------" if index < 6
+      end
+      puts symbols.join(" | ")
+      puts "---------" if index < 9
     end
     puts "\n"
   end
