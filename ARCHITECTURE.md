@@ -164,4 +164,293 @@ Security measures are documented in `SECURITY.md`, including:
    - Real-time game viewing
    - Player management dashboard
    - Game analytics and statistics
-   - Custom game type configuration 
+   - Custom game type configuration
+
+## API Endpoints
+
+### Authentication
+
+#### Register a New User
+```http
+POST /api/players
+Content-Type: application/json
+
+{
+  "user": {
+    "email": "player@example.com",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }
+}
+```
+
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "player@example.com"
+  }
+}
+```
+
+#### Login
+```http
+POST /api/sessions
+Content-Type: application/json
+
+{
+  "email": "player@example.com",
+  "password": "password123"
+}
+```
+
+Response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "player@example.com"
+  }
+}
+```
+
+### Game Sessions
+
+#### List Available Game Sessions
+```http
+GET /api/game_sessions
+Authorization: Bearer <token>
+```
+
+Response:
+```json
+[
+  {
+    "id": 1,
+    "status": "waiting",
+    "min_players": 2,
+    "max_players": 2,
+    "current_player_index": null,
+    "state": {},
+    "players": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Player 1"
+      }
+    ],
+    "creator_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+]
+```
+
+#### Create a New Game Session
+```http
+POST /api/game_sessions
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "game_session": {
+    "min_players": 2,
+    "max_players": 2
+  }
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "status": "waiting",
+  "min_players": 2,
+  "max_players": 2,
+  "current_player_index": null,
+  "state": {},
+  "players": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Player 1"
+    }
+  ],
+  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Join a Game Session
+```http
+POST /api/game_sessions/:id/join
+Authorization: Bearer <token>
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "status": "waiting",
+  "min_players": 2,
+  "max_players": 2,
+  "current_player_index": null,
+  "state": {},
+  "players": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Player 1"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Player 2"
+    }
+  ],
+  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Start a Game
+```http
+POST /api/game_sessions/:id/start
+Authorization: Bearer <token>
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "status": "active",
+  "min_players": 2,
+  "max_players": 2,
+  "current_player_index": 0,
+  "state": {},
+  "players": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Player 1"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Player 2"
+    }
+  ],
+  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Update Game State
+```http
+PUT /api/game_sessions/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+# Example 1: Normal move during active game
+{
+  "game_session": {
+    "state": {
+      "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
+      "current_player": 1
+    },
+    "status": "active"
+  }
+}
+
+# Example 2: Game finished with winner
+{
+  "game_session": {
+    "state": {
+      "board": [1, 1, 1, 2, 2, 0, 0, 0, 0],
+      "winner": 0
+    },
+    "status": "finished"
+  }
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "status": "active",  // or "finished" for end of game
+  "min_players": 2,
+  "max_players": 2,
+  "current_player_index": 1,  // Updated to next player
+  "state": {
+    "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
+    "current_player": 1
+  },
+  "players": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Player 1"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Player 2"
+    }
+  ],
+  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+#### Leave a Game
+```http
+DELETE /api/game_sessions/:id/leave
+Authorization: Bearer <token>
+```
+
+Response:
+```json
+{
+  "message": "Player left the game"
+}
+```
+
+## Game State Management
+
+The game state is entirely managed by the client. The server acts as a state store and turn manager, but does not interpret or validate the game state. This allows for flexibility in implementing different types of games.
+
+### State Structure
+The `state` field in game sessions is a JSON object that can contain any game-specific data. For example, in a Tic-Tac-Toe game:
+```json
+{
+  "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
+  "current_player": 1,
+  "winner": 0  // Optional, only present when game is finished
+}
+```
+
+### Turn Management
+The server manages turns by:
+1. Tracking the current player index
+2. Advancing the turn when the game state is updated
+3. Preventing turn advancement when the game is finished
+
+### Game Status
+- `waiting`: Game is waiting for players to join
+- `active`: Game is in progress
+- `finished`: Game has ended (either with a winner or a draw)
+
+## Error Responses
+
+All endpoints may return the following error responses:
+
+```json
+{
+  "error": "Game session not found"
+}
+```
+Status: 404 Not Found
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+Status: 401 Unauthorized
+
+```json
+{
+  "errors": ["Status cannot transition from active to waiting"]
+}
+```
+Status: 422 Unprocessable Entity 
