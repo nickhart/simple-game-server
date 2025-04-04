@@ -15,6 +15,58 @@
             "name": "Authentication",
             "item": [
                 {
+                    "name": "Register New User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user\": {\n        \"email\": \"{{api_email}}\",\n        \"password\": \"{{api_password}}\",\n        \"password_confirmation\": \"{{api_password}}\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/players",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "players"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains token', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.token).to.be.a('string');",
+                                    "    pm.expect(response.token).to.not.be.empty;",
+                                    "});",
+                                    "",
+                                    "// Save the token for future requests",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.token) {",
+                                    "    pm.environment.set('jwt_token', response.token);",
+                                    "    console.log('Token saved to environment');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "Login",
                     "event": [
                         {
@@ -32,8 +84,7 @@
                                     "",
                                     "// Debug variable resolution",
                                     "const resolvedBody = pm.variables.replaceIn(rawBody);",
-                                    "console.log('Resolved request body:', resolvedBody);",
-                                    ""
+                                    "console.log('Resolved request body:', resolvedBody);"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -42,11 +93,23 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "// Log the full response for debugging",
-                                    "console.log('Response status:', pm.response.status);",
-                                    "console.log('Response body:', pm.response.text());",
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
                                     "",
-                                    "// Save the token if we get one",
+                                    "pm.test('Response contains token', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.token).to.be.a('string');",
+                                    "    pm.expect(response.token).to.not.be.empty;",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains user info', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.user).to.be.an('object');",
+                                    "    pm.expect(response.user.email).to.eql(pm.environment.get('api_email'));",
+                                    "});",
+                                    "",
+                                    "// Save the token for future requests",
                                     "const response = pm.response.json();",
                                     "if (response && response.token) {",
                                     "    pm.environment.set('jwt_token', response.token);",
@@ -324,6 +387,194 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Update Game State",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"game_session\": {\n        \"state\": {\n            \"board\": [1, 0, 0, 0, 0, 0, 0, 0, 0]\n        }\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Game state is updated', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.state.board).to.eql([1, 0, 0, 0, 0, 0, 0, 0, 0]);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Finish Game",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"game_session\": {\n        \"status\": \"finished\",\n        \"winner\": 0\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Game is finished', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.status).to.eql('finished');",
+                                    "    pm.expect(response.state.winner).to.eql(0);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Leave Game",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/leave/{{player_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "{{game_session_id}}",
+                                "leave",
+                                "{{player_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Player is removed', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    const playerIds = response.players.map(p => p.id);",
+                                    "    pm.expect(playerIds).to.not.include(parseInt(pm.environment.get('player_id')));",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Cleanup Old Games",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/game_sessions/cleanup",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "game_sessions",
+                                "cleanup"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"before\": \"{{$timestamp}}\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Cleanup successful', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.message).to.eql('Cleanup completed');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
                 }
             ]
         }
