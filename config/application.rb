@@ -29,8 +29,7 @@ module SimpleGameServer
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    # Make CSRF protection configurable via environment variable
-    config.action_controller.forgery_protection_origin_check = ENV.fetch("ENABLE_CSRF_PROTECTION", "false") == "true"
+    # CSRF protection is configured in environment-specific files
     config.middleware.use ActionDispatch::Flash
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore
