@@ -1,5 +1,6 @@
 require "simplecov"
 require "simplecov-cobertura"
+require "bcrypt"
 
 SimpleCov.start "rails" do
   enable_coverage :branch
@@ -43,5 +44,14 @@ module ActiveSupport
     end
 
     # Add more helper methods to be used by all tests here...
+    def generate_jwt_token(user)
+      payload = { user_id: user.id }
+      JWT.encode(payload, Rails.application.credentials.secret_key_base)
+    end
+
+    def auth_headers(user)
+      token = generate_jwt_token(user)
+      { "Authorization" => "Bearer #{token}" }
+    end
   end
 end

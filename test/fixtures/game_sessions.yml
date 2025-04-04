@@ -1,13 +1,31 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  status: 1
-  min_players: 1
-  max_players: 1
-  current_player_index: 1
+waiting:
+  status: waiting
+  min_players: 2
+  max_players: 4
+  current_player_index: 0
+  state: {}
+  creator: one
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
 
-two:
-  status: 1
-  min_players: 1
-  max_players: 1
+active:
+  status: active
+  min_players: 2
+  max_players: 4
+  current_player_index: 0
+  state: { "board": ["", "", "", "", "", "", "", "", ""], "current_player": 0 }
+  creator: one
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+finished:
+  status: finished
+  min_players: 2
+  max_players: 4
   current_player_index: 1
+  state: { "board": ["X", "O", "X", "O", "X", "O", "X", "", ""], "winner": 0 }
+  creator: one
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
