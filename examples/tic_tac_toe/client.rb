@@ -113,11 +113,10 @@ class GameClient
     Player.new(response)
   end
 
-  def create_game_session(player_id, min_players, max_players)
+  def create_game_session(player_id, game_name = "Tic-Tac-Toe")
     response = @http.post("/api/game_sessions/create/#{player_id}", {
                             game_session: {
-                              min_players: min_players,
-                              max_players: max_players
+                              game_name: game_name
                             }
                           })
     GameSession.new(response)

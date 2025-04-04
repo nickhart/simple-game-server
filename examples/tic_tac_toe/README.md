@@ -6,6 +6,40 @@ A command-line implementation of Tic Tac Toe that demonstrates how to use the Si
 - Handle turn-based gameplay
 - Communicate with the game server
 
+## Server Configuration
+
+Before running the Tic Tac Toe example, you need to configure the game type in the server:
+
+1. Start the Rails console in the server directory:
+```bash
+cd /path/to/simple_game_server
+rails console
+```
+
+2. Create the Tic Tac Toe game configuration:
+```ruby
+# Create the game
+game = Game.create!(
+  name: "Tic Tac Toe",
+  min_players: 2,
+  max_players: 2
+)
+
+# Create the game configuration with state schema
+game_config = GameConfiguration.create!(
+  game: game,
+  state_schema: {
+    board: [],  # Array for the 3x3 board
+    winner: { type: :integer }  # Integer for winner index (0 or 1) or nil for draw
+  }
+)
+```
+
+3. Verify the configuration was created:
+```ruby
+Game.find_by(name: "Tic Tac Toe").game_configuration.state_schema
+```
+
 ## Requirements
 
 - Ruby 3.2.2 or later

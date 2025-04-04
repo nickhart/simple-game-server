@@ -110,7 +110,7 @@ class TicTacToeCLI
   end
 
   def create_game
-    game_session = @client.create_game_session(@current_player.id, 2, 2)
+    game_session = @client.create_game_session(@current_player.id)
     puts "Game created with ID: #{game_session.id}"
     puts "Waiting for another player to join..."
 

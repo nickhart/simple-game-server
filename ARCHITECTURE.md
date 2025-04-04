@@ -254,11 +254,18 @@ Content-Type: application/json
 
 {
   "game_session": {
-    "min_players": 2,
-    "max_players": 2
+    "game_name": "Tic-Tac-Toe",  // Required: name of the game to create a session for
+    "min_players": 2,            // Optional: minimum players required to start the game
+    "max_players": 2             // Optional: maximum players allowed in the game
   }
 }
 ```
+
+**Notes:**
+- `game_name` is required and must match an existing game in the database
+- `min_players` and `max_players` are optional and will default to the game's configuration if not provided
+- If either `min_players` or `max_players` is provided, both must be specified
+- `min_players` cannot be less than the game's minimum and `max_players` cannot be greater than the game's maximum
 
 Response:
 ```json

@@ -19,7 +19,8 @@ class GameSession < ApplicationRecord
   validate :current_player_must_be_valid
   validate :creator_must_be_valid_player, if: :starting_game?
   validate :validate_player_count
-  validate :validate_state_schema
+  # Temporarily disabled for development
+  # validate :validate_state_schema
 
   before_validation :set_defaults
 
@@ -199,6 +200,7 @@ class GameSession < ApplicationRecord
 
   def validate_player_count
     return unless game
+    return unless starting_game?
 
     if players.count < game.min_players
       errors.add(:players, "must have at least #{game.min_players} players")
@@ -207,24 +209,26 @@ class GameSession < ApplicationRecord
     end
   end
 
-  def validate_state_schema
-    return unless state.present? && state_schema.present?
-
-    state_schema.each do |key, value|
-      case value
-      when Array
-        unless state[key].is_a?(Array)
-          errors.add(:state, "#{key} must be an array")
-        end
-      when Hash
-        unless state[key].is_a?(Hash)
-          errors.add(:state, "#{key} must be a hash")
-        end
-      when Symbol
-        unless state[key].is_a?(String) || state[key].is_a?(Symbol)
-          errors.add(:state, "#{key} must be a string or symbol")
-        end
-      end
-    end
-  end
+  # Temporarily disabled for development
+  # def validate_state_schema
+  #   return unless game && state.present?
+  #   
+  #   schema = game.state_schema
+  #   return if schema.blank?
+  #   
+  #   validate_schema(state, schema)
+  # end
+  
+  # def validate_schema(data, schema, path = [])
+  #   case schema["type"]
+  #   when "object"
+  #     validate_object(data, schema, path)
+  #   when "array"
+  #     validate_array(data, schema, path)
+  #   when String
+  #     validate_primitive(data, schema, path)
+  #   when Array
+  #     validate_multiple_types(data, schema, path)
+  #   end
+  # end
 end

@@ -15,6 +15,70 @@ A simple game server built with Ruby on Rails, designed to handle multiplayer ga
 - Turn-based game support
 - Example Tic Tac Toe implementation
 
+## Game Configuration
+
+The server supports configurable game types through the `Game` and `GameConfiguration` models. Each game type defines:
+- Minimum and maximum players
+- Game state schema
+- Game-specific rules and logic
+
+### Creating a New Game Type
+
+1. Start the Rails console:
+```bash
+rails console
+```
+
+2. Create a new game with its configuration:
+```ruby
+# Create the game
+game = Game.create!(
+  name: "YourGameName",
+  min_players: 2,
+  max_players: 4
+)
+
+# Create the game configuration with state schema
+game_config = GameConfiguration.create!(
+  game: game,
+  state_schema: {
+    # Define your game state structure here
+    # Example for a board game:
+    board: [],  # Array type for the game board
+    scores: {},  # Hash type for player scores
+    current_player: { type: :integer },  # Integer type for current player index
+    game_status: { type: :string }  # String type for game status
+  }
+)
+```
+
+### State Schema Types
+
+The state schema supports the following types:
+- `Array`: For lists like game boards or move history
+- `Hash`: For key-value pairs like scores or player data
+- `{ type: :integer }`: For numeric values like player indices or scores
+- `{ type: :string }`: For text values like game status or messages
+- `{ type: :boolean }`: For true/false values
+
+### Example: Tic Tac Toe Configuration
+
+```ruby
+game = Game.create!(
+  name: "Tic Tac Toe",
+  min_players: 2,
+  max_players: 2
+)
+
+game_config = GameConfiguration.create!(
+  game: game,
+  state_schema: {
+    board: [],  # Array for the 3x3 board
+    winner: { type: :integer }  # Integer for winner index (0 or 1) or nil for draw
+  }
+)
+```
+
 ## Requirements
 
 - Ruby 3.2.2

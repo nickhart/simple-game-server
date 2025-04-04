@@ -15,10 +15,41 @@ module Api
     end
 
     def create
+      # Validate that if either min_players or max_players is provided, both must be
+      if params[:game_session][:min_players].present? || params[:game_session][:max_players].present?
+        unless params[:game_session][:min_players].present? && params[:game_session][:max_players].present?
+          return render json: { error: "Both min_players and max_players must be provided if either is specified" },
+                        status: :unprocessable_entity
+        end
+
+        # Validate against game configuration limits
+        min_players = params[:game_session][:min_players].to_i
+        max_players = params[:game_session][:max_players].to_i
+
+        if min_players < @game.min_players
+          return render json: { error: "min_players cannot be less than #{@game.min_players}" },
+                        status: :unprocessable_entity
+        end
+
+        if max_players > @game.max_players
+          return render json: { error: "max_players cannot be greater than #{@game.max_players}" },
+                        status: :unprocessable_entity
+        end
+
+        if min_players > max_players
+          return render json: { error: "min_players cannot be greater than max_players" },
+                        status: :unprocessable_entity
+        end
+      end
+
       @game_session = GameSession.new(game_session_params)
       @game_session.game = @game
       @game_session.creator = @player
       @game_session.players << @player
+
+      # Set default min/max players from game configuration if not provided
+      @game_session.min_players ||= @game.min_players
+      @game_session.max_players ||= @game.max_players
 
       if @game_session.save
         render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }, status: :created
@@ -31,41 +62,26 @@ module Api
       Rails.logger.info "Updating game session #{@game_session.id}"
       Rails.logger.info "Current state: #{@game_session.state.inspect}"
       Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Update params: #{game_session_params.inspect}"
-      Rails.logger.info "Params being passed to update: #{game_session_params.except(:state).inspect}"
+      Rails.logger.info "Update params: #{params[:game_session].inspect}"
 
-      # Merge new state with existing state if present
-      if game_session_params[:state].present?
-        @game_session.state = @game_session.state.merge(game_session_params[:state])
+      # Only allow updating status and state
+      update_params = params.require(:game_session).permit(:status, state: {})
+
+      Rails.logger.info "Params being passed to update: #{update_params.inspect}"
+
+      # Merge the new state with the existing state
+      if update_params[:state].present?
+        new_state = @game_session.state.merge(update_params[:state])
+        update_params[:state] = new_state
       end
 
-      if @game_session.update(game_session_params.except(:state))
-        Rails.logger.info "Game session updated successfully"
-        Rails.logger.info "New state: #{@game_session.state.inspect}"
-        Rails.logger.info "New status: #{@game_session.status}"
-        Rails.logger.info "Is game active? #{@game_session.active?}"
-
-        # If status is being set to finished, ensure the game is properly terminated
-        if game_session_params[:status] == "finished"
-          Rails.logger.info "Setting status to finished"
-          @game_session.status = :finished
-          Rails.logger.info "Status before save: #{@game_session.status}"
-          @game_session.save
-          Rails.logger.info "Status after save: #{@game_session.status}"
-          Rails.logger.info "Is game active after save? #{@game_session.active?}"
-          Rails.logger.info "Final state: #{@game_session.state.inspect}"
-        # Only advance turn if game is still active and state is being updated
-        elsif game_session_params[:state].present? && @game_session.active?
-          Rails.logger.info "Advancing turn because game is active"
+      if @game_session.update(update_params)
+        # Advance turn if state was updated and game is active
+        if update_params[:state].present? && @game_session.active?
+          Rails.logger.info "Advancing turn because state was updated and game is active"
           @game_session.advance_turn
         end
-
-        # Verify state is not empty
-        if @game_session.state.empty?
-          Rails.logger.error "Game session state is empty after update!"
-          raise "Game session state is empty after update"
-        end
-
+        
         render json: @game_session, include: { players: { only: %i[id name] } }
       else
         Rails.logger.error "Failed to update game session: #{@game_session.errors.full_messages}"
@@ -151,7 +167,18 @@ module Api
     end
 
     def set_game
-      @game = Game.find(params[:game_id])
+      @game = if params[:game_id]
+                Game.find(params[:game_id])
+              else
+                # Use game_name from params or default to Tic-Tac-Toe
+                game_name = params.dig(:game_session, :game_name) || "Tic-Tac-Toe"
+                game = Game.find_by(name: game_name)
+                unless game
+                  render json: { error: "Game '#{game_name}' not found" }, status: :not_found
+                  return
+                end
+                game
+              end
     rescue ActiveRecord::RecordNotFound
       render json: { error: "Game not found" }, status: :not_found
     end
@@ -160,6 +187,9 @@ module Api
       params.require(:game_session).permit(
         :status,
         :current_player_id,
+        :min_players,
+        :max_players,
+        :game_id,
         state: @game&.state_schema || {}
       )
     end
