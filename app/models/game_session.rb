@@ -2,19 +2,24 @@
 # It manages the lifecycle of a game from waiting for players to join,
 # through active gameplay with turn management, to game completion.
 class GameSession < ApplicationRecord
-  has_many :players, dependent: :nullify
+  belongs_to :game
+  has_many :game_players, dependent: :destroy
+  has_many :players, through: :game_players
   belongs_to :creator, class_name: "Player"
   has_many :users, through: :players
 
   enum :status, { waiting: 0, active: 1, finished: 2 }
 
-  validates :status, presence: true
+  validates :game_id, presence: true
+  validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
   validate :max_players_greater_than_min_players
   validate :valid_status_transition
   validate :current_player_must_be_valid
   validate :creator_must_be_valid_player, if: :starting_game?
+  validate :validate_player_count
+  validate :validate_state_schema
 
   before_validation :set_defaults
 
@@ -75,6 +80,10 @@ class GameSession < ApplicationRecord
     )).merge(
       creator_id: creator_id
     )
+  end
+
+  def state_schema
+    game.state_schema
   end
 
   private
@@ -186,5 +195,36 @@ class GameSession < ApplicationRecord
     self.status = :active
     self.current_player_index = players.to_a.index(players.find_by(id: player_id))
     save
+  end
+
+  def validate_player_count
+    return unless game
+
+    if players.count < game.min_players
+      errors.add(:players, "must have at least #{game.min_players} players")
+    elsif players.count > game.max_players
+      errors.add(:players, "must have at most #{game.max_players} players")
+    end
+  end
+
+  def validate_state_schema
+    return unless state.present? && state_schema.present?
+
+    state_schema.each do |key, value|
+      case value
+      when Array
+        unless state[key].is_a?(Array)
+          errors.add(:state, "#{key} must be an array")
+        end
+      when Hash
+        unless state[key].is_a?(Hash)
+          errors.add(:state, "#{key} must be a hash")
+        end
+      when Symbol
+        unless state[key].is_a?(String) || state[key].is_a?(Symbol)
+          errors.add(:state, "#{key} must be a string or symbol")
+        end
+      end
+    end
   end
 end

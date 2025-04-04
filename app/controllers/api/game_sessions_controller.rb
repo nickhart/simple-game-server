@@ -3,27 +3,25 @@ module Api
     before_action :authenticate_user!
     before_action :set_game_session, except: %i[index create cleanup]
     before_action :set_player, only: %i[create join leave start]
+    before_action :set_game, only: %i[create]
 
     def index
-      @game_sessions = GameSession.includes(:players)
-      render json: @game_sessions, include: { players: { only: %i[id name] } }
+      @game_sessions = GameSession.includes(:players, :game)
+      render json: @game_sessions, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }
     end
 
     def show
-      Rails.logger.info "Showing game session #{@game_session.id}"
-      Rails.logger.info "Current state: #{@game_session.state.inspect}"
-      Rails.logger.info "Current status: #{@game_session.status}"
-      Rails.logger.info "Is game active? #{@game_session.active?}"
-      render json: @game_session, include: { players: { only: %i[id name] } }
+      render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }
     end
 
     def create
       @game_session = GameSession.new(game_session_params)
+      @game_session.game = @game
       @game_session.creator = @player
       @game_session.players << @player
 
       if @game_session.save
-        render json: @game_session, include: { players: { only: %i[id name] } }, status: :created
+        render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }, status: :created
       else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
@@ -152,14 +150,17 @@ module Api
       render json: { error: "Player not found" }, status: :not_found
     end
 
+    def set_game
+      @game = Game.find(params[:game_id])
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: "Game not found" }, status: :not_found
+    end
+
     def game_session_params
       params.require(:game_session).permit(
-        :current_player_index,
         :status,
         :current_player_id,
-        :min_players,
-        :max_players,
-        state: {}
+        state: @game&.state_schema || {}
       )
     end
   end
