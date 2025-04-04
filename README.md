@@ -61,6 +61,25 @@ rails server
 
 The server will be available at `http://localhost:3000`
 
+### CSRF Protection Configuration
+
+By default, CSRF (Cross-Site Request Forgery) protection is disabled for API requests. This is because the API uses token-based authentication (JWT) instead of session-based authentication, which is the typical use case for CSRF protection.
+
+You can control CSRF protection through the `ENABLE_CSRF_PROTECTION` environment variable:
+
+```bash
+# Enable CSRF protection
+ENABLE_CSRF_PROTECTION=true rails server
+
+# Disable CSRF protection (default)
+ENABLE_CSRF_PROTECTION=false rails server
+```
+
+**Note for Local Development and Testing:**
+- CSRF protection is disabled by default to simplify local development and testing
+- When deploying to production, consider enabling CSRF protection if your API will be accessed from web browsers
+- For API-only applications accessed by mobile apps or other services, CSRF protection is typically not needed
+
 ## Testing
 
 ### Unit Tests

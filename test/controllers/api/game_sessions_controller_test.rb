@@ -93,7 +93,8 @@ module Api
       put api_game_session_path(@active_game),
           params: {
             game_session: {
-              state: { board: [1, 0, 0, 0, 0, 0, 0, 0, 0] }
+              state: { board: [1, 0, 0, 0, 0, 0, 0, 0, 0] },
+              current_player_index: 0
             }
           }.to_json,
           headers: @headers
@@ -110,7 +111,8 @@ module Api
       put api_game_session_path(@finished_game),
           params: {
             game_session: {
-              state: { board: [1, 0, 0, 0, 0, 0, 0, 0, 0] }
+              state: { board: [1, 0, 0, 0, 0, 0, 0, 0, 0] },
+              current_player_index: 1
             }
           }.to_json,
           headers: @headers
@@ -156,6 +158,7 @@ module Api
       @waiting_game.players << players(:two)
       @waiting_game.players << players(:three)
       @waiting_game.players << players(:four)
+      @waiting_game.update!(max_players: 3)
       
       assert_no_difference("@waiting_game.players.count") do
         post "/api/game_sessions/#{@waiting_game.id}/join/#{@player.id}",
@@ -168,7 +171,7 @@ module Api
     test "should start game with minimum players" do
       @waiting_game.players << @player
       @waiting_game.players << players(:two)
-      @waiting_game.update(creator_id: @player.id)
+      @waiting_game.update!(creator_id: @player.id, min_players: 2, max_players: 4)
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers
@@ -179,7 +182,7 @@ module Api
 
     test "should not start game with too few players" do
       @waiting_game.players << @player
-      @waiting_game.update(creator_id: @player.id)
+      @waiting_game.update!(creator_id: @player.id, min_players: 2, max_players: 4)
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers
@@ -194,7 +197,7 @@ module Api
       @waiting_game.players << players(:three)
       @waiting_game.players << players(:four)
       @waiting_game.players << players(:five)
-      @waiting_game.update(creator_id: @player.id)
+      @waiting_game.update!(creator_id: @player.id, min_players: 2, max_players: 4)
 
       post "/api/game_sessions/#{@waiting_game.id}/start",
            headers: @headers

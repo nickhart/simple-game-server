@@ -24,8 +24,8 @@ module SimpleGameServer
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
-    # Disable CSRF protection for API requests
-    config.action_controller.forgery_protection_origin_check = false
+    # Make CSRF protection configurable via environment variable
+    config.action_controller.forgery_protection_origin_check = ENV.fetch("ENABLE_CSRF_PROTECTION", "false") == "true"
     config.middleware.use ActionDispatch::Flash
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use ActionDispatch::Session::CookieStore

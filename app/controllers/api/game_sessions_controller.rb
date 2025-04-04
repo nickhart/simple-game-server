@@ -1,7 +1,7 @@
 module Api
   class GameSessionsController < BaseController
     before_action :authenticate_user!
-    before_action :set_game_session, except: %i[index create]
+    before_action :set_game_session, except: %i[index create cleanup]
     before_action :set_player, only: %i[create join leave start]
 
     def index
@@ -124,6 +124,15 @@ module Api
       end
     end
 
+    def cleanup
+      before_time = params[:before] ? Time.parse(params[:before]) : 1.day.ago
+      old_games = GameSession.where(status: "waiting")
+                           .where("created_at < ?", before_time)
+      
+      old_games.destroy_all
+      render json: { message: "Cleanup completed" }
+    end
+
     private
 
     def set_game_session
@@ -138,7 +147,7 @@ module Api
     end
 
     def set_player
-      @player = Player.find(params[:player_id])
+      @player = Player.find(params[:player_id] || params[:id])
     rescue ActiveRecord::RecordNotFound
       render json: { error: "Player not found" }, status: :not_found
     end
@@ -148,6 +157,8 @@ module Api
         :current_player_index,
         :status,
         :current_player_id,
+        :min_players,
+        :max_players,
         state: {}
       )
     end
