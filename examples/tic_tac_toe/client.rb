@@ -138,9 +138,9 @@ class GameClient
       state["winner"] = winner if winner
       response = @http.put("/api/game_sessions/#{game_session_id}", {
         game_session: {
-          state: state
-        },
-        status: status
+          state: state,
+          status: status
+        }
       })
       Result.success(GameSession.new(response))
     rescue StandardError => e

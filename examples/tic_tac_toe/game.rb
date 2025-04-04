@@ -25,7 +25,11 @@ class Game
 
       if @game_session.status == "finished"
         display_board
-        puts result.data[:message]
+        if @game_session.state["winner"]
+          puts "Player #{@game_session.state["winner"] + 1} wins!"
+        else
+          puts "It's a draw!"
+        end
         break
       end
 
@@ -36,7 +40,6 @@ class Game
 
       if result.success?
         if result.data[:game_over]
-          # display_board
           puts result.data[:message]
           break
         end
@@ -62,6 +65,10 @@ class Game
       end
 
       updated_session = result.data
+
+      if updated_session.status == "finished"
+        return updated_session
+      end
 
       if updated_session.current_player && updated_session.current_player.id == @current_player.id
         puts "It's your turn!"

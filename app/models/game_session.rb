@@ -66,6 +66,9 @@ class GameSession < ApplicationRecord
   end
 
   def as_json(options = {})
+    Rails.logger.info "Serializing game session #{id}"
+    Rails.logger.info "Current state: #{state.inspect}"
+    Rails.logger.info "Current status: #{status}"
     super(options.merge(
       methods: [:current_player_index],
       include: { players: { only: %i[id name] } }

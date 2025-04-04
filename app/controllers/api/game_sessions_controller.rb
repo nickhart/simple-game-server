@@ -10,21 +10,55 @@ module Api
     end
 
     def show
+      Rails.logger.info "Showing game session #{@game_session.id}"
+      Rails.logger.info "Current state: #{@game_session.state.inspect}"
+      Rails.logger.info "Current status: #{@game_session.status}"
+      Rails.logger.info "Is game active? #{@game_session.active?}"
       render json: @game_session, include: { players: { only: %i[id name] } }
     end
 
     def update
-      if @game_session.update(game_session_params)
+      Rails.logger.info "Updating game session #{@game_session.id}"
+      Rails.logger.info "Current state: #{@game_session.state.inspect}"
+      Rails.logger.info "Current status: #{@game_session.status}"
+      Rails.logger.info "Update params: #{game_session_params.inspect}"
+      Rails.logger.info "Params being passed to update: #{game_session_params.except(:state).inspect}"
+
+      # Merge new state with existing state if present
+      if game_session_params[:state].present?
+        @game_session.state = @game_session.state.merge(game_session_params[:state])
+      end
+
+      if @game_session.update(game_session_params.except(:state))
+        Rails.logger.info "Game session updated successfully"
+        Rails.logger.info "New state: #{@game_session.state.inspect}"
+        Rails.logger.info "New status: #{@game_session.status}"
+        Rails.logger.info "Is game active? #{@game_session.active?}"
+        
         # If status is being set to finished, ensure the game is properly terminated
         if game_session_params[:status] == "finished"
+          Rails.logger.info "Setting status to finished"
           @game_session.status = :finished
+          Rails.logger.info "Status before save: #{@game_session.status}"
           @game_session.save
+          Rails.logger.info "Status after save: #{@game_session.status}"
+          Rails.logger.info "Is game active after save? #{@game_session.active?}"
+          Rails.logger.info "Final state: #{@game_session.state.inspect}"
         # Only advance turn if game is still active and state is being updated
         elsif game_session_params[:state].present? && @game_session.active?
+          Rails.logger.info "Advancing turn because game is active"
           @game_session.advance_turn
         end
+
+        # Verify state is not empty
+        if @game_session.state.empty?
+          Rails.logger.error "Game session state is empty after update!"
+          raise "Game session state is empty after update"
+        end
+
         render json: @game_session, include: { players: { only: %i[id name] } }
       else
+        Rails.logger.error "Failed to update game session: #{@game_session.errors.full_messages}"
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
     end
@@ -93,8 +127,13 @@ module Api
     private
 
     def set_game_session
+      Rails.logger.info "Setting game session for id: #{params[:id]}"
       @game_session = GameSession.find(params[:id])
+      Rails.logger.info "Found game session:"
+      Rails.logger.info "State: #{@game_session.state.inspect}"
+      Rails.logger.info "Status: #{@game_session.status}"
     rescue ActiveRecord::RecordNotFound
+      Rails.logger.error "Game session not found for id: #{params[:id]}"
       render json: { error: "Game session not found" }, status: :not_found
     end
 
