@@ -13,6 +13,7 @@ class GameSession < ApplicationRecord
   validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
+  validates :game, presence: true
   validate :max_players_greater_than_min_players
   validate :valid_status_transition
   validate :current_player_must_be_valid
@@ -23,11 +24,13 @@ class GameSession < ApplicationRecord
 
   before_validation :set_defaults
 
-  def add_player(user)
+  def add_player(player)
     return false if active? || finished?
     return false if players.count >= max_players
+    return false if players.include?(player)
 
-    players.create(user: user)
+    players << player
+    true
   end
 
   def current_player
@@ -71,12 +74,12 @@ class GameSession < ApplicationRecord
   end
 
   def as_json(options = {})
-    Rails.logger.info "Serializing game session #{id}"
-    Rails.logger.info "Current state: #{state.inspect}"
-    Rails.logger.info "Current status: #{status}"
     super(options.merge(
       methods: [:current_player_index],
-      include: { players: { only: %i[id name] } }
+      include: { 
+        players: { only: %i[id name] },
+        game: { only: %i[id name] }
+      }
     )).merge(
       creator_id: creator_id
     )
@@ -88,8 +91,8 @@ class GameSession < ApplicationRecord
 
   def set_defaults
     self.status ||= :waiting
-    self.min_players ||= 2
-    self.max_players ||= 2
+    self.min_players ||= game&.min_players || 2
+    self.max_players ||= game&.max_players || 2
     self.state ||= {}
   end
 
@@ -102,19 +105,13 @@ class GameSession < ApplicationRecord
   def valid_status_transition
     return unless status_changed?
 
-    Rails.logger.info "Validating status transition from #{status_was} to #{status}"
-
     valid_transitions = {
       "waiting" => ["active"],
       "active" => ["finished"],
       "finished" => ["waiting"]
     }
 
-    if valid_transitions[status_was]&.include?(status)
-      Rails.logger.info "Valid transition: from #{status_was} to #{status}"
-    else
-      Rails.logger.info "Invalid transition: from #{status_was} to #{status}"
-      Rails.logger.info "Valid transitions for #{status_was}: #{valid_transitions[status_was]}"
+    unless valid_transitions[status_was]&.include?(status)
       errors.add(:status, "cannot transition from #{status_was} to #{status}")
     end
   end

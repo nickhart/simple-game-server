@@ -1,0 +1,14 @@
+inherit_from: ../../.rubocop.yml
+
+AllCops:
+  TargetRubyVersion: 3.2
+  Include:
+    - '**/*.rb'
+
+Rails:
+  Enabled: false
+
+Style/CollectionMethods:
+  Enabled: true
+  PreferredMethods:
+    exclude?: 'include?' 

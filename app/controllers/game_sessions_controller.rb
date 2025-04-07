@@ -12,29 +12,33 @@ class GameSessionsController < ApplicationController
   end
 
   def new
-    unless @game_session = GameSession.find_by(id: params[:id])
-      redirect_to game_sessions_path, alert: t('.not_found')
-    end
+    @game_session = GameSession.new(min_players: 2, max_players: 4)
   end
 
   def create
     @game_session = GameSession.new(game_session_params)
-    @player = Player.find_by(id: params[:player_id])
+    @game_session.creator_id = params[:player_id]
 
-    if @player
-      @game_session.players << @player
-      if @game_session.save
-        redirect_to @game_session, notice: t('.created')
-      else
-        render :new
-      end
+    if @game_session.save
+      # Add the creator as the first player
+      @game_session.players << Player.find(params[:player_id])
+      redirect_to @game_session, notice: t('.created')
     else
-      flash.now[:alert] = t('.player_not_found')
-      render :new
+      render :new, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotFound
+    @game_session = GameSession.new
+    flash.now[:alert] = t('.player_not_found')
+    render :new, status: :unprocessable_entity
+  rescue ActionController::ParameterMissing => e
+    @game_session = GameSession.new
+    flash.now[:alert] = e.message
+    render :new, status: :unprocessable_entity
   rescue StandardError => e
+    Rails.logger.error "Error creating game session: #{e.message}"
+    @game_session = GameSession.new
     flash.now[:alert] = t('.create_error')
-    render :new
+    render :new, status: :unprocessable_entity
   end
 
   def cleanup
@@ -61,6 +65,6 @@ class GameSessionsController < ApplicationController
   end
 
   def game_session_params
-    params.require(:game_session).permit(:name, :game_id)
+    params.require(:game_session).permit(:min_players, :max_players, :game_type)
   end
 end
