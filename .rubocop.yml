@@ -46,3 +46,14 @@ Metrics/BlockNesting:
 
 Layout/LineLength:
   Max: 120
+
+# More lenient configuration for routes.rb
+Metrics/BlockLength:
+  Exclude:
+    - 'config/routes.rb'
+  Max: 50
+
+# More lenient configuration for initializers
+Layout/LineLength:
+  Exclude:
+    - 'config/initializers/**/*'

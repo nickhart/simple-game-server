@@ -1,5 +1,5 @@
 class GameSessionsController < ApplicationController
-  before_action :set_game_session, only: %i[show edit update destroy]
+  before_action :set_game_session, only: %i[show]
 
   def index
     @game_sessions = GameSession.all
@@ -19,25 +19,18 @@ class GameSessionsController < ApplicationController
     @game_session.creator_id = params[:player_id]
 
     if @game_session.save
-      # Add the creator as the first player
-      @game_session.players << Player.find(params[:player_id])
+      add_creator_as_player
       redirect_to @game_session, notice: t(".created")
     else
       render :new, status: :unprocessable_entity
     end
   rescue ActiveRecord::RecordNotFound
-    @game_session = GameSession.new
-    flash.now[:alert] = t(".player_not_found")
-    render :new, status: :unprocessable_entity
+    handle_create_error(t(".player_not_found"))
   rescue ActionController::ParameterMissing => e
-    @game_session = GameSession.new
-    flash.now[:alert] = e.message
-    render :new, status: :unprocessable_entity
+    handle_create_error(e.message)
   rescue StandardError => e
     Rails.logger.error "Error creating game session: #{e.message}"
-    @game_session = GameSession.new
-    flash.now[:alert] = t(".create_error")
-    render :new, status: :unprocessable_entity
+    handle_create_error(t(".create_error"))
   end
 
   def cleanup
@@ -65,5 +58,15 @@ class GameSessionsController < ApplicationController
 
   def game_session_params
     params.require(:game_session).permit(:min_players, :max_players, :game_type)
+  end
+
+  def add_creator_as_player
+    @game_session.players << Player.find(params[:player_id])
+  end
+
+  def handle_create_error(message)
+    @game_session = GameSession.new
+    flash.now[:alert] = message
+    render :new, status: :unprocessable_entity
   end
 end
