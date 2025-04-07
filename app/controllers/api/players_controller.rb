@@ -1,7 +1,5 @@
 module Api
-  class PlayersController < ApplicationController
-    skip_before_action :verify_authenticity_token
-    before_action :authenticate_user!
+  class PlayersController < BaseController
 
     def current
       player = current_user.players.first

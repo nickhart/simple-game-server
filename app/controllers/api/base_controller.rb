@@ -1,7 +1,7 @@
 module Api
   class BaseController < ApplicationController
-    # Skip CSRF protection for all API requests unless explicitly enabled
-    skip_before_action :verify_authenticity_token unless ENV.fetch("ENABLE_CSRF_PROTECTION", "false") == "true"
+    # Skip CSRF protection for API requests since they use token authentication
+    skip_before_action :verify_authenticity_token
 
     # Ensure all API requests are JSON
     before_action :ensure_json_request

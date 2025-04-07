@@ -1,6 +1,5 @@
 module Api
   class GameSessionsController < BaseController
-    before_action :authenticate_user!
     before_action :set_game_session, except: %i[index create cleanup]
     before_action :set_player, only: %i[create join leave start]
     before_action :set_game, only: %i[create]

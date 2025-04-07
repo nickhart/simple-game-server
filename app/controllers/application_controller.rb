@@ -1,6 +1,6 @@
 class ApplicationController < ActionController::Base
-  # Skip CSRF protection for API requests
-  skip_before_action :verify_authenticity_token, if: :json_request?
+  # CSRF protection enabled by default for all controllers
+  # API controllers will specifically disable it
 
   before_action :set_current_user
 
