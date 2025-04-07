@@ -90,9 +90,18 @@ class GameSession < ApplicationRecord
 
   def set_defaults
     self.status ||= :waiting
-    self.min_players ||= game&.min_players || 2
-    self.max_players ||= game&.max_players || 2
     self.state ||= {}
+    set_default_player_limits
+  end
+
+  def set_default_player_limits
+    if game
+      self.min_players ||= game.min_players
+      self.max_players ||= game.max_players
+    else
+      self.min_players ||= 2
+      self.max_players ||= 2
+    end
   end
 
   def max_players_greater_than_min_players
