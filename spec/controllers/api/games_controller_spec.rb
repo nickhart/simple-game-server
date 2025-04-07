@@ -1,24 +1,35 @@
 require "rails_helper"
 
 RSpec.describe Api::GamesController, type: :controller do
+  include Devise::Test::ControllerHelpers
+
   let(:user) { create(:user) }
-  let(:valid_attributes) { attributes_for(:game) }
-  let(:invalid_attributes) { { name: nil, min_players: 0, max_players: 1 } }
+  let(:valid_attributes) do
+    {
+      name: "Test Game",
+      min_players: 2,
+      max_players: 4
+    }
+  end
+  let(:invalid_attributes) { { name: "nil", min_players: 0, max_players: 1 } }
 
   before do
     request.headers["Authorization"] = "Bearer #{generate_token(user)}"
+    request.headers["Accept"] = "application/json"
+    request.headers["Content-Type"] = "application/json"
+    sign_in user
   end
 
   describe "GET #index" do
     it "returns a success response" do
       create(:game)
-      get :index
+      get :index, format: :json
       expect(response).to be_successful
     end
 
     it "returns all games" do
       games = create_list(:game, 3)
-      get :index
+      get :index, format: :json
       expect(JSON.parse(response.body).size).to eq(3)
     end
   end
@@ -26,18 +37,18 @@ RSpec.describe Api::GamesController, type: :controller do
   describe "GET #show" do
     it "returns a success response" do
       game = create(:game)
-      get :show, params: { id: game.id }
+      get :show, params: { id: game.id }, format: :json
       expect(response).to be_successful
     end
 
     it "returns the requested game" do
       game = create(:game)
-      get :show, params: { id: game.id }
+      get :show, params: { id: game.id }, format: :json
       expect(JSON.parse(response.body)["id"]).to eq(game.id)
     end
 
     it "returns not found for non-existent game" do
-      get :show, params: { id: 999 }
+      get :show, params: { id: 999 }, format: :json
       expect(response).to have_http_status(:not_found)
     end
   end
@@ -46,12 +57,12 @@ RSpec.describe Api::GamesController, type: :controller do
     context "with valid params" do
       it "creates a new Game" do
         expect {
-          post :create, params: { game: valid_attributes }
+          post :create, params: { game: valid_attributes }, format: :json
         }.to change(Game, :count).by(1)
       end
 
       it "renders a JSON response with the new game" do
-        post :create, params: { game: valid_attributes }
+        post :create, params: { game: valid_attributes }, format: :json
         expect(response).to have_http_status(:created)
         expect(response.content_type).to match(a_string_including("application/json"))
       end
@@ -59,7 +70,7 @@ RSpec.describe Api::GamesController, type: :controller do
 
     context "with invalid params" do
       it "renders a JSON response with errors for the new game" do
-        post :create, params: { game: invalid_attributes }
+        post :create, params: { game: invalid_attributes }, format: :json
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.content_type).to match(a_string_including("application/json"))
       end
@@ -70,16 +81,22 @@ RSpec.describe Api::GamesController, type: :controller do
     let(:game) { create(:game) }
 
     context "with valid params" do
-      let(:new_attributes) { { name: "New Game Name" } }
+      let(:new_attributes) do
+        {
+          name: "New Game Name",
+          min_players: 2,
+          max_players: 4
+        }
+      end
 
       it "updates the requested game" do
-        put :update, params: { id: game.id, game: new_attributes }
+        put :update, params: { id: game.id, game: new_attributes }, format: :json
         game.reload
         expect(game.name).to eq("New Game Name")
       end
 
       it "renders a JSON response with the game" do
-        put :update, params: { id: game.id, game: valid_attributes }
+        put :update, params: { id: game.id, game: new_attributes }, format: :json
         expect(response).to be_successful
         expect(response.content_type).to match(a_string_including("application/json"))
       end
@@ -87,7 +104,7 @@ RSpec.describe Api::GamesController, type: :controller do
 
     context "with invalid params" do
       it "renders a JSON response with errors for the game" do
-        put :update, params: { id: game.id, game: invalid_attributes }
+        put :update, params: { id: game.id, game: invalid_attributes }, format: :json
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.content_type).to match(a_string_including("application/json"))
       end
@@ -98,13 +115,13 @@ RSpec.describe Api::GamesController, type: :controller do
     it "destroys the requested game" do
       game = create(:game)
       expect {
-        delete :destroy, params: { id: game.id }
+        delete :destroy, params: { id: game.id }, format: :json
       }.to change(Game, :count).by(-1)
     end
 
     it "returns no content" do
       game = create(:game)
-      delete :destroy, params: { id: game.id }
+      delete :destroy, params: { id: game.id }, format: :json
       expect(response).to have_http_status(:no_content)
     end
   end

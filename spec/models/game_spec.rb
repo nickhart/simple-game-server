@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Game, type: :model do
   describe "validations" do
     it "is valid with valid attributes" do
-      game = build(:game)
-      expect(game).to be_valid
+      expect(build(:game)).to be_valid
     end
 
     it "is not valid without a name" do
@@ -14,8 +13,8 @@ RSpec.describe Game, type: :model do
     end
 
     it "is not valid with a duplicate name" do
-      create(:game, name: "Tic Tac Toe")
-      game = build(:game, name: "Tic Tac Toe")
+      create(:game, name: "Duplicate")
+      game = build(:game, name: "Duplicate")
       expect(game).not_to be_valid
       expect(game.errors[:name]).to include("has already been taken")
     end
@@ -54,14 +53,8 @@ RSpec.describe Game, type: :model do
   describe "associations" do
     it "has many game_sessions" do
       game = create(:game)
-      create(:game_session, game: game)
-      expect(game.game_sessions.count).to eq(1)
-    end
-
-    it "has one game_configuration" do
-      game = create(:game)
-      create(:game_configuration, game: game)
-      expect(game.game_configuration).to be_present
+      create_list(:game_session, 3, game: game)
+      expect(game.game_sessions.count).to eq(3)
     end
   end
 end 

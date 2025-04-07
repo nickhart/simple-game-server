@@ -1,11 +1,7 @@
 FactoryBot.define do
   factory :game do
-    name { Faker::Game.title }
+    sequence(:name) { |n| "Game #{n}" }
     min_players { 2 }
-    max_players { 2 }
-
-    after(:build) do |game|
-      game.game_configuration ||= build(:game_configuration, game: game)
-    end
+    max_players { 4 }
   end
 end

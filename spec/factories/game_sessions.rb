@@ -10,7 +10,7 @@ FactoryBot.define do
         current_player: "X"
       }
     end
-    game
+    game factory: %i[game with_configuration]
     creator factory: %i[player]
   end
 end
