@@ -4,10 +4,10 @@ class PlayersController < ApplicationController
   end
 
   def create
-    @user = User.new(user_params)
+    @player = Player.new(player_params)
 
-    if @user.save
-      redirect_to new_user_session_path, notice: "Account created successfully! You can now log in."
+    if @player.save
+      redirect_to new_user_session_path, notice: t('.account_created')
     else
       render :new, status: :unprocessable_entity
     end
@@ -15,7 +15,7 @@ class PlayersController < ApplicationController
 
   private
 
-  def user_params
-    params.expect(user: %i[email password password_confirmation])
+  def player_params
+    params.require(:player).permit(:name, :email, :password, :password_confirmation)
   end
 end

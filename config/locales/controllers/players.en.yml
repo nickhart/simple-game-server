@@ -1,0 +1,4 @@
+en:
+  controllers:
+    players:
+      account_created: "Account created successfully! You can now log in." 

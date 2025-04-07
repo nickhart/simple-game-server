@@ -1,0 +1,8 @@
+en:
+  activerecord:
+    errors:
+      models:
+        game_player:
+          attributes:
+            player_id:
+              already_in_game: "is already in this game session" 

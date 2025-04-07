@@ -1,0 +1,8 @@
+en:
+  activerecord:
+    errors:
+      models:
+        game:
+          attributes:
+            max_players:
+              must_be_greater_than_min_players: "must be greater than or equal to min_players" 

@@ -1,0 +1,7 @@
+en:
+  controllers:
+    game_sessions:
+      not_found: "Game session not found."
+      created: "Game session was successfully created."
+      player_not_found: "Player not found."
+      create_error: "Error creating game session. Please try again." 

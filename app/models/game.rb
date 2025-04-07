@@ -15,6 +15,6 @@ class Game < ApplicationRecord
   def max_players_greater_than_min_players
     return unless min_players && max_players
 
-    errors.add(:max_players, "must be greater than or equal to min_players") if max_players < min_players
+    errors.add(:max_players, :must_be_greater_than_min_players) if max_players < min_players
   end
 end
