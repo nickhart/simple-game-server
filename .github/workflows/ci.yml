@@ -72,7 +72,7 @@ jobs:
           bin/rails db:create
           bin/rails db:schema:load
 
-      - name: Run tests
+      - name: Run RSpec tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
