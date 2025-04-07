@@ -11,5 +11,6 @@ FactoryBot.define do
       }
     end
     game
+    creator factory: %i[player]
   end
 end

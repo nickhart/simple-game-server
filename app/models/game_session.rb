@@ -21,7 +21,8 @@ class GameSession < ApplicationRecord
   # Temporarily disabled for development
   # validate :validate_state_schema
 
-  before_validation :set_defaults
+  after_initialize :set_defaults
+  before_validation :set_game_player_limits, if: :game
 
   def add_player(player)
     return false if active? || finished?
@@ -91,17 +92,11 @@ class GameSession < ApplicationRecord
   def set_defaults
     self.status ||= :waiting
     self.state ||= {}
-    set_default_player_limits
   end
 
-  def set_default_player_limits
-    if game
-      self.min_players ||= game.min_players
-      self.max_players ||= game.max_players
-    else
-      self.min_players ||= 2
-      self.max_players ||= 2
-    end
+  def set_game_player_limits
+    self.min_players = game.min_players
+    self.max_players = game.max_players
   end
 
   def max_players_greater_than_min_players

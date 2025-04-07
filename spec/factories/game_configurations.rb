@@ -20,7 +20,8 @@ FactoryBot.define do
           }
         },
         required: %w[board current_player]
-      }
+      }.deep_stringify_keys
     end
+    game
   end
 end
