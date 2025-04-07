@@ -55,7 +55,7 @@ group :development, :test do
   gem "debug", platforms: %i[mri windows]
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", require: false
+  gem "brakeman", "~> 7.0.2", require: false
 
   # Testing framework and tools
   gem "activerecord-nulldb-adapter"

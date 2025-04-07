@@ -8,6 +8,9 @@ AllCops:
 Rails:
   Enabled: false
 
+Rails/NegateInclude:
+  Enabled: false
+
 # More lenient limits for example code
 Metrics/ClassLength:
   Max: 300
