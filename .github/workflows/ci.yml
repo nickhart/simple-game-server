@@ -50,5 +50,8 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Lint code for consistent style
+      - name: Lint main codebase
         run: bin/rubocop -f github
+
+      - name: Lint examples
+        run: bin/rubocop -f github --config examples/tic_tac_toe/.rubocop.yml examples/tic_tac_toe/
