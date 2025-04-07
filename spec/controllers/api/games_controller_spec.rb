@@ -28,9 +28,9 @@ RSpec.describe Api::GamesController, type: :controller do
     end
 
     it "returns all games" do
-      games = create_list(:game, 3)
+      create_list(:game, 3)
       get :index, format: :json
-      expect(JSON.parse(response.body).size).to eq(3)
+      expect(response.parsed_body.size).to eq(3)
     end
   end
 
@@ -44,7 +44,7 @@ RSpec.describe Api::GamesController, type: :controller do
     it "returns the requested game" do
       game = create(:game)
       get :show, params: { id: game.id }, format: :json
-      expect(JSON.parse(response.body)["id"]).to eq(game.id)
+      expect(response.parsed_body["id"]).to eq(game.id)
     end
 
     it "returns not found for non-existent game" do
@@ -56,9 +56,9 @@ RSpec.describe Api::GamesController, type: :controller do
   describe "POST #create" do
     context "with valid params" do
       it "creates a new Game" do
-        expect {
+        expect do
           post :create, params: { game: valid_attributes }, format: :json
-        }.to change(Game, :count).by(1)
+        end.to change(Game, :count).by(1)
       end
 
       it "renders a JSON response with the new game" do
@@ -114,9 +114,9 @@ RSpec.describe Api::GamesController, type: :controller do
   describe "DELETE #destroy" do
     it "destroys the requested game" do
       game = create(:game)
-      expect {
+      expect do
         delete :destroy, params: { id: game.id }, format: :json
-      }.to change(Game, :count).by(-1)
+      end.to change(Game, :count).by(-1)
     end
 
     it "returns no content" do
@@ -134,4 +134,4 @@ RSpec.describe Api::GamesController, type: :controller do
       Rails.application.credentials.secret_key_base
     )
   end
-end 
+end

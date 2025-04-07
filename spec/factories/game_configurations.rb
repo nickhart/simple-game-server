@@ -17,14 +17,14 @@ FactoryBot.define do
           },
           current_player: {
             type: "string",
-            enum: ["X", "O"]
+            enum: %w[X O]
           },
           winner: {
-            type: ["string", "null"],
+            type: %w[string null],
             enum: ["X", "O", nil]
           }
         },
-        required: ["board", "current_player"]
+        required: %w[board current_player]
       }
     end
 
@@ -45,14 +45,14 @@ FactoryBot.define do
             },
             current_player: {
               type: "string",
-              enum: ["X", "O"]
+              enum: %w[X O]
             },
             winner: {
-              type: ["string", "null"],
+              type: %w[string null],
               enum: ["X", "O", nil]
             }
           },
-          required: ["board", "current_player"]
+          required: %w[board current_player]
         }
       end
     end

@@ -57,4 +57,4 @@ RSpec.describe Game, type: :model do
       expect(game.game_sessions.count).to eq(3)
     end
   end
-end 
+end

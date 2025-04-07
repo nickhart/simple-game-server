@@ -1,6 +1,6 @@
 module Api
   class GamesController < BaseController
-    before_action :set_game, only: [:show, :update, :destroy]
+    before_action :set_game, only: %i[show update destroy]
 
     # GET /api/games
     def index
@@ -51,4 +51,4 @@ module Api
       params.require(:game).permit(:name, :min_players, :max_players)
     end
   end
-end 
+end

@@ -49,8 +49,8 @@ Rails.application.routes.draw do
       post "cleanup", on: :collection
     end
 
-    resources :games, only: [:index, :show, :create, :update, :destroy]
-    resources :game_sessions, only: [:index, :show, :create, :update, :destroy] do
+    resources :games, only: %i[index show create update destroy]
+    resources :game_sessions, only: %i[index show create update destroy] do
       member do
         post :add_player
         post :start
@@ -58,7 +58,7 @@ Rails.application.routes.draw do
         post :advance_turn
       end
     end
-    resources :players, only: [:index, :show, :create, :update, :destroy]
+    resources :players, only: %i[index show create update destroy]
     delete "sessions", to: "sessions#destroy"
   end
 

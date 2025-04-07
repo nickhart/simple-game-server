@@ -9,10 +9,10 @@ class User < ApplicationRecord
   validates :role, presence: true, inclusion: { in: %w[admin player] }
 
   def admin?
-    role == 'admin'
+    role == "admin"
   end
 
   def player?
-    role == 'player'
+    role == "player"
   end
 end
