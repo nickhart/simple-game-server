@@ -76,7 +76,7 @@ class GameSession < ApplicationRecord
   def as_json(options = {})
     super(options.merge(
       methods: [:current_player_index],
-      include: { 
+      include: {
         players: { only: %i[id name] },
         game: { only: %i[id name] }
       }

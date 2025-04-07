@@ -20,7 +20,8 @@ module Api
 
       if @game_session.save
         @game_session.players << @player
-        render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }, status: :created
+        render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } },
+               status: :created
       else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end

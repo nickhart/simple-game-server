@@ -7,7 +7,7 @@ class PlayersController < ApplicationController
     @player = Player.new(player_params)
 
     if @player.save
-      redirect_to new_user_session_path, notice: t('.account_created')
+      redirect_to new_user_session_path, notice: t(".account_created")
     else
       render :new, status: :unprocessable_entity
     end
