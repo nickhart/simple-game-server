@@ -44,16 +44,14 @@ Metrics/CyclomaticComplexity:
 Metrics/BlockNesting:
   Max: 4
 
+# Line length configuration
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - 'config/initializers/**/*'
 
 # More lenient configuration for routes.rb
 Metrics/BlockLength:
   Exclude:
     - 'config/routes.rb'
   Max: 50
-
-# More lenient configuration for initializers
-Layout/LineLength:
-  Exclude:
-    - 'config/initializers/**/*'
