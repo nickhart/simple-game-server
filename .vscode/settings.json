@@ -1,14 +1,18 @@
 {
-  "ruby.lint": {
-    "rubocop": true
-  },
-  "ruby.format": "rubocop",
-  "editor.formatOnSave": true,
   "ruby.useBundler": true,
-  "ruby.useLanguageServer": true,
-  "ruby.lintDebounceTime": 500,
-  "[ruby]": {
-    "editor.defaultFormatter": "rebornix.ruby",
-    "editor.formatOnSave": true
-  }
-} 
+  "ruby.useLanguageServer": false,
+  "rubyTestExplorer.testFramework": "rspec",
+  "rubyTestExplorer.testCommand": "bundle exec rspec",
+  "rubyTestExplorer.testDirectory": "spec",
+  "rubyTestExplorer.filePattern": ["**/*_spec.rb"],
+  "rubyTestExplorer.useBundler": true,
+  "rubyTestExplorer.enableTestExplorer": true,
+  "rubyTestExplorer.showOutput": true,
+  "rubyTestExplorer.logpanel": true,
+  "testExplorer.useNativeTesting": false,
+  "testExplorer.showCollapseAll": true,
+  "testExplorer.showExpandAll": true,
+  "testExplorer.mergeSuites": true,
+  "testExplorer.hideEmptyLog": false,
+  "testExplorer.addToEditorContextMenu": true
+}

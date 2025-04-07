@@ -1,6 +1,66 @@
 Rails.application.routes.draw do
+  devise_for :users
   root "game_sessions#index"
-  resources :game_sessions
+
+  # Web player registration
+  resources :users, only: %i[new create]
+  resources :players, only: %i[new create]
+
+  resources :game_sessions do
+    member do
+      post :join
+    end
+    collection do
+      post :create, constraints: { player_id: /[0-9a-f-]+/ }
+    end
+  end
+
+  # Add cleanup endpoint
+  post "game_sessions/cleanup", to: "game_sessions#cleanup"
+
+  # API routes
+  namespace :api do
+    devise_for :users, controllers: {
+      sessions: "api/users/sessions",
+      registrations: "api/users/registrations"
+    }
+
+    # Add custom sessions route
+    post "sessions", to: "sessions#create"
+
+    resources :players, param: :id do
+      collection do
+        get :current
+      end
+    end
+
+    resources :game_sessions do
+      collection do
+        post "create/:player_id", to: "game_sessions#create"
+      end
+
+      member do
+        post "join/:player_id", to: "game_sessions#join"
+        delete "leave/:player_id", to: "game_sessions#leave"
+        post "start"
+        post "update_game_state"
+      end
+
+      post "cleanup", on: :collection
+    end
+  end
+
+  # Postman test routes
+  namespace :postman do
+    resources :players, only: %i[create show update destroy]
+    resources :game_sessions, only: %i[create show] do
+      member do
+        post :join
+        post :start
+      end
+    end
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -1,39 +1,59 @@
-# Omakase Ruby styling for Rails
-inherit_gem: { rubocop-rails-omakase: rubocop.yml }
-
-# Overwrite or add rules to create your own house style
-#
-# # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
-# Layout/SpaceInsideArrayLiteralBrackets:
-#   Enabled: false
-
-require:
+plugins:
   - rubocop-rails
   - rubocop-performance
+  - rubocop-rspec
+  - rubocop-factory_bot
 
 AllCops:
+  TargetRubyVersion: 3.2
   NewCops: enable
-  TargetRubyVersion: 3.4
   Exclude:
-    - 'db/**/*'
     - 'bin/**/*'
+    - 'db/**/*'
+    - 'tmp/**/*'
     - 'vendor/**/*'
     - 'node_modules/**/*'
 
 Style/Documentation:
   Enabled: false
 
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
 Style/StringLiterals:
   EnforcedStyle: double_quotes
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/AbcSize:
+  Max: 30
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/BlockNesting:
+  Max: 4
 
 Layout/LineLength:
   Max: 120
 
-Metrics/MethodLength:
-  Max: 15
-
+# More lenient configuration for routes.rb
 Metrics/BlockLength:
   Exclude:
-    - 'config/**/*'
-    - 'test/**/*'
-    - 'spec/**/*'
+    - 'config/routes.rb'
+  Max: 50
+
+# More lenient configuration for initializers
+Layout/LineLength:
+  Exclude:
+    - 'config/initializers/**/*'
