@@ -132,7 +132,7 @@ module Api
           headers: @headers
 
       assert_response :success
-      response_state = JSON.parse(response.body)["state"]
+      response_state = response.parsed_body["state"]
       assert_equal initial_state["board"], response_state["board"]
       assert_equal initial_state["current_player"], response_state["current_player"]
     end

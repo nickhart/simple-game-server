@@ -10,6 +10,6 @@ FactoryBot.define do
         current_player: "X"
       }
     end
-    association :game
+    game
   end
 end

@@ -139,9 +139,9 @@ module Api
     end
 
     def cleanup
-      before_time = params[:before] ? Time.parse(params[:before]) : 1.day.ago
+      before_time = params[:before] ? Time.zone.parse(params[:before]) : 1.day.ago
       old_games = GameSession.where(status: "waiting")
-                             .where("created_at < ?", before_time)
+                             .where(created_at: ...before_time)
 
       old_games.destroy_all
       render json: { message: "Cleanup completed" }

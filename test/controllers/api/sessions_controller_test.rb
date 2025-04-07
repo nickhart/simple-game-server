@@ -19,7 +19,7 @@ module Api
            headers: @headers
 
       assert_response :success
-      assert_not_nil JSON.parse(response.body)["token"]
+      assert_not_nil response.parsed_body["token"]
     end
 
     test "should not create session with invalid password" do
@@ -31,7 +31,7 @@ module Api
            headers: @headers
 
       assert_response :unauthorized
-      assert_includes JSON.parse(response.body)["error"], "Invalid email or password"
+      assert_includes response.parsed_body["error"], "Invalid email or password"
     end
 
     test "should not create session with invalid email" do
@@ -43,7 +43,7 @@ module Api
            headers: @headers
 
       assert_response :unauthorized
-      assert_includes JSON.parse(response.body)["error"], "Invalid email or password"
+      assert_includes response.parsed_body["error"], "Invalid email or password"
     end
   end
 end

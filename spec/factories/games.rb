@@ -3,7 +3,7 @@ FactoryBot.define do
     name { Faker::Game.title }
     min_players { 2 }
     max_players { 2 }
-    association :game_configuration
+    game_configuration
     state_schema do
       {
         type: "object",

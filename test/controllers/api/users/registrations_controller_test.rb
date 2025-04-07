@@ -24,7 +24,7 @@ module Api
         end
 
         assert_response :created
-        assert_not_nil JSON.parse(response.body)["token"]
+        assert_not_nil response.parsed_body["token"]
         assert User.find_by(email: "newuser@example.com")
       end
 
@@ -42,7 +42,7 @@ module Api
         end
 
         assert_response :unprocessable_entity
-        assert_includes JSON.parse(response.body)["errors"]["email"], "is invalid"
+        assert_includes response.parsed_body["errors"]["email"], "is invalid"
       end
 
       test "should not register user with mismatched passwords" do
@@ -59,7 +59,7 @@ module Api
         end
 
         assert_response :unprocessable_entity
-        assert_includes JSON.parse(response.body)["errors"]["password_confirmation"], "doesn't match Password"
+        assert_includes response.parsed_body["errors"]["password_confirmation"], "doesn't match Password"
       end
 
       test "should not register user with duplicate email" do
@@ -78,7 +78,7 @@ module Api
         end
 
         assert_response :unprocessable_entity
-        assert_includes JSON.parse(response.body)["errors"]["email"], "has already been taken"
+        assert_includes response.parsed_body["errors"]["email"], "has already been taken"
       end
 
       test "should not register user with short password" do
@@ -95,7 +95,7 @@ module Api
         end
 
         assert_response :unprocessable_entity
-        assert_includes JSON.parse(response.body)["errors"]["password"], "is too short"
+        assert_includes response.parsed_body["errors"]["password"], "is too short"
       end
     end
   end

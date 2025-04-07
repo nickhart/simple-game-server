@@ -10,7 +10,6 @@ class GameSession < ApplicationRecord
 
   enum :status, { waiting: 0, active: 1, finished: 2 }
 
-  validates :game_id, presence: true
   validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
