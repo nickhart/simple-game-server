@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Api::GamesController, type: :controller do
   include Devise::Test::ControllerHelpers
 
-  let(:user) { create(:user) }
+  let(:admin_user) { create(:user, role: "admin") }
   let(:valid_attributes) do
     {
       name: "Test Game",
@@ -14,10 +14,10 @@ RSpec.describe Api::GamesController, type: :controller do
   let(:invalid_attributes) { { name: "nil", min_players: 0, max_players: 1 } }
 
   before do
-    request.headers["Authorization"] = "Bearer #{generate_token(user)}"
+    request.headers["Authorization"] = "Bearer #{generate_token(admin_user)}"
     request.headers["Accept"] = "application/json"
     request.headers["Content-Type"] = "application/json"
-    sign_in user
+    sign_in admin_user
   end
 
   describe "GET #index" do
@@ -145,9 +145,14 @@ RSpec.describe Api::GamesController, type: :controller do
   private
 
   def generate_token(user)
-    JWT.encode(
-      { sub: user.id, exp: 24.hours.from_now.to_i },
-      Rails.application.credentials.secret_key_base
-    )
+    payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      exp: 24.hours.from_now.to_i,
+      iat: Time.current.to_i,
+      jti: SecureRandom.uuid
+    }
+    JWT.encode(payload, Rails.application.credentials.secret_key_base)
   end
 end

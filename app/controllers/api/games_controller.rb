@@ -1,6 +1,8 @@
 module Api
   class GamesController < BaseController
     before_action :set_game, only: %i[show update destroy]
+    before_action :authenticate_user!
+    before_action :require_admin, only: %i[create update destroy]
 
     # GET /api/games
     def index
@@ -49,6 +51,12 @@ module Api
 
     def game_params
       params.require(:game).permit(:name, :min_players, :max_players)
+    end
+
+    def require_admin
+      unless jwt_payload["role"] == "admin"
+        render json: { error: "Only administrators can perform this action" }, status: :forbidden
+      end
     end
   end
 end

@@ -31,12 +31,26 @@ module Api
 
       begin
         decoded_token = JWT.decode(token, Rails.application.credentials.secret_key_base)
-        user_id = decoded_token[0]["sub"]
-        Current.user = User.find(user_id)
+        @jwt_payload = decoded_token[0]
+
+        # Check token expiration
+        if @jwt_payload["exp"] && Time.current.to_i > @jwt_payload["exp"]
+          return render json: { error: "Token has expired" }, status: :unauthorized
+        end
+
+        # Find user and verify role matches token
+        @current_user = User.find(@jwt_payload["sub"])
+        if @current_user.role != @jwt_payload["role"]
+          return render json: { error: "User role mismatch" }, status: :unauthorized
+        end
+
+        Current.user = @current_user
       rescue JWT::DecodeError, ActiveRecord::RecordNotFound
         render_unauthorized
       end
     end
+
+    attr_reader :current_user, :jwt_payload
 
     def render_unauthorized
       render json: { error: "Unauthorized" }, status: :unauthorized
