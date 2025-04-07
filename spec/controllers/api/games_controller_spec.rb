@@ -61,17 +61,25 @@ RSpec.describe Api::GamesController, type: :controller do
         end.to change(Game, :count).by(1)
       end
 
-      it "renders a JSON response with the new game" do
+      it "returns a created status" do
         post :create, params: { game: valid_attributes }, format: :json
         expect(response).to have_http_status(:created)
+      end
+
+      it "returns JSON content type" do
+        post :create, params: { game: valid_attributes }, format: :json
         expect(response.content_type).to match(a_string_including("application/json"))
       end
     end
 
     context "with invalid params" do
-      it "renders a JSON response with errors for the new game" do
+      it "returns an unprocessable entity status" do
         post :create, params: { game: invalid_attributes }, format: :json
         expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns JSON content type" do
+        post :create, params: { game: invalid_attributes }, format: :json
         expect(response.content_type).to match(a_string_including("application/json"))
       end
     end
@@ -95,17 +103,25 @@ RSpec.describe Api::GamesController, type: :controller do
         expect(game.name).to eq("New Game Name")
       end
 
-      it "renders a JSON response with the game" do
+      it "returns a success status" do
         put :update, params: { id: game.id, game: new_attributes }, format: :json
         expect(response).to be_successful
+      end
+
+      it "returns JSON content type" do
+        put :update, params: { id: game.id, game: new_attributes }, format: :json
         expect(response.content_type).to match(a_string_including("application/json"))
       end
     end
 
     context "with invalid params" do
-      it "renders a JSON response with errors for the game" do
+      it "returns an unprocessable entity status" do
         put :update, params: { id: game.id, game: invalid_attributes }, format: :json
         expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns JSON content type" do
+        put :update, params: { id: game.id, game: invalid_attributes }, format: :json
         expect(response.content_type).to match(a_string_including("application/json"))
       end
     end
