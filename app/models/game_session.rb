@@ -83,9 +83,7 @@ class GameSession < ApplicationRecord
     )
   end
 
-  def state_schema
-    game.state_schema
-  end
+  delegate :state_schema, to: :game
 
   private
 
@@ -212,13 +210,13 @@ class GameSession < ApplicationRecord
   # Temporarily disabled for development
   # def validate_state_schema
   #   return unless game && state.present?
-  #   
+  #
   #   schema = game.state_schema
   #   return if schema.blank?
-  #   
+  #
   #   validate_schema(state, schema)
   # end
-  
+
   # def validate_schema(data, schema, path = [])
   #   case schema["type"]
   #   when "object"

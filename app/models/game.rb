@@ -9,4 +9,4 @@ class Game < ApplicationRecord
   def state_schema
     game_configuration&.state_schema || {}
   end
-end 
+end

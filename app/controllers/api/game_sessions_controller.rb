@@ -51,7 +51,8 @@ module Api
       @game_session.max_players ||= @game.max_players
 
       if @game_session.save
-        render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }, status: :created
+        render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } },
+               status: :created
       else
         render json: { errors: @game_session.errors.full_messages }, status: :unprocessable_entity
       end
@@ -80,7 +81,7 @@ module Api
           Rails.logger.info "Advancing turn because state was updated and game is active"
           @game_session.advance_turn
         end
-        
+
         render json: @game_session, include: { players: { only: %i[id name] } }
       else
         Rails.logger.error "Failed to update game session: #{@game_session.errors.full_messages}"

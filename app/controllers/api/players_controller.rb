@@ -1,6 +1,5 @@
 module Api
   class PlayersController < BaseController
-
     def current
       player = current_user.players.first
       if player

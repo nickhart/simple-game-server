@@ -4,10 +4,12 @@ FactoryBot.define do
     status { :waiting }
     min_players { 2 }
     max_players { 2 }
-    state { {
-      board: Array.new(3) { Array.new(3, '') },
-      current_player: 'X'
-    } }
-    association :game, factory: :game
+    state do
+      {
+        board: Array.new(3) { Array.new(3, "") },
+        current_player: "X"
+      }
+    end
+    association :game
   end
-end 
+end

@@ -30,4 +30,4 @@ class GameConfiguration < ApplicationRecord
       end
     end
   end
-end 
+end

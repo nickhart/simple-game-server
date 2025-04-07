@@ -1,24 +1,26 @@
 FactoryBot.define do
   factory :game_configuration do
-    state_schema { {
-      type: 'object',
-      properties: {
-        board: {
-          type: 'array',
-          items: {
-            type: 'array',
+    state_schema do
+      {
+        type: "object",
+        properties: {
+          board: {
+            type: "array",
             items: {
-              type: 'string',
-              enum: ['X', 'O', '']
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["X", "O", ""]
+              }
             }
+          },
+          current_player: {
+            type: "string",
+            enum: %w[X O]
           }
         },
-        current_player: {
-          type: 'string',
-          enum: ['X', 'O']
-        }
-      },
-      required: ['board', 'current_player']
-    } }
+        required: %w[board current_player]
+      }
+    end
   end
-end 
+end
