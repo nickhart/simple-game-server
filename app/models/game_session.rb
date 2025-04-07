@@ -13,7 +13,6 @@ class GameSession < ApplicationRecord
   validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
   validates :min_players, presence: true, numericality: { greater_than: 0 }
   validates :max_players, presence: true, numericality: { greater_than: 0 }
-  validates :game, presence: true
   validate :max_players_greater_than_min_players
   validate :valid_status_transition
   validate :current_player_must_be_valid

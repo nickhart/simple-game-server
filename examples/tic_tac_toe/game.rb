@@ -10,88 +10,55 @@ class Game
   def initialize(client, game_session)
     @client = client
     @game_session = game_session
-    @current_player = nil
   end
 
   def play
     @current_player = @client.current_player
-    puts "Welcome to TicTacToe!"
-    puts "You are playing as #{@current_player.name}"
-    puts "Game session ID: #{@game_session.id}"
+    puts "Welcome to Tic-Tac-Toe!"
+    puts "You are player #{@game_session.players.find_index { |p| p.id == @current_player.id } + 1}"
+    puts "Game ID: #{@game_session.id}"
 
     loop do
-      # Wait for our turn
-      @game_session = wait_for_turn
-
-      if @game_session.status == "finished"
-        display_board
-        if @game_session.state["winner"]
-          puts "Player #{@game_session.state['winner'] + 1} wins!"
-        else
-          puts "It's a draw!"
-        end
-        break
-      end
-
       display_board
-      position = player_move
-      result = make_move(position)
-      display_board
+      break if game_over?
 
-      if result.success?
-        if result.data[:game_over]
-          puts result.data[:message]
-          break
-        end
+      if @game_session.current_player_id == @current_player.id
+        result = player_move
+        break if result.game_over?
       else
-        puts result.error
+        wait_for_turn
       end
     end
   end
 
   private
 
+  def game_over?
+    @game_session.status == "finished"
+  end
+
   def wait_for_turn
     puts "Waiting for your turn..."
-
     loop do
-      # Refresh the game session to get the latest state
-      result = @client.get_game_session(@game_session.id)
-
-      if result.failure?
-        puts "Error refreshing game session: #{result.error}"
-        sleep(2) # Wait before retrying
-        next
-      end
-
-      updated_session = result.data
-
-      return updated_session if updated_session.status == "finished"
-
-      if updated_session.current_player && updated_session.current_player.id == @current_player.id
-        puts "It's your turn!"
-        return updated_session
-      end
-
-      print "."
-      sleep(2) # Check every 2 seconds
+      sleep(1)
+      @game_session = @client.get_game_session(@game_session.id)
+      break if @game_session.current_player_id == @current_player.id || game_over?
     end
   end
 
   def display_board
     puts "\nCurrent board:"
-    # this is where we have a bug and the board is not displayed correctly
-    # I think the board is nil?
-    Board.new(@game_session.state["board"]).display
+    @game_session.board.display
   end
 
   def player_move
     loop do
       print "Enter your move (0-8): "
       position = gets.chomp.to_i
-      return position if position.between?(0, 8)
+      result = make_move(position)
+      return result if result.success?
 
-      puts "Invalid move. Please enter a number between 1 and 9."
+      puts result.error
     end
   end
 
@@ -112,22 +79,40 @@ class Game
     return Result.failure("Position already taken") unless @game_session.board.valid_move?(position)
 
     cell_value = player_cell_value
-
     @game_session.board.make_move(position, cell_value)
-    @game_session.state["board"] = @game_session.board.board
+    update_game_state
+    check_game_result
+  end
 
+  def update_game_state
+    @game_session.state["board"] = @game_session.board.board
+  end
+
+  def check_game_result
     winner = @game_session.board.winner
-    if winner && winner != Board::CELL_VALUES[:empty]
-      player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
-      @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished", player_index)
-      Result.success(game_over: true, message: "Player #{winner} wins!")
+    if winner
+      handle_winner(winner)
     elsif @game_session.board.full?
-      @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished")
-      Result.success(game_over: true, message: "It's a draw!")
+      handle_draw
     else
-      @game_session.players.find { |p| p.id != @current_player.id }.id
-      @client.update_game_state(@game_session.id, { board: @game_session.board.board })
-      Result.success(game_over: false)
+      handle_next_turn
     end
+  end
+
+  def handle_winner(winner)
+    player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
+    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished", player_index)
+    Result.success(game_over: true, message: "Player #{winner} wins!")
+  end
+
+  def handle_draw
+    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished")
+    Result.success(game_over: true, message: "It's a draw!")
+  end
+
+  def handle_next_turn
+    @game_session.players.find { |p| p.id != @current_player.id }.id
+    @client.update_game_state(@game_session.id, { board: @game_session.board.board })
+    Result.success(game_over: false)
   end
 end

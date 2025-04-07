@@ -19,6 +19,11 @@ class TicTacToeCLI
 
   def parse_options
     @options = {}
+    setup_option_parser
+    validate_options
+  end
+
+  def setup_option_parser
     OptionParser.new do |opts|
       opts.banner = "Usage: ruby main.rb [options]"
 
@@ -44,18 +49,33 @@ class TicTacToeCLI
         exit
       end
     end.parse!
+  end
 
-    # Validate that if either email or password is provided, both must be provided
-    if (@options[:email] && !@options[:password]) || (!@options[:email] && @options[:password])
-      puts "Error: Both --email and --password must be provided if either is used"
-      exit 1
-    end
+  def validate_options
+    validate_credentials
+    validate_command_requirements
+  end
 
-    # Validate that --create and --join can only be used with login credentials
-    if %i[create join].include?(@options[:command]) && !(@options[:email] && @options[:password])
-      puts "Error: --create and --join can only be used with --email and --password"
-      exit 1
-    end
+  def validate_credentials
+    return unless credentials_partially_provided?
+
+    puts "Error: Both --email and --password must be provided if either is used"
+    exit 1
+  end
+
+  def validate_command_requirements
+    return unless command_requires_credentials?
+
+    puts "Error: --create and --join can only be used with --email and --password"
+    exit 1
+  end
+
+  def credentials_partially_provided?
+    (@options[:email] && !@options[:password]) || (!@options[:email] && @options[:password])
+  end
+
+  def command_requires_credentials?
+    %i[create join].include?(@options[:command]) && !(@options[:email] && @options[:password])
   end
 
   def login

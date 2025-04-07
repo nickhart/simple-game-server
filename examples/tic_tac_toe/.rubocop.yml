@@ -8,6 +8,22 @@ AllCops:
 Rails:
   Enabled: false
 
+# More lenient limits for example code
+Metrics/ClassLength:
+  Max: 300
+
+Metrics/MethodLength:
+  Max: 50
+
+Metrics/AbcSize:
+  Max: 40
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+Style/Documentation:
+  Enabled: false
+
 Style/CollectionMethods:
   Enabled: true
   PreferredMethods:
