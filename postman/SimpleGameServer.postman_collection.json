@@ -577,6 +577,257 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "Games",
+            "item": [
+                {
+                    "name": "List Games",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response is an array', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.be.an('array');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Game",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains game data', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response).to.have.property('id');",
+                                    "    pm.expect(response).to.have.property('name');",
+                                    "    pm.expect(response).to.have.property('min_players');",
+                                    "    pm.expect(response).to.have.property('max_players');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Game",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"{{game_name}}\",\n    \"min_players\": {{min_players}},\n    \"max_players\": {{max_players}}\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/games",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains created game', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.name).to.eql(pm.variables.get('game_name'));",
+                                    "    pm.expect(response.min_players).to.eql(parseInt(pm.variables.get('min_players')));",
+                                    "    pm.expect(response.max_players).to.eql(parseInt(pm.variables.get('max_players')));",
+                                    "    ",
+                                    "    // Save the game ID for future requests",
+                                    "    if (response && response.id) {",
+                                    "        pm.environment.set('game_id', response.id);",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Game",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Updated Tic-Tac-Toe\",\n    \"min_players\": 2,\n    \"max_players\": 4\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains updated game', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.name).to.eql('Updated Tic-Tac-Toe');",
+                                    "    pm.expect(response.min_players).to.eql(2);",
+                                    "    pm.expect(response.max_players).to.eql(4);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Game",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 204', function () {",
+                                    "    pm.response.to.have.status(204);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
