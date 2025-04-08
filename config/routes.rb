@@ -26,27 +26,23 @@ Rails.application.routes.draw do
     }
 
     # Authentication routes
-    resource :session, only: %i[create destroy]
+    resources :sessions, only: %i[create destroy] do
+      post :refresh, on: :collection
+    end
 
-    resources :players, param: :id do
-      collection do
-        get :current
-      end
+    resources :players, only: %i[create show] do
+      get :current, on: :collection
     end
 
     resources :game_sessions do
-      collection do
-        post "create/:player_id", to: "game_sessions#create"
-      end
-
       member do
-        post "join/:player_id", to: "game_sessions#join"
-        delete "leave/:player_id", to: "game_sessions#leave"
-        post "start"
-        post "update_game_state"
+        post :join
+        delete :leave
+        post :start
       end
-
-      post "cleanup", on: :collection
+      collection do
+        post :cleanup
+      end
     end
   end
 

@@ -37,6 +37,11 @@ module Api
         payload = JWT.decode(token, Rails.application.credentials.secret_key_base).first
         @current_user = User.find(payload["user_id"])
 
+        # Check if token is blacklisted
+        token_record = Token.find_by(jti: payload["jti"])
+        return false if token_record&.expired?
+
+        # Check token version
         if payload["token_version"] != @current_user.token_version
           render json: { error: "Token has been invalidated" }, status: :unauthorized
           return false
