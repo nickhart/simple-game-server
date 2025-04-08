@@ -1,7 +1,7 @@
 module Api
   class GameSessionsController < BaseController
     before_action :set_game_session, except: %i[index create cleanup]
-    before_action :set_player, only: %i[create join start]
+    before_action :set_player, only: %i[create join start leave]
     before_action :set_game, only: %i[create]
 
     def index

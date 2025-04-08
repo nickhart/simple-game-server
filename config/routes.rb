@@ -25,8 +25,8 @@ Rails.application.routes.draw do
       registrations: "api/users/registrations"
     }
 
-    # Add custom sessions route
-    post "sessions", to: "sessions#create"
+    # Authentication routes
+    resource :session, only: %i[create destroy]
 
     resources :players, param: :id do
       collection do

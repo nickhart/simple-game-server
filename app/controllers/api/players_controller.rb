@@ -30,22 +30,5 @@ module Api
         render json: { errors: @player.errors.full_messages }, status: :unprocessable_entity
       end
     end
-
-    private
-
-    def authenticate_user!
-      token = request.headers["Authorization"]&.split&.last
-      return render json: { error: "Missing token" }, status: :unauthorized unless token
-
-      begin
-        decoded = JWT.decode(token, Rails.application.credentials.secret_key_base)
-        user_id = decoded[0]["sub"]
-        @current_user = User.find(user_id)
-      rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-        render json: { error: "Invalid token" }, status: :unauthorized
-      end
-    end
-
-    attr_reader :current_user
   end
 end
