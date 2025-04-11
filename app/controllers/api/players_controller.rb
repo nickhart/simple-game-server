@@ -30,8 +30,8 @@ module Api
 
     private
 
-      def player_params
-        params.require(:player).permit(:name)
-      end
+    def player_params
+      params.require(:player).permit(:name)
+    end
   end
 end

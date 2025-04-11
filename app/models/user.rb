@@ -5,7 +5,7 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable
 
   has_many :players, dependent: :destroy
-  has_many :tokens
+  has_many :tokens, dependent: :destroy
 
   # Role management
   ROLES = %w[player admin].freeze
@@ -21,7 +21,10 @@ class User < ApplicationRecord
   attribute :token_version, :integer, default: 0
 
   def invalidate_token!
+    # for now disable this warning--it's just a version for invalidating the user's tokens
+    # rubocop:disable Rails/SkipsModelValidations
     increment!(:token_version)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def admin?
