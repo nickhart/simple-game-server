@@ -24,12 +24,14 @@ module Api
     end
 
     def refresh
-      refresh_params = params.require(:session).permit(:refresh_token)
-      payload = JWT.decode(refresh_params[:refresh_token], Rails.application.credentials.secret_key_base).first
-      refresh_token = Token.find_by(jti: payload["jti"])
+      refresh_token = params[:refresh_token] || params.dig(:session, :refresh_token)
+      return render_error("Refresh token is required", status: :unauthorized) unless refresh_token
+
+      payload = JWT.decode(refresh_token, Rails.application.credentials.secret_key_base).first
+      refresh_token_record = Token.find_by(jti: payload["jti"])
       user = User.find(payload["user_id"])
 
-      if refresh_token&.active? && user.token_version == payload["token_version"]
+      if refresh_token_record&.active? && user.token_version == payload["token_version"]
         access_token = Token.create_access_token(user)
         render json: {
           access_token: generate_token(access_token)

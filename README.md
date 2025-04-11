@@ -146,25 +146,73 @@ ENABLE_CSRF_PROTECTION=false rails server
 
 ## Testing
 
-### Unit Tests
-Run the test suite:
-```bash
-rails test
+### Test Infrastructure
+
+```mermaid
+graph TD
+    A[Test Suite] --> B[Configuration]
+    A --> C[Test Types]
+    A --> D[Support Files]
+    
+    B --> B1[spec_helper.rb]
+    B --> B2[rails_helper.rb]
+    B --> B3[.rspec]
+    
+    C --> C1[Models]
+    C --> C2[Controllers]
+    C --> C3[Factories]
+    
+    D --> D1[Controller Macros]
+    D --> D2[Authentication Helpers]
+    D --> D3[Database Cleaner]
+    D --> D4[JSON Helpers]
 ```
 
-### API Testing with Postman
-The project includes Postman collections for testing the API endpoints. These can be used to:
-- Test the API locally
-- Verify API behavior against a deployed instance
-- Document API usage
-- Automate API testing
+#### Testing Approach
 
-To use the Postman tests:
-1. Install [Postman](https://www.postman.com/)
-2. Import the collection from `test/postman/simple_game_server.postman_collection.json`
-3. Set up environment variables in Postman:
-   - `base_url`: Your server URL (e.g., `http://localhost:3000`)
-   - `token`: JWT token (will be set automatically after login)
+Our test suite is built on RSpec and follows a comprehensive testing strategy:
+
+1. **Framework & Tools**:
+   - RSpec for test framework
+   - FactoryBot for test data generation
+   - Database Cleaner for test database management
+   - Custom authentication helpers for API testing
+
+2. **Configuration**:
+   - `spec_helper.rb`: Core RSpec configuration
+     - Custom matcher descriptions enabled
+     - Partial double verification enabled
+     - Shared context metadata behavior configured
+   - `rails_helper.rb`: Rails-specific configuration
+     - Transactional fixtures enabled
+     - Automatic spec type inference
+     - FactoryBot integration
+     - Support file autoloading
+
+3. **Test Organization**:
+   - Models: Unit tests for ActiveRecord models
+   - Controllers: API endpoint testing
+   - Factories: Test data definitions
+   - Support: Shared test utilities and helpers
+
+4. **Custom Test Infrastructure**:
+   - `ControllerMacros`: Authentication helpers for controller tests
+   - `AuthenticationHelper`: JWT token management for API tests
+   - `JSONHelper`: Response parsing utilities
+   - `DatabaseCleaner`: Ensures clean test state
+
+5. **CI Integration**:
+   - GitHub Actions workflow
+   - PostgreSQL test database
+   - Automated schema loading
+   - Security scanning (Brakeman, importmap audit)
+
+The test suite emphasizes:
+- API authentication and authorization
+- Data integrity and validation
+- Clean test isolation
+- Comprehensive coverage of business logic
+- Automated security checks
 
 ## Example Implementation
 
