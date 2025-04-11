@@ -69,8 +69,20 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/simple_game_server_test
         run: |
+          # Wait for PostgreSQL to be ready
+          for i in {1..10}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              break
+            fi
+            sleep 2
+          done
+          
+          # Create and setup database
           bin/rails db:create
           bin/rails db:schema:load
+          
+          # Verify database setup
+          bin/rails runner "puts 'Database connection successful' if ActiveRecord::Base.connection.active?"
 
       - name: Run RSpec tests
         env:
