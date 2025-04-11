@@ -5,6 +5,39 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+## Table of Contents
+
+- [Features](#features)
+- [Game Configuration](#game-configuration)
+  - [Creating a New Game Type](#creating-a-new-game-type)
+  - [State Schema Types](#state-schema-types)
+  - [Example: Tic Tac Toe Configuration](#example-tic-tac-toe-configuration)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Running the Server](#running-the-server)
+  - [CSRF Protection Configuration](#csrf-protection-configuration)
+- [Testing](#testing)
+  - [Test Directory Structure](#test-directory-structure)
+  - [Key Test Files](#key-test-files)
+  - [Testing Approach](#testing-approach)
+- [Example Implementation](#example-implementation)
+- [AI-Assisted Development](#ai-assisted-development)
+  - [Project Setup and Configuration](#project-setup-and-configuration)
+  - [Server Development](#server-development)
+  - [Example Game Implementation](#example-game-implementation)
+- [Developer Cheat Sheet](#developer-cheat-sheet)
+  - [Server Commands](#server-commands)
+  - [Database Commands](#database-commands)
+  - [Testing Commands](#testing-commands)
+  - [Linting Commands](#linting-commands)
+  - [Development Tools](#development-tools)
+- [Contributing](#contributing)
+- [Future Plans](#future-plans)
+  - [Short Term](#short-term)
+  - [Medium Term](#medium-term)
+  - [Long Term](#long-term)
+- [License](#license)
+
 A simple game server built with Ruby on Rails, designed to handle multiplayer game sessions. This server provides a flexible API for managing game sessions, players, and game state, while remaining agnostic to the specific game logic.
 
 ## Features
@@ -146,27 +179,62 @@ ENABLE_CSRF_PROTECTION=false rails server
 
 ## Testing
 
-### Test Infrastructure
+### Test Directory Structure
 
-```mermaid
-graph TD
-    A[Test Suite] --> B[Configuration]
-    A --> C[Test Types]
-    A --> D[Support Files]
-    
-    B --> B1[spec_helper.rb]
-    B --> B2[rails_helper.rb]
-    B --> B3[.rspec]
-    
-    C --> C1[Models]
-    C --> C2[Controllers]
-    C --> C3[Factories]
-    
-    D --> D1[Controller Macros]
-    D --> D2[Authentication Helpers]
-    D --> D3[Database Cleaner]
-    D --> D4[JSON Helpers]
 ```
+spec/                           # Main test directory
+├── spec_helper.rb             # Core RSpec configuration
+├── rails_helper.rb            # Rails-specific test setup
+├── controllers/               # Controller tests
+│   └── api/                   # API controller tests
+│       ├── sessions_controller_spec.rb    # Authentication tests
+│       └── game_sessions_controller_spec.rb # Game session tests
+├── models/                    # Model tests
+├── factories/                 # Factory definitions
+│   ├── users.rb              # User factory
+│   ├── games.rb              # Game factory
+│   ├── game_sessions.rb      # Game session factory
+│   ├── players.rb            # Player factory
+│   └── tokens.rb             # Token factory
+└── support/                   # Test support files
+    ├── controller_macros.rb  # Controller authentication helpers
+    ├── authentication_helper.rb # Authentication utilities
+    ├── database_cleaner.rb   # Database cleaning configuration
+    ├── factory_bot.rb        # FactoryBot setup
+    ├── helpers/              # Test helper modules
+    │   ├── authentication_helper.rb # Authentication test helpers
+    │   └── json_helper.rb    # JSON response helpers
+    └── shared_contexts/      # Shared test contexts
+```
+
+#### Key Test Files
+
+1. **Configuration Files**:
+   - `spec_helper.rb`: Core RSpec configuration
+   - `rails_helper.rb`: Rails-specific test setup
+   - `.rspec`: RSpec command-line options
+   - `.rubocop.yml`: Code style configuration
+
+2. **Controller Tests**:
+   - `sessions_controller_spec.rb`: Tests for authentication endpoints
+   - `game_sessions_controller_spec.rb`: Tests for game session management
+
+3. **Support Files**:
+   - `controller_macros.rb`: Authentication helpers for controller tests
+   - `authentication_helper.rb`: JWT token management utilities
+   - `database_cleaner.rb`: Database cleaning configuration
+   - `factory_bot.rb`: FactoryBot setup and configuration
+
+4. **Helper Modules**:
+   - `authentication_helper.rb`: Authentication test utilities
+   - `json_helper.rb`: JSON response parsing helpers
+
+5. **Factories**:
+   - `users.rb`: User model factory
+   - `games.rb`: Game model factory
+   - `game_sessions.rb`: Game session factory
+   - `players.rb`: Player model factory
+   - `tokens.rb`: Token model factory
 
 #### Testing Approach
 
@@ -206,6 +274,14 @@ Our test suite is built on RSpec and follows a comprehensive testing strategy:
    - PostgreSQL test database
    - Automated schema loading
    - Security scanning (Brakeman, importmap audit)
+
+6. **Running Tests**:
+   - Local development: `bundle exec rspec`
+   - CI environment: `script/test_ci`
+     - Matches GitHub Actions environment
+     - Uses fresh database for each run
+     - Cleans up after tests
+     - Supports all RSpec options
 
 The test suite emphasizes:
 - API authentication and authorization
