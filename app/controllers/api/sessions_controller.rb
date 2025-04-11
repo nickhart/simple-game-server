@@ -3,8 +3,9 @@ module Api
     skip_before_action :authenticate_user!, only: %i[create refresh]
 
     def create
-      user = User.find_by(email: params[:email])
-      if user&.valid_password?(params[:password])
+    session_params = params.require(:session).permit(:email, :password)
+    user = User.find_by(email: session_params[:email])
+    if user&.valid_password?(session_params[:password])
         access_token = Token.create_access_token(user)
         refresh_token = Token.create_refresh_token(user)
 
@@ -17,12 +18,13 @@ module Api
           }
         }
       else
-        render json: { error: "Invalid email or password" }, status: :unauthorized
+        render_error("Invalid email or password", status: :unauthorized)
       end
     end
 
     def refresh
-      payload = JWT.decode(params[:refresh_token], Rails.application.credentials.secret_key_base).first
+    refresh_params = params.require(:session).permit(:refresh_token)
+    payload = JWT.decode(refresh_params[:refresh_token], Rails.application.credentials.secret_key_base).first
       refresh_token = Token.find_by(jti: payload["jti"])
       user = User.find(payload["user_id"])
 
@@ -32,10 +34,10 @@ module Api
           access_token: generate_token(access_token)
         }
       else
-        render json: { error: "Invalid refresh token" }, status: :unauthorized
+        render_error("Invalid refresh token", status: :unauthorized)
       end
     rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-      render json: { error: "Invalid refresh token" }, status: :unauthorized
+      render_error("Invalid refresh token", status: :unauthorized)
     end
 
     def destroy
