@@ -1,0 +1,17 @@
+inherit_from: ../../.rubocop.yml
+
+AllCops:
+  Include:
+    - '**/*.rb'
+
+RSpec/MultipleExpectations:
+  Max: 3  # Allow up to 3 expectations per test instead of 1
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 8  # Allow up to 8 memoized helpers instead of 5
+
+RSpec/ExampleLength:
+  Max: 10  # Allow up to 10 lines per example instead of 5
+
+Rails/SkipsModelValidations:
+  Enabled: false  # Disable this check since increment! is commonly used for counters 
