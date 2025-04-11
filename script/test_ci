@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+# Set environment variables to match GitHub Actions
+export RAILS_ENV=test
+export DATABASE_URL=postgres://postgres:postgres@localhost:5432/simple_game_server_test
+
+echo "Setting up test environment..."
+
+# Create and setup database
+echo "Setting up database..."
+rails db:drop db:create db:schema:load
+
+# Run tests with the same configuration as GitHub Actions
+echo "Running tests..."
+bundle exec rspec "$@"
+
+# Capture the exit code
+EXIT_CODE=$?
+
+# Clean up
+echo "Cleaning up..."
+rails db:drop
+
+# Exit with the test's exit code
+exit $EXIT_CODE 
