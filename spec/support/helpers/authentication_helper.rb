@@ -9,7 +9,8 @@ module AuthenticationHelper
   def generate_token(user)
     payload = {
       user_id: user.id,
-      token_version: user.token_version
+      token_version: user.token_version,
+      role: user.role
     }
     JWT.encode(payload, Rails.application.credentials.secret_key_base)
   end

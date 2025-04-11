@@ -30,7 +30,6 @@ module Api
       render json: error_payload, status: status
     end
 
-
     def ensure_json_request
       # Accept if content type is application/json or if the request format is json
       return if request.content_type == "application/json" || request.format.json?
@@ -63,6 +62,12 @@ module Api
         # Check token version
         if payload["token_version"] != @current_user.token_version
           render_error("Token has been invalidated", status: :unauthorized)
+          return false
+        end
+
+        # Check role matches database
+        if payload["role"] != @current_user.role
+          render_error("User role has changed, please log in again", status: :unauthorized)
           return false
         end
 
