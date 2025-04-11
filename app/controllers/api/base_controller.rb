@@ -57,18 +57,21 @@ module Api
 
         # Check if token is blacklisted
         token_record = Token.find_by(jti: payload["jti"])
-        return false if token_record&.expired?
+        if token_record&.expired?
+          render_error("Token has expired", status: :unauthorized)
+          return
+        end
 
         # Check token version
         if payload["token_version"] != @current_user.token_version
           render_error("Token has been invalidated", status: :unauthorized)
-          return false
+          return
         end
 
         # Check role matches database
         if payload["role"] != @current_user.role
           render_error("User role has changed, please log in again", status: :unauthorized)
-          return false
+          return
         end
 
         Current.user = @current_user
