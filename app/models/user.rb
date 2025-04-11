@@ -7,6 +7,10 @@ class User < ApplicationRecord
   has_many :players, dependent: :destroy
   has_many :tokens
 
+  # Role management
+  ROLES = %w[player admin].freeze
+  validates :role, presence: true, inclusion: { in: ROLES }
+
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, length: { minimum: 8 }, if: :password_digest_changed?
   validates :token_version, presence: true
@@ -18,6 +22,14 @@ class User < ApplicationRecord
 
   def invalidate_token!
     increment!(:token_version)
+  end
+
+  def admin?
+    role == "admin"
+  end
+
+  def player?
+    role == "player"
   end
 
   private

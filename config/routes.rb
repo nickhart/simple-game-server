@@ -37,11 +37,22 @@ Rails.application.routes.draw do
     resources :game_sessions do
       member do
         post :join
-        delete :leave
+        post :move
         post :start
+        delete :leave
       end
       collection do
         post :cleanup
+      end
+    end
+
+    # Admin routes
+    namespace :admin do
+      resources :users, only: %i[index show update] do
+        member do
+          post :make_admin
+          post :remove_admin
+        end
       end
     end
   end
