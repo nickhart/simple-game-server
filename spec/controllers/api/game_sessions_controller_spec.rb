@@ -18,7 +18,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
       end
 
       it "returns all game sessions" do
-        expect(JSON.parse(response.body)).to be_an(Array)
+        expect(response.parsed_body).to be_an(Array)
       end
     end
 
@@ -43,7 +43,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
       end
 
       it "returns the game session" do
-        json = JSON.parse(response.body)
+        json = response.parsed_body
         expect(json["id"]).to eq(game_session.id)
       end
     end

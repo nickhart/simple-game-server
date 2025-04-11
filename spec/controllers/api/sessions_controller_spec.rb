@@ -27,7 +27,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
       it "returns a JWT token" do
         expect(response).to have_http_status(:success)
-        json = JSON.parse(response.body)
+        json = response.parsed_body
         expect(json["access_token"]).to be_present
         expect(json["refresh_token"]).to be_present
         expect(json["user"]["id"]).to eq(user.id)
@@ -47,7 +47,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
       it "returns unauthorized" do
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)["error"]).to eq("Invalid email or password")
+        expect(response.parsed_body["error"]).to eq("Invalid email or password")
       end
 
       it "does not create any tokens" do
@@ -75,7 +75,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
       it "returns a new access token" do
         expect(response).to have_http_status(:success)
-        json = JSON.parse(response.body)
+        json = response.parsed_body
         expect(json["access_token"]).to be_present
       end
 
@@ -93,7 +93,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
       it "returns unauthorized" do
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)["error"]).to eq("Invalid refresh token")
+        expect(response.parsed_body["error"]).to eq("Invalid refresh token")
       end
     end
 
@@ -104,7 +104,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
       it "returns unauthorized" do
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)["error"]).to eq("Invalid refresh token")
+        expect(response.parsed_body["error"]).to eq("Invalid refresh token")
       end
     end
   end

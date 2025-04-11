@@ -49,7 +49,7 @@ module Api
         get api_admin_users_url, headers: auth_headers(@admin)
         assert_response :success
 
-        response_body = JSON.parse(response.body)
+        response_body = response.parsed_body
         assert_equal User.count, response_body["data"].length
         assert_equal @player.email, response_body["data"].find { |u| u["id"] == @player.id }["email"]
       end
@@ -58,7 +58,7 @@ module Api
         get api_admin_users_url, params: { page: 1, per_page: 1 }, headers: auth_headers(@admin)
         assert_response :success
 
-        response_body = JSON.parse(response.body)
+        response_body = response.parsed_body
         assert_equal 1, response_body["data"].length
       end
 
@@ -66,7 +66,7 @@ module Api
         get api_admin_users_url, params: { q: @player.email }, headers: auth_headers(@admin)
         assert_response :success
 
-        response_body = JSON.parse(response.body)
+        response_body = response.parsed_body
         assert_equal 1, response_body["data"].length
         assert_equal @player.email, response_body["data"].first["email"]
       end
@@ -75,7 +75,7 @@ module Api
         get api_admin_user_url(@player), headers: auth_headers(@admin)
         assert_response :success
 
-        response_body = JSON.parse(response.body)
+        response_body = response.parsed_body
         assert_equal @player.email, response_body["data"]["email"]
       end
 

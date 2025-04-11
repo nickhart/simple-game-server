@@ -21,7 +21,7 @@ module Api
       if @game_session.save
         @game_session.players << @player
         render_success(@game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } },
-               status: :created)
+                                      status: :created)
       else
         render_error(@game_session.errors.full_messages, status: :unprocessable_entity)
       end
@@ -60,9 +60,7 @@ module Api
       unless @game_session.creator_id == @player.id
         return render_error("Only the creator can start the game", status: :unauthorized)
       end
-      unless @game_session.waiting?
-        return render_error("Game is not in waiting status", status: :unprocessable_entity)
-      end
+      return render_error("Game is not in waiting status", status: :unprocessable_entity) unless @game_session.waiting?
       if @game_session.players.count < @game_session.min_players
         return render_error("Not enough players", status: :unprocessable_entity)
       end
@@ -106,9 +104,7 @@ module Api
         @game = Game.find_by(name: game_params[:game_name])
       end
 
-      unless @game
-        render_error("Game not found", status: :not_found)
-      end
+      render_error("Game not found", status: :not_found) unless @game
     end
 
     def game_session_params

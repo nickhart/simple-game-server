@@ -38,7 +38,7 @@ RSpec.describe Token, type: :model do
 
   describe ".create_access_token" do
     it "creates an access token" do
-      token = Token.create_access_token(user)
+      token = described_class.create_access_token(user)
       expect(token).to be_valid
       expect(token.token_type).to eq("access")
       expect(token.expires_at).to be > 14.minutes.from_now
@@ -48,7 +48,7 @@ RSpec.describe Token, type: :model do
 
   describe ".create_refresh_token" do
     it "creates a refresh token" do
-      token = Token.create_refresh_token(user)
+      token = described_class.create_refresh_token(user)
       expect(token).to be_valid
       expect(token.token_type).to eq("refresh")
       expect(token.expires_at).to be > 6.days.from_now
@@ -88,22 +88,22 @@ RSpec.describe Token, type: :model do
 
     describe ".active" do
       it "returns only active tokens" do
-        expect(Token.active).to include(active_access_token, active_refresh_token)
-        expect(Token.active).not_to include(expired_access_token, expired_refresh_token)
+        expect(described_class.active).to include(active_access_token, active_refresh_token)
+        expect(described_class.active).not_to include(expired_access_token, expired_refresh_token)
       end
     end
 
     describe ".refresh_tokens" do
       it "returns only refresh tokens" do
-        expect(Token.refresh_tokens).to include(active_refresh_token, expired_refresh_token)
-        expect(Token.refresh_tokens).not_to include(active_access_token, expired_access_token)
+        expect(described_class.refresh_tokens).to include(active_refresh_token, expired_refresh_token)
+        expect(described_class.refresh_tokens).not_to include(active_access_token, expired_access_token)
       end
     end
 
     describe ".access_tokens" do
       it "returns only access tokens" do
-        expect(Token.access_tokens).to include(active_access_token, expired_access_token)
-        expect(Token.access_tokens).not_to include(active_refresh_token, expired_refresh_token)
+        expect(described_class.access_tokens).to include(active_access_token, expired_access_token)
+        expect(described_class.access_tokens).not_to include(active_refresh_token, expired_refresh_token)
       end
     end
   end
