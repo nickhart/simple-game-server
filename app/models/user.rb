@@ -21,7 +21,8 @@ class User < ApplicationRecord
   attribute :token_version, :integer, default: 0
 
   def invalidate_token!
-    # for now disable this warning--it's just a version for invalidating the user's tokens
+    # for now disable this warning about running validations because our simple
+    # token_version doesn't have any validations. it's just for invalidating prior tokens.
     # rubocop:disable Rails/SkipsModelValidations
     increment!(:token_version)
     # rubocop:enable Rails/SkipsModelValidations
