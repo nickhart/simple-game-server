@@ -45,7 +45,11 @@ module ActiveSupport
 
     # Add more helper methods to be used by all tests here...
     def generate_jwt_token(user)
-      payload = { user_id: user.id }
+      payload = {
+        user_id: user.id,
+        token_version: user.token_version,
+        role: user.role
+      }
       JWT.encode(payload, Rails.application.credentials.secret_key_base)
     end
 
