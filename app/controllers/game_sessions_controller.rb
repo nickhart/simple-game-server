@@ -44,10 +44,10 @@ class GameSessionsController < ApplicationController
                                       cutoff_date,
                                       "waiting").destroy_all.count
 
-    render json: {
+    render_success({
       message: "Deleted #{deleted_count} unused game sessions created before #{cutoff_date}",
       deleted_count: deleted_count
-    }
+    })
   end
 
   private

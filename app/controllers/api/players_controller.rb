@@ -3,32 +3,35 @@ module Api
     def current
       player = current_user.players.first
       if player
-        render json: player
+        render_success(player)
       else
-        render json: { error: "No player found for current user" }, status: :not_found
+        render_error("No player found for current user", status: :not_found)
       end
     end
 
     def show
       @player = Player.find_by(id: params[:id])
       if @player
-        render json: @player
+        render_success(@player)
       else
-        render json: { error: "Player not found" }, status: :not_found
+        render_error("Player not found", status: :not_found)
       end
     end
 
     def create
-      @player = Player.new(
-        name: params[:name],
-        user: current_user
-      )
+      @player = Player.new(player_params.merge(user: current_user))
 
       if @player.save
-        render json: @player, status: :created
+        render_success(@player, status: :created)
       else
-        render json: { errors: @player.errors.full_messages }, status: :unprocessable_entity
+        render_error(@player.errors.full_messages, status: :unprocessable_entity)
       end
     end
+
+    private
+
+      def player_params
+        params.require(:player).permit(:name)
+      end
   end
 end
