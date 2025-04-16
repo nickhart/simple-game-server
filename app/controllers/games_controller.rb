@@ -1,6 +1,6 @@
 class GamesController < BaseController
-  before_action :set_game, only: [:show, :update, :destroy]
-  before_action :require_admin, only: [:create, :update, :destroy]
+  before_action :set_game, only: %i[show update destroy]
+  before_action :require_admin, only: %i[create update destroy]
 
   def index
     render json: Game.all

@@ -20,7 +20,7 @@ gem "turbo-rails"
 gem "stimulus-rails"
 
 # for JSON schema validation
-gem 'json_schemer'
+gem "json_schemer"
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 # gem "jbuilder"

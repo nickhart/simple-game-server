@@ -1,6 +1,6 @@
 class Game < ApplicationRecord
   has_many :game_sessions, dependent: :destroy
- 
+
   validates :name, presence: true, uniqueness: true
   validates :state_json_schema, presence: true
   validates :min_players, presence: true, numericality: { greater_than_or_equal_to: 2 }
