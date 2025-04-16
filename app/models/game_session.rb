@@ -1,4 +1,4 @@
-require 'json_schemer'
+require "json_schemer"
 
 # GameSession represents a single instance of a game with its players and current state.
 # It manages the lifecycle of a game from waiting for players to join,
@@ -104,7 +104,7 @@ class GameSession < ApplicationRecord
   def valid_status_transition
     return unless status_changed?
     return if status_was.blank?
-    
+
     valid_transitions = {
       "waiting" => ["active"],
       "active" => ["finished"],
@@ -206,7 +206,7 @@ class GameSession < ApplicationRecord
   def validate_state_against_schema
     parsed_schema = JSON.parse(game.state_json_schema)
     schemer = JSONSchemer.schema(parsed_schema)
-  
+
     validation_errors = schemer.validate(state.deep_stringify_keys).to_a
     unless validation_errors.empty?
       errors.add(:state, I18n.t("activerecord.errors.models.game_session.attributes.state.invalid_state"))
@@ -214,20 +214,20 @@ class GameSession < ApplicationRecord
   rescue JSON::ParserError => e
     errors.add(:state, "schema parsing error: #{e.message}")
   end
-  
+
   # def validate_state_against_schema
   #   return if game.blank? || state.blank?
-  
+
   #   puts "[DEBUG] GameSession ID: #{id || 'new'}"
   #   puts "[DEBUG] Raw state before validation: #{state.inspect}"
   #   puts "[DEBUG] Schema: #{game.state_json_schema}"
-  
+
   #   parsed_schema = JSON.parse(game.state_json_schema)
   #   schemer = JSONSchemer.schema(parsed_schema)
-  
+
   #   validation_errors = schemer.validate(state.deep_stringify_keys).to_a
   #   puts "[DEBUG] Schema validation errors: #{validation_errors.inspect}"
-  
+
   #   unless validation_errors.empty?
   #     errors.add(:state, "does not match expected schema: #{validation_errors.map { |e| e['error'] }.join('; ')}")
   #   end
