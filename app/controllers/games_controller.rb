@@ -1,4 +1,4 @@
-class GamesController < BaseController
+class GamesController < ApplicationController
   before_action :set_game, only: %i[show update destroy]
   before_action :require_admin, only: %i[create update destroy]
 
