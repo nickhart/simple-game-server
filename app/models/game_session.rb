@@ -10,7 +10,7 @@ class GameSession < ApplicationRecord
   belongs_to :creator, class_name: "Player"
   has_many :users, through: :players
 
-  enum status: { waiting: 0, active: 1, finished: 2 }, _prefix: true
+  enum :status, { waiting: 0, active: 1, finished: 2 }, prefix: true
 
   validates :status, presence: true
   validates :min_players, presence: true, numericality: { greater_than: 0 }, unless: :new_record?
@@ -46,7 +46,6 @@ class GameSession < ApplicationRecord
     update_turn_state
     save_turn_changes
   end
-
 
   def start(player_id)
     log_game_start(player_id)
@@ -140,9 +139,9 @@ class GameSession < ApplicationRecord
 
   def save_turn_changes
     if save
-      Rails.logger.info "Turn advanced successfully"
-      Rails.logger.info "New player index: #{current_player_index}"
-      Rails.logger.info "New state: #{state}"
+      # Rails.logger.info "Turn advanced successfully"
+      # Rails.logger.info "New player index: #{current_player_index}"
+      # Rails.logger.info "New state: #{state}"
       true
     else
       Rails.logger.error "Failed to advance turn: #{errors.full_messages.join(', ')}"
@@ -151,22 +150,19 @@ class GameSession < ApplicationRecord
   end
 
   def log_game_start(player_id)
-    puts "Starting game session #{id} with player #{player_id}"
-    puts "Current status: #{status}"
-    puts "Player count: #{players.count}"
-    puts "Min players: #{min_players}"
-    puts "Max players: #{max_players}"
-    puts "Current state: #{state}"
+    # Rails.logger.debug { "Starting game session #{id} with player #{player_id}" }
+    # Rails.logger.debug { "Current status: #{status}" }
+    # Rails.logger.debug { "Player count: #{players.count}" }
+    # Rails.logger.debug { "Min players: #{min_players}" }
+    # Rails.logger.debug { "Max players: #{max_players}" }
+    # Rails.logger.debug { "Current state: #{state}" }
   end
 
   def valid_game_start?(player_id)
-    puts "valid_game_start?"
     return false unless status_waiting?
-    puts "- can start because we're waiting"
     return false if invalid_player_count?
-    puts "- can start because player count is valid"
     return false unless player_exists?(player_id)
-    puts "- can start because player_id exists"
+
     true
   end
 
@@ -181,15 +177,12 @@ class GameSession < ApplicationRecord
   def start_game(player_id)
     self.status = :active
     self.current_player_index = players.to_a.index(players.find_by(id: player_id))
-    puts "[DEBUG] Attempting to start game session ID #{id}"
-    puts "[DEBUG] Status: #{status.inspect}, Current player index: #{current_player_index.inspect}"
-  
+
     if save
-      puts "[DEBUG] GameSession saved successfully"
       true
     else
-      puts "[ERROR] Failed to save GameSession"
-      puts "[ERROR] Validation errors: #{errors.full_messages.join(', ')}"
+      Rails.logger.debug "[ERROR] Failed to save GameSession"
+      Rails.logger.debug { "[ERROR] Validation errors: #{errors.full_messages.join(', ')}" }
       false
     end
   end
