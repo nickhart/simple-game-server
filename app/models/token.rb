@@ -35,7 +35,7 @@ class Token < ApplicationRecord
     expires_at < Time.current
   end
 
-  def active?
+  def status_active?
     !expired?
   end
 end

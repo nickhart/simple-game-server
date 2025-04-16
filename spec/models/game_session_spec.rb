@@ -111,7 +111,11 @@ RSpec.describe GameSession, type: :model do
     it "sets default status to waiting" do
       game_session = described_class.new
       game_session.valid?
-      expect(game_session.status).to eq("waiting")
+      # puts "[TEST DEBUG] status raw attribute: #{game_session[:status].inspect} (#{game_session[:status].class})"
+      # puts "[TEST DEBUG] status method: #{game_session.status.inspect} (#{game_session.status.class})"
+      # puts "[TEST DEBUG] status column type: #{GameSession.columns_hash['status'].type}"
+      # puts "[TEST DEBUG] status_waiting?: #{game_session.status_waiting?}"      
+      expect(game_session).to be_status_waiting
     end
 
     it "sets default state to empty hash" do

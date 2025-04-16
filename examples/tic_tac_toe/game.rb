@@ -34,7 +34,7 @@ class Game
   private
 
   def game_over?
-    @game_session.status == "finished"
+    @game_session.status == :finished
   end
 
   def wait_for_turn
@@ -101,12 +101,12 @@ class Game
 
   def handle_winner(winner)
     player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished", player_index)
+    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, :finished, player_index)
     Result.success(game_over: true, message: "Player #{winner} wins!")
   end
 
   def handle_draw
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, "finished")
+    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, :finished)
     Result.success(game_over: true, message: "It's a draw!")
   end
 

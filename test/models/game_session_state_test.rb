@@ -64,10 +64,10 @@ class GameSessionStateTest < ActiveSupport::TestCase
     @game_session.game_players.create!(player: @player2)
 
     assert @game_session.start_game, "Should start game successfully"
-    assert @game_session.active?, "Game should be active after starting"
+    assert @game_session.status_active?, "Game should be active after starting"
 
     assert @game_session.finish_game, "Should finish game successfully"
-    assert @game_session.finished?, "Game should be finished after calling finish_game"
+    assert @game_session.status_finished?, "Game should be finished after calling finish_game"
   end
 
   test "should handle edge cases in state transitions" do

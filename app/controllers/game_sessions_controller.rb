@@ -42,7 +42,7 @@ class GameSessionsController < ApplicationController
     # 3. Are in 'waiting' status
     deleted_count = GameSession.where("created_at < ? AND players_count = 0 AND status = ?",
                                       cutoff_date,
-                                      "waiting").destroy_all.count
+                                      :waiting).destroy_all.count
 
     render_success({
                      message: "Deleted #{deleted_count} unused game sessions created before #{cutoff_date}",

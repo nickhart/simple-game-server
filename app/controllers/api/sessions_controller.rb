@@ -32,7 +32,7 @@ module Api
         refresh_token_record = Token.find_by(jti: payload["jti"])
         user = User.find(payload["user_id"])
 
-        if refresh_token_record&.active? && user.token_version == payload["token_version"]
+        if refresh_token_record&.status_active? && user.token_version == payload["token_version"]
           access_token = Token.create_access_token(user)
           render json: {
             access_token: generate_token(access_token)

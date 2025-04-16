@@ -42,14 +42,18 @@ class InitSchema < ActiveRecord::Migration[7.1]
       t.references :creator, foreign_key: { to_table: :players }
       t.integer :min_players
       t.integer :max_players
+      t.integer :current_player_index, default: 0
       t.string :name, default: ""
-      t.string :status, default: "waiting"
+      t.integer :status, default: 0
       t.jsonb :state, default: {}
       t.timestamps
     end
 
-    create_join_table :game_sessions, :players do |t|
-      t.index [:game_session_id, :player_id], unique: true
+    create_table :game_players do |t|
+      t.references :game_session, null: false, foreign_key: true
+      t.references :player, null: false, foreign_key: true
+      t.timestamps
     end
+    add_index :game_players, [:game_session_id, :player_id], unique: true
   end
 end

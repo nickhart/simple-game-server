@@ -68,15 +68,15 @@ RSpec.describe Token, type: :model do
     end
   end
 
-  describe "#active?" do
+  describe "#status_active?" do
     it "returns true for active tokens" do
       token = build(:token)
-      expect(token.active?).to be true
+      expect(token.status_active?).to be true
     end
 
     it "returns false for expired tokens" do
       token = build(:token, :expired)
-      expect(token.active?).to be false
+      expect(token.status_active?).to be false
     end
   end
 

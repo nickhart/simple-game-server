@@ -10,9 +10,12 @@ module Api
     end
 
     def show
-      render json: @game_session, include: { players: { only: %i[id name] }, game: { only: %i[id name] } }
+      game_session = GameSession.find(params[:id])
+      render_success(game_session)
+    rescue ActiveRecord::RecordNotFound
+      render_error("Game session not found", status: :not_found)
     end
-
+    
     def create
       @game_session = GameSession.new(game_session_params)
       @game_session.game = @game
@@ -57,20 +60,29 @@ module Api
     end
 
     def start
+      puts "Params: #{params.inspect}"
+      puts "GameSession: #{@game_session.attributes.inspect}"
+      puts "Players: #{@game_session.players.map(&:id)}"
+      puts "Status: #{@game_session.status}"
       unless @game_session.creator_id == @player.id
+        puts "Only the creator can start the game: player_id: #{@player.id}, creator_id: #{@game_session.creator_id}"
         return render_error("Only the creator can start the game", status: :unauthorized)
       end
-      return render_error("Game is not in waiting status", status: :unprocessable_entity) unless @game_session.waiting?
+      puts "GAME SESSION status: #{@game_session.status}"
+      return render_error("Game is not in waiting status", status: :unprocessable_entity) unless @game_session.status_waiting?
       if @game_session.players.count < @game_session.min_players
+        puts "Not enough players"
         return render_error("Not enough players", status: :unprocessable_entity)
       end
       if @game_session.players.count > @game_session.max_players
+        puts "Too many players"
         return render_error("Too many players", status: :unprocessable_entity)
       end
 
       if @game_session.start(@player.id)
         render_success(@game_session, include: { players: { only: %i[id name] } })
       else
+        puts "Game session start failed"
         render_error(@game_session.errors.full_messages, status: :unprocessable_entity)
       end
     end
@@ -78,7 +90,7 @@ module Api
     def cleanup
       cleanup_params = params.permit(:before)
       before_time = cleanup_params[:before].present? ? Time.zone.parse(cleanup_params[:before]) : 1.day.ago
-      old_games = GameSession.where(status: "waiting")
+      old_games = GameSession.where(status: :waiting)
                              .where(created_at: ...before_time)
 
       old_games.destroy_all

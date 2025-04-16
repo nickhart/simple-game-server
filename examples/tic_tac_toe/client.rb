@@ -132,7 +132,7 @@ class GameClient
     response.map { |session| GameSession.new(session) }
   end
 
-  def update_game_state(game_session_id, state, status = "active", winner = nil)
+  def update_game_state(game_session_id, state, status = :active, winner = nil)
     state["winner"] = winner if winner
     response = @http.put("/api/game_sessions/#{game_session_id}", {
                            game_session: {
