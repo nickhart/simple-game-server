@@ -45,8 +45,6 @@ RSpec.describe Api::GamesController, type: :controller do
       it "returns the game" do
         get :show, params: { id: game.id }
         expect(response).to have_http_status(:ok)
-
-        puts "Response body: #{response.body}"        
         expect(response.parsed_body["data"]["id"]).to eq(game.id)
     end
 

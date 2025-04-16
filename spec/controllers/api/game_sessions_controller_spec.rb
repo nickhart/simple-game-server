@@ -203,8 +203,6 @@ RSpec.describe Api::GameSessionsController, type: :controller do
         game_session.players << player
         game_session.players << other_player
         game_session.reload
-        puts "Players: #{game_session.players.map(&:id)}"
-        puts "Status: #{game_session.status}"        
       end
 
       it "starts the game session" do
