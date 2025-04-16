@@ -56,7 +56,11 @@ module Api
         @current_user = User.find(payload["user_id"])
 
         # Check if token is blacklisted
+        # puts "Decoded payload: #{payload}"
+        # puts "Current user: #{@current_user&.id}, token version: #{@current_user&.token_version}"
+
         token_record = Token.find_by(jti: payload["jti"])
+        # puts "Token record: #{token_record&.inspect}"
         if token_record&.expired?
           render_error("Token has expired", status: :unauthorized)
           return false
@@ -83,6 +87,10 @@ module Api
         render_error("Invalid token", status: :unauthorized)
         false
       end
+    end
+
+    def authorize_admin!
+      render_error("Forbidden", status: :forbidden) unless Current.user&.admin?
     end
 
     def current_user

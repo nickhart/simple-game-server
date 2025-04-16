@@ -17,7 +17,7 @@ class User < ApplicationRecord
   before_validation :set_initial_token_version, on: :create
 
   # Add token versioning for security
-  attribute :token_version, :integer, default: 0
+  attribute :token_version, :integer, default: 1
 
   def invalidate_token!
     # for now disable this warning about running validations because our simple
@@ -33,6 +33,18 @@ class User < ApplicationRecord
 
   def player?
     role == "player"
+  end
+
+  def to_jwt(token)
+    payload = {
+      user_id: id,
+      role: role,
+      token_version: token_version,
+      jti: token.jti,
+      exp: token.expires_at.to_i
+    }
+
+    JWT.encode(payload, Rails.application.secret_key_base, "HS256")
   end
 
   private
