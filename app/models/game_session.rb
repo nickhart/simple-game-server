@@ -10,14 +10,14 @@ class GameSession < ApplicationRecord
   belongs_to :creator, class_name: "Player"
   has_many :users, through: :players
 
-  enum :status, { waiting: 0, active: 1, finished: 2 }
+  enum status: { waiting: 0, active: 1, finished: 2 }, _prefix: true
 
-  validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
+  validates :status, presence: true
   validates :min_players, presence: true, numericality: { greater_than: 0 }, unless: :new_record?
   validates :max_players, presence: true, numericality: { greater_than: 0 }, unless: :new_record?
   validate :max_players_greater_than_min_players, unless: :new_record?
   validate :valid_status_transition
-  validate :current_player_must_be_valid, if: :active?
+  validate :current_player_must_be_valid, if: :status_active?
   validate :creator_must_be_valid_player, if: :starting_game?
   validate :validate_player_count, if: :starting_game?
   validate :validate_state_against_schema, if: -> { state.present? && game&.state_json_schema.present? }
@@ -25,7 +25,7 @@ class GameSession < ApplicationRecord
   before_validation :set_defaults
 
   def add_player(player)
-    return false if active? || finished?
+    return false if status_active? || status_finished?
     return false if players.count >= max_players
     return false if players.include?(player)
 
@@ -40,24 +40,13 @@ class GameSession < ApplicationRecord
   end
 
   def advance_turn
-    return false unless active?
+    return false unless status_active?
 
     log_turn_advancement
     update_turn_state
     save_turn_changes
   end
 
-  def waiting?
-    status == "waiting"
-  end
-
-  def active?
-    status == "active"
-  end
-
-  def finished?
-    status == "finished"
-  end
 
   def start(player_id)
     log_game_start(player_id)
@@ -67,7 +56,7 @@ class GameSession < ApplicationRecord
   end
 
   def finish_game
-    return false unless active?
+    return false unless status_active?
 
     self.status = :finished
     save
@@ -117,7 +106,7 @@ class GameSession < ApplicationRecord
   end
 
   def current_player_must_be_valid
-    return unless active?
+    return unless status_active?
     return if current_player_index.nil?
 
     errors.add(:current_player_index, :invalid_player_index) unless players[current_player_index]
@@ -136,7 +125,7 @@ class GameSession < ApplicationRecord
   end
 
   def starting_game?
-    status_changed? && status == "active"
+    status_changed? && status == :active
   end
 
   def log_turn_advancement
@@ -162,19 +151,22 @@ class GameSession < ApplicationRecord
   end
 
   def log_game_start(player_id)
-    Rails.logger.info "Starting game session #{id} with player #{player_id}"
-    Rails.logger.info "Current status: #{status}"
-    Rails.logger.info "Player count: #{players.count}"
-    Rails.logger.info "Min players: #{min_players}"
-    Rails.logger.info "Max players: #{max_players}"
-    Rails.logger.info "Current state: #{state}"
+    puts "Starting game session #{id} with player #{player_id}"
+    puts "Current status: #{status}"
+    puts "Player count: #{players.count}"
+    puts "Min players: #{min_players}"
+    puts "Max players: #{max_players}"
+    puts "Current state: #{state}"
   end
 
   def valid_game_start?(player_id)
-    return false unless waiting?
+    puts "valid_game_start?"
+    return false unless status_waiting?
+    puts "- can start because we're waiting"
     return false if invalid_player_count?
+    puts "- can start because player count is valid"
     return false unless player_exists?(player_id)
-
+    puts "- can start because player_id exists"
     true
   end
 
@@ -189,7 +181,17 @@ class GameSession < ApplicationRecord
   def start_game(player_id)
     self.status = :active
     self.current_player_index = players.to_a.index(players.find_by(id: player_id))
-    save
+    puts "[DEBUG] Attempting to start game session ID #{id}"
+    puts "[DEBUG] Status: #{status.inspect}, Current player index: #{current_player_index.inspect}"
+  
+    if save
+      puts "[DEBUG] GameSession saved successfully"
+      true
+    else
+      puts "[ERROR] Failed to save GameSession"
+      puts "[ERROR] Validation errors: #{errors.full_messages.join(', ')}"
+      false
+    end
   end
 
   def validate_player_count
@@ -214,24 +216,4 @@ class GameSession < ApplicationRecord
   rescue JSON::ParserError => e
     errors.add(:state, "schema parsing error: #{e.message}")
   end
-
-  # def validate_state_against_schema
-  #   return if game.blank? || state.blank?
-
-  #   puts "[DEBUG] GameSession ID: #{id || 'new'}"
-  #   puts "[DEBUG] Raw state before validation: #{state.inspect}"
-  #   puts "[DEBUG] Schema: #{game.state_json_schema}"
-
-  #   parsed_schema = JSON.parse(game.state_json_schema)
-  #   schemer = JSONSchemer.schema(parsed_schema)
-
-  #   validation_errors = schemer.validate(state.deep_stringify_keys).to_a
-  #   puts "[DEBUG] Schema validation errors: #{validation_errors.inspect}"
-
-  #   unless validation_errors.empty?
-  #     errors.add(:state, "does not match expected schema: #{validation_errors.map { |e| e['error'] }.join('; ')}")
-  #   end
-  # rescue => e
-  #   errors.add(:state, "schema validation error: #{e.message}")
-  # end
 end

@@ -42,7 +42,7 @@ class GameSessionTest < ActiveSupport::TestCase
   # Game State Management Tests
   test "should start with waiting status" do
     @game.save!
-    assert_equal "waiting", @game.status
+    assert_equal :waiting, @game.status
   end
 
   test "should transition to active when started" do
@@ -50,7 +50,7 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.add_player(@player1)
     @game.add_player(@player2)
     @game.start_game
-    assert_equal "active", @game.status
+    assert_equal :active, @game.status
   end
 
   test "should transition to finished when game ends" do
@@ -59,7 +59,7 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.add_player(@player2)
     @game.start_game
     @game.finish_game
-    assert_equal "finished", @game.status
+    assert_equal :finished, @game.status
   end
 
   # Player Management Tests
@@ -99,14 +99,14 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.add_player(@player1)
     @game.add_player(@player2)
     assert @game.start_game
-    assert_equal "active", @game.status
+    assert_equal :active, @game.status
   end
 
   test "should not start game with insufficient players" do
     @game.save!
     @game.add_player(@player1)
     assert_not @game.start_game
-    assert_equal "waiting", @game.status
+    assert_equal :waiting, @game.status
   end
 
   test "should not start game with too many players" do
@@ -115,7 +115,7 @@ class GameSessionTest < ActiveSupport::TestCase
     game.add_player(@player2)
     game.add_player(@player3)
     assert_not game.start_game
-    assert_equal "waiting", game.status
+    assert_equal :waiting, game.status
   end
 
   # Turn Management Tests
@@ -196,10 +196,10 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.start_game
 
     @game.state = { board: [1, 1, 1, 2, 2, 0, 0, 0, 0], winner: 0 }
-    @game.status = "finished"
+    @game.status = :finished
     @game.save!
 
-    assert_equal "finished", @game.status
+    assert_equal :finished, @game.status
     assert_equal 0, @game.state["winner"]
   end
 
@@ -210,10 +210,10 @@ class GameSessionTest < ActiveSupport::TestCase
     @game.start_game
 
     @game.state = { board: [1, 2, 1, 1, 2, 2, 2, 1, 1] }
-    @game.status = "finished"
+    @game.status = :finished
     @game.save!
 
-    assert_equal "finished", @game.status
+    assert_equal :finished, @game.status
     assert_nil @game.state["winner"]
   end
 
@@ -223,7 +223,7 @@ class GameSessionTest < ActiveSupport::TestCase
       min_players: 2,
       max_players: 4,
       created_at: 2.days.ago,
-      status: "waiting"
+      status: :waiting
     )
     assert game.eligible_for_cleanup?
   end
@@ -233,7 +233,7 @@ class GameSessionTest < ActiveSupport::TestCase
       min_players: 2,
       max_players: 4,
       created_at: 2.days.ago,
-      status: "active"
+      status: :active
     )
     game.players << @player1
     assert_not game.eligible_for_cleanup?
@@ -244,7 +244,7 @@ class GameSessionTest < ActiveSupport::TestCase
       min_players: 2,
       max_players: 4,
       created_at: 1.hour.ago,
-      status: "waiting"
+      status: :waiting
     )
     assert_not game.eligible_for_cleanup?
   end

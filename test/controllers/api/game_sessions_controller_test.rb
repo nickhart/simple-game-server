@@ -62,7 +62,7 @@ module Api
         min_players: 2,
         max_players: 4,
         created_at: 2.days.ago,
-        status: "waiting",
+        status: :waiting,
         creator: @player,
         current_player_index: 0
       )
@@ -177,7 +177,7 @@ module Api
            headers: @headers
 
       assert_response :success
-      assert_equal "active", @waiting_game.reload.status
+      assert_equal :active, @waiting_game.reload.status
     end
 
     test "should not start game with too few players" do
@@ -188,7 +188,7 @@ module Api
            headers: @headers
 
       assert_response :unprocessable_entity
-      assert_equal "waiting", @waiting_game.reload.status
+      assert_equal :waiting, @waiting_game.reload.status
     end
 
     test "should not start game with too many players" do
@@ -203,7 +203,7 @@ module Api
            headers: @headers
 
       assert_response :unprocessable_entity
-      assert_equal "waiting", @waiting_game.reload.status
+      assert_equal :waiting, @waiting_game.reload.status
     end
 
     private

@@ -218,7 +218,7 @@ class TicTacToeCLI
 
       updated_session = result.data
 
-      if updated_session.status == "active"
+      if updated_session.status == :active
         puts "Game has started! Let's play!"
         break
       end
@@ -229,7 +229,7 @@ class TicTacToeCLI
   end
 
   def find_newest_waiting_game(game_sessions)
-    waiting_sessions = game_sessions.select { |s| s.status == "waiting" }
+    waiting_sessions = game_sessions.select { |s| s.status == :waiting }
     if waiting_sessions.empty?
       puts "No waiting games found"
       return nil

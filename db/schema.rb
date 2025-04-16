@@ -14,24 +14,29 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_16_011650) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
+  create_table "game_players", force: :cascade do |t|
+    t.bigint "game_session_id", null: false
+    t.bigint "player_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["game_session_id", "player_id"], name: "index_game_players_on_game_session_id_and_player_id", unique: true
+    t.index ["game_session_id"], name: "index_game_players_on_game_session_id"
+    t.index ["player_id"], name: "index_game_players_on_player_id"
+  end
+
   create_table "game_sessions", force: :cascade do |t|
     t.bigint "game_id"
     t.bigint "creator_id"
     t.integer "min_players"
     t.integer "max_players"
+    t.integer "current_player_index", default: 0
     t.string "name", default: ""
-    t.string "status", default: "waiting"
+    t.integer "status", default: 0
     t.jsonb "state", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["creator_id"], name: "index_game_sessions_on_creator_id"
     t.index ["game_id"], name: "index_game_sessions_on_game_id"
-  end
-
-  create_table "game_sessions_players", id: false, force: :cascade do |t|
-    t.bigint "game_session_id", null: false
-    t.bigint "player_id", null: false
-    t.index ["game_session_id", "player_id"], name: "index_game_sessions_players_on_game_session_id_and_player_id", unique: true
   end
 
   create_table "games", force: :cascade do |t|
@@ -78,6 +83,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_16_011650) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "game_players", "game_sessions"
+  add_foreign_key "game_players", "players"
   add_foreign_key "game_sessions", "games"
   add_foreign_key "game_sessions", "players", column: "creator_id"
   add_foreign_key "players", "users"

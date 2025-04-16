@@ -8,7 +8,7 @@ class GameSession
     @id = data["id"]
     @player_id = data["player_id"]
     @creator_id = data["creator_id"]
-    @status = data["status"] || "waiting"
+    @status = data["status"] || :waiting
     @current_player_index = data["current_player_index"]
     @state = data["state"] || {}
     @board = Board.new(@state["board"])
@@ -16,18 +16,18 @@ class GameSession
   end
 
   # Check if the game is in waiting status
-  def waiting?
-    @status == "waiting"
+  def status_waiting?
+    @status == :waiting
   end
 
   # Check if the game is active
-  def active?
-    @status == "active"
+  def status_active?
+    @status == :active
   end
 
   # Check if the game is finished
-  def finished?
-    @status == "finished"
+  def status_finished?
+    @status == :finished
   end
 
   # is the current player the creator?
@@ -49,7 +49,7 @@ class GameSession
 
   # Check if it's the current player's turn
   def my_turn?
-    return false unless active?
+    return false unless status_active?
     return false unless @player_id
 
     current_player && current_player.id == @player_id

@@ -44,7 +44,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
 
       it "returns the game session" do
         json = response.parsed_body
-        expect(json["id"]).to eq(game_session.id)
+        expect(json["data"]["id"]).to eq(game_session.id)
       end
     end
 
@@ -199,15 +199,18 @@ RSpec.describe Api::GameSessionsController, type: :controller do
 
       before do
         sign_in(user)
-        game_session.update!(min_players: 2, max_players: 4, status: "waiting")
+        game_session.update!(min_players: 2, max_players: 4, status: :waiting)
         game_session.players << player
         game_session.players << other_player
+        game_session.reload
+        puts "Players: #{game_session.players.map(&:id)}"
+        puts "Status: #{game_session.status}"        
       end
 
       it "starts the game session" do
         post :start, params: start_params
         expect(response).to have_http_status(:success)
-        expect(game_session.reload).not_to be_waiting
+        expect(game_session.reload).not_to be_status_waiting
       end
     end
 
