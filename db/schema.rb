@@ -10,105 +10,74 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_08_163801) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_15_175028) do
   # These are extensions that must be enabled in order to support this database
-  enable_extension "pgcrypto"
   enable_extension "plpgsql"
 
-  create_table "applications", force: :cascade do |t|
-    t.string "name"
-    t.string "api_key"
-    t.boolean "active", default: true
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["active"], name: "index_applications_on_active"
-    t.index ["api_key"], name: "index_applications_on_api_key", unique: true
-  end
-
-  create_table "game_configurations", force: :cascade do |t|
-    t.bigint "game_id", null: false
-    t.jsonb "state_schema", default: {}, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["game_id"], name: "index_game_configurations_on_game_id"
-  end
-
-  create_table "game_players", force: :cascade do |t|
-    t.bigint "game_session_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.uuid "player_id"
-    t.index ["game_session_id"], name: "index_game_players_on_game_session_id"
-    t.index ["player_id", "game_session_id"], name: "index_game_players_on_player_id_and_game_session_id", unique: true
-  end
-
   create_table "game_sessions", force: :cascade do |t|
-    t.integer "status", default: 0, null: false
-    t.integer "min_players", default: 2, null: false
-    t.integer "max_players", default: 4, null: false
-    t.integer "current_player_index"
+    t.bigint "game_id"
+    t.bigint "creator_id"
+    t.integer "min_players"
+    t.integer "max_players"
+    t.string "name", default: ""
+    t.string "status", default: "waiting"
+    t.jsonb "state", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "game_type", default: "default", null: false
-    t.jsonb "state"
-    t.string "name"
-    t.uuid "creator_id"
-    t.bigint "game_id"
+    t.index ["creator_id"], name: "index_game_sessions_on_creator_id"
+    t.index ["game_id"], name: "index_game_sessions_on_game_id"
+  end
+
+  create_table "game_sessions_players", id: false, force: :cascade do |t|
+    t.bigint "game_session_id", null: false
+    t.bigint "player_id", null: false
+    t.index ["game_session_id", "player_id"], name: "index_game_sessions_players_on_game_session_id_and_player_id", unique: true
   end
 
   create_table "games", force: :cascade do |t|
     t.string "name", null: false
-    t.integer "min_players", null: false
-    t.integer "max_players", null: false
+    t.text "state_json_schema"
+    t.integer "min_players", default: 2
+    t.integer "max_players", default: 10
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_games_on_name", unique: true
   end
 
-  create_table "players", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "players", force: :cascade do |t|
+    t.bigint "user_id", null: false
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "game_session_id"
-    t.bigint "user_id"
-    t.index ["game_session_id"], name: "index_players_on_game_session_id"
     t.index ["user_id"], name: "index_players_on_user_id"
   end
 
   create_table "tokens", force: :cascade do |t|
-    t.bigint "user_id", null: false
     t.string "jti", null: false
     t.string "token_type", null: false
     t.datetime "expires_at", null: false
+    t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_tokens_on_jti", unique: true
-    t.index ["user_id", "token_type"], name: "index_tokens_on_user_id_and_token_type"
     t.index ["user_id"], name: "index_tokens_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "email", default: "", null: false
-    t.string "encrypted_password", default: "", null: false
+    t.string "email", null: false
+    t.string "encrypted_password", null: false
+    t.string "role", default: "player", null: false
+    t.jsonb "tokens", default: {}, null: false
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "role", default: "player", null: false
-    t.integer "token_version", default: 0, null: false
-    t.string "password_digest"
-    t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
-    t.index ["role"], name: "index_users_on_role"
-    t.index ["token_version"], name: "index_users_on_token_version"
   end
 
-  add_foreign_key "game_configurations", "games"
-  add_foreign_key "game_players", "game_sessions"
-  add_foreign_key "game_players", "players"
   add_foreign_key "game_sessions", "games"
-  add_foreign_key "players", "game_sessions"
+  add_foreign_key "game_sessions", "players", column: "creator_id"
   add_foreign_key "players", "users"
   add_foreign_key "tokens", "users"
 end

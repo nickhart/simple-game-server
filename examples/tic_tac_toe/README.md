@@ -37,7 +37,7 @@ game_config = GameConfiguration.create!(
 
 3. Verify the configuration was created:
 ```ruby
-Game.find_by(name: "Tic Tac Toe").game_configuration.state_schema
+Game.find_by(name: "Tic Tac Toe").state_json_schema
 ```
 
 ## Requirements

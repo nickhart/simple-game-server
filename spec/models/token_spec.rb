@@ -80,6 +80,18 @@ RSpec.describe Token, type: :model do
     end
   end
 
+  describe "factory traits" do
+    it "creates a token with an invalid jti using :invalid_jti" do
+      token = build(:token, :invalid_jti)
+      expect(token.jti).to eq("totally-wrong-jti")
+    end
+
+    it "creates a token expiring soon with :soon_expiring trait" do
+      token = build(:token, :soon_expiring)
+      expect(token.expires_at).to be <= 15.seconds.from_now
+    end
+  end
+
   describe "scopes" do
     let!(:active_access_token) { create(:token) }
     let!(:expired_access_token) { create(:token, :expired) }

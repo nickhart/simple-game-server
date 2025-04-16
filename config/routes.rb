@@ -25,6 +25,9 @@ Rails.application.routes.draw do
       registrations: "api/users/registrations"
     }
 
+    # Game routes
+    resources :games
+
     # Authentication routes
     resources :sessions, only: %i[create destroy] do
       post :refresh, on: :collection
@@ -53,17 +56,6 @@ Rails.application.routes.draw do
           post :make_admin
           post :remove_admin
         end
-      end
-    end
-  end
-
-  # Postman test routes
-  namespace :postman do
-    resources :players, only: %i[create show update destroy]
-    resources :game_sessions, only: %i[create show] do
-      member do
-        post :join
-        post :start
       end
     end
   end

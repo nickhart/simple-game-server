@@ -12,6 +12,132 @@
     ],
     "item": [
         {
+            "name": "Game Configurations",
+            "item": [
+                {
+                    "name": "Update Game Configuration",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{update_game_config_body}}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_configuration_id}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Schema field is stored and looks correct', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.state_json_schema).to.be.a('string');",
+                                    "    pm.expect(response.state_json_schema).to.include('\"properties\"');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+                ,
+                {
+                    "name": "List Game Configurations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Game Configuration",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_configuration_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Game Configuration",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{create_game_config_body}}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/games",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games"]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Game Configuration",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_configuration_id}}"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Authentication",
             "item": [
                 {
