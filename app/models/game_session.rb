@@ -1,3 +1,5 @@
+require 'json_schemer'
+
 # GameSession represents a single instance of a game with its players and current state.
 # It manages the lifecycle of a game from waiting for players to join,
 # through active gameplay with turn management, to game completion.
@@ -11,18 +13,16 @@ class GameSession < ApplicationRecord
   enum :status, { waiting: 0, active: 1, finished: 2 }
 
   validates :status, presence: true, inclusion: { in: %w[waiting active finished] }
-  validates :min_players, presence: true, numericality: { greater_than: 0 }
-  validates :max_players, presence: true, numericality: { greater_than: 0 }
-  validate :max_players_greater_than_min_players
+  validates :min_players, presence: true, numericality: { greater_than: 0 }, unless: :new_record?
+  validates :max_players, presence: true, numericality: { greater_than: 0 }, unless: :new_record?
+  validate :max_players_greater_than_min_players, unless: :new_record?
   validate :valid_status_transition
-  validate :current_player_must_be_valid
+  validate :current_player_must_be_valid, if: :active?
   validate :creator_must_be_valid_player, if: :starting_game?
-  validate :validate_player_count
-  # Temporarily disabled for development
-  # validate :validate_state_schema
+  validate :validate_player_count, if: :starting_game?
+  validate :validate_state_against_schema, if: -> { state.present? && game&.state_json_schema.present? }
 
-  after_initialize :set_defaults
-  before_validation :set_game_player_limits, if: :game
+  before_validation :set_defaults
 
   def add_player(player)
     return false if active? || finished?
@@ -91,23 +91,20 @@ class GameSession < ApplicationRecord
 
   def set_defaults
     self.status ||= :waiting
-    self.state ||= {}
-  end
-
-  def set_game_player_limits
-    self.min_players = game.min_players
-    self.max_players = game.max_players
+    self.min_players ||= game&.min_players
+    self.max_players ||= game&.max_players
   end
 
   def max_players_greater_than_min_players
     return unless max_players.present? && min_players.present?
 
-    errors.add(:max_players, "must be greater than or equal to min_players") if max_players < min_players
+    errors.add(:max_players, :must_be_greater_than_or_equal_to_min_players) if max_players < min_players
   end
 
   def valid_status_transition
     return unless status_changed?
-
+    return if status_was.blank?
+    
     valid_transitions = {
       "waiting" => ["active"],
       "active" => ["finished"],
@@ -115,7 +112,7 @@ class GameSession < ApplicationRecord
     }
 
     unless valid_transitions[status_was]&.include?(status)
-      errors.add(:status, "cannot transition from #{status_was} to #{status}")
+      errors.add(:status, :invalid_status_transition, from: status_was, to: status)
     end
   end
 
@@ -123,7 +120,7 @@ class GameSession < ApplicationRecord
     return unless active?
     return if current_player_index.nil?
 
-    errors.add(:current_player_index, "must be a valid player index") unless players[current_player_index]
+    errors.add(:current_player_index, :invalid_player_index) unless players[current_player_index]
   end
 
   def creator_must_be_valid_player
@@ -131,11 +128,11 @@ class GameSession < ApplicationRecord
 
     player = Player.find_by(id: creator_id)
     unless player
-      errors.add(:creator_id, "must be a valid player")
+      errors.add(:creator_id, :invalid_creator)
       return
     end
 
-    errors.add(:creator_id, "must belong to the current user") unless player.user_id == Current.user&.id
+    errors.add(:creator_id, :creator_must_belong_to_user) unless player.user_id == Current.user&.id
   end
 
   def starting_game?
@@ -200,32 +197,41 @@ class GameSession < ApplicationRecord
     return unless starting_game?
 
     if players.count < game.min_players
-      errors.add(:players, "must have at least #{game.min_players} players")
+      errors.add(:players, :too_few_players, count: game.min_players)
     elsif players.count > game.max_players
-      errors.add(:players, "must have at most #{game.max_players} players")
+      errors.add(:players, :too_many_players, count: game.max_players)
     end
   end
 
-  # Temporarily disabled for development
-  # def validate_state_schema
-  #   return unless game && state.present?
-  #
-  #   schema = game.state_schema
-  #   return if schema.blank?
-  #
-  #   validate_schema(state, schema)
-  # end
-
-  # def validate_schema(data, schema, path = [])
-  #   case schema["type"]
-  #   when "object"
-  #     validate_object(data, schema, path)
-  #   when "array"
-  #     validate_array(data, schema, path)
-  #   when String
-  #     validate_primitive(data, schema, path)
-  #   when Array
-  #     validate_multiple_types(data, schema, path)
+  def validate_state_against_schema
+    parsed_schema = JSON.parse(game.state_json_schema)
+    schemer = JSONSchemer.schema(parsed_schema)
+  
+    validation_errors = schemer.validate(state.deep_stringify_keys).to_a
+    unless validation_errors.empty?
+      errors.add(:state, I18n.t("activerecord.errors.models.game_session.attributes.state.invalid_state"))
+    end
+  rescue JSON::ParserError => e
+    errors.add(:state, "schema parsing error: #{e.message}")
+  end
+  
+  # def validate_state_against_schema
+  #   return if game.blank? || state.blank?
+  
+  #   puts "[DEBUG] GameSession ID: #{id || 'new'}"
+  #   puts "[DEBUG] Raw state before validation: #{state.inspect}"
+  #   puts "[DEBUG] Schema: #{game.state_json_schema}"
+  
+  #   parsed_schema = JSON.parse(game.state_json_schema)
+  #   schemer = JSONSchemer.schema(parsed_schema)
+  
+  #   validation_errors = schemer.validate(state.deep_stringify_keys).to_a
+  #   puts "[DEBUG] Schema validation errors: #{validation_errors.inspect}"
+  
+  #   unless validation_errors.empty?
+  #     errors.add(:state, "does not match expected schema: #{validation_errors.map { |e| e['error'] }.join('; ')}")
   #   end
+  # rescue => e
+  #   errors.add(:state, "schema validation error: #{e.message}")
   # end
 end

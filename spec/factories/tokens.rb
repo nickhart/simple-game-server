@@ -13,5 +13,14 @@ FactoryBot.define do
     trait :expired do
       expires_at { 1.minute.ago }
     end
+
+    trait :invalid_jti do
+      jti { "totally-wrong-jti" }
+    end
+
+    trait :soon_expiring do
+      expires_at { 10.seconds.from_now }
+    end
+
   end
 end
