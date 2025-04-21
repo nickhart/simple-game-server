@@ -49,9 +49,11 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :users, only: %i[create show update destroy]
+
     # Admin routes
     namespace :admin do
-      resources :users, only: %i[index show update] do
+      resources :users, only: %i[index show update create] do
         member do
           post :make_admin
           post :remove_admin

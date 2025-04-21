@@ -2,6 +2,8 @@ module Api
   module Admin
     class UsersController < BaseController
       include AdminAuthorization
+      skip_before_action :require_admin!, only: [:create], if: -> { User.count.zero? }
+      skip_before_action :authenticate_user!, only: [:create], if: -> { User.count.zero? }
 
       def index
         users = User.all
@@ -13,6 +15,21 @@ module Api
         render_success(user)
       end
 
+      def create
+        if allow_admin_creation?
+          user = User.new(user_params)
+          user.role = "admin"
+          if user.save
+            render_success(user, status: :created)
+          else
+            Rails.logger.debug(user.errors.full_messages.inspect)
+            render_error(user.errors.full_messages, status: :unprocessable_entity)
+          end
+        else
+          render_error("Admin user creation is not allowed", status: :forbidden)
+        end
+      end
+    
       def update
         user = User.find(params[:id])
         if user.update(user_params)
@@ -36,8 +53,12 @@ module Api
 
       private
 
+      def allow_admin_creation?
+        User.count.zero? || User.where(role: "admin").count.zero?
+      end
+    
       def user_params
-        params.require(:user).permit(:email)
+        params.require(:user).permit(:email, :password, :password_confirmation)
       end
     end
   end

@@ -35,6 +35,14 @@ class User < ApplicationRecord
     role == "player"
   end
 
+  def make_admin!
+    update!(role: "admin")
+  end
+
+  def remove_admin!
+    update!(role: "player")
+  end
+
   def to_jwt(token)
     payload = {
       user_id: id,

@@ -30,4 +30,25 @@ RSpec.describe Game, type: :model do
       expect(game.errors[:max_players]).to include("can't be blank")
     end
   end
+
+  describe "state_json_schema validation" do
+    it "is valid with a parsable JSON schema" do
+      schema = { "type" => "object", "properties" => { "board" => { "type" => "array" } } }.to_json
+      game = build(:game, state_json_schema: schema)
+      expect(game).to be_valid
+    end
+
+    it "is invalid with malformed JSON" do
+      game = build(:game, state_json_schema: "{ invalid json }")
+      expect(game).not_to be_valid
+      expect(game.errors[:state_json_schema]).to include(/Invalid JSON/)
+    end
+
+    it "is invalid with a non-parsable schema" do
+      schema = { "type" => "nonsense" }.to_json
+      game = build(:game, state_json_schema: schema)
+      expect(game).not_to be_valid
+      expect(game.errors[:state_json_schema]).to include(/unparsable schema/i)
+    end
+  end
 end

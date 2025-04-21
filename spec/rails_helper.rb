@@ -6,6 +6,11 @@ require_relative "../config/environment"
 abort("The Rails environment is running in production mode!") if Rails.env.production?
 
 require "rspec/rails"
+
+# Enable debug logging in test environment
+Rails.logger = ActiveSupport::TaggedLogging.new(Logger.new(STDOUT))
+Rails.logger.level = Logger::DEBUG
+
 require "factory_bot_rails"
 require "database_cleaner/active_record"
 
