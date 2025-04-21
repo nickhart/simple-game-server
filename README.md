@@ -7,36 +7,39 @@
 
 ## Table of Contents
 
-- [Features](#features)
-- [Game Configuration](#game-configuration)
-  - [Creating a New Game Type](#creating-a-new-game-type)
-  - [State Schema Types](#state-schema-types)
-  - [Example: Tic Tac Toe Configuration](#example-tic-tac-toe-configuration)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Running the Server](#running-the-server)
-  - [CSRF Protection Configuration](#csrf-protection-configuration)
-- [Testing](#testing)
-  - [Test Directory Structure](#test-directory-structure)
-  - [Key Test Files](#key-test-files)
-  - [Testing Approach](#testing-approach)
-- [Example Implementation](#example-implementation)
-- [AI-Assisted Development](#ai-assisted-development)
-  - [Project Setup and Configuration](#project-setup-and-configuration)
-  - [Server Development](#server-development)
-  - [Example Game Implementation](#example-game-implementation)
-- [Developer Cheat Sheet](#developer-cheat-sheet)
-  - [Server Commands](#server-commands)
-  - [Database Commands](#database-commands)
-  - [Testing Commands](#testing-commands)
-  - [Linting Commands](#linting-commands)
-  - [Development Tools](#development-tools)
-- [Contributing](#contributing)
-- [Future Plans](#future-plans)
-  - [Short Term](#short-term)
-  - [Medium Term](#medium-term)
-  - [Long Term](#long-term)
-- [License](#license)
+- [Simple Game Server](#simple-game-server)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Game Configuration](#game-configuration)
+    - [Bootstrapping](#bootstrapping)
+    - [Creating a New Game Type](#creating-a-new-game-type)
+    - [State Schema Types](#state-schema-types)
+    - [Example: Tic Tac Toe Configuration](#example-tic-tac-toe-configuration)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Running the Server](#running-the-server)
+    - [CSRF Protection Configuration](#csrf-protection-configuration)
+  - [Testing](#testing)
+    - [Test Directory Structure](#test-directory-structure)
+      - [Key Test Files](#key-test-files)
+      - [Testing Approach](#testing-approach)
+  - [Example Implementation](#example-implementation)
+  - [AI-Assisted Development](#ai-assisted-development)
+    - [Project Setup and Configuration](#project-setup-and-configuration)
+    - [Server Development](#server-development)
+    - [Example Game Implementation](#example-game-implementation)
+  - [Developer Cheat Sheet](#developer-cheat-sheet)
+    - [Server Commands](#server-commands)
+    - [Database Commands](#database-commands)
+    - [Testing Commands](#testing-commands)
+    - [Linting Commands](#linting-commands)
+    - [Development Tools](#development-tools)
+  - [Contributing](#contributing)
+  - [Future Plans](#future-plans)
+    - [Short Term](#short-term)
+    - [Medium Term](#medium-term)
+    - [Long Term](#long-term)
+  - [License](#license)
 
 A simple game server built with Ruby on Rails, designed to handle multiplayer game sessions. This server provides a flexible API for managing game sessions, players, and game state, while remaining agnostic to the specific game logic.
 
@@ -54,6 +57,10 @@ The server supports configurable game types through the `Game` and `GameConfigur
 - Minimum and maximum players
 - Game state schema
 - Game-specific rules and logic
+
+### Bootstrapping
+
+To create the first admin user, make a POST request to `/api/admin/users` with an email. This only works when no users exist.
 
 ### Creating a New Game Type
 

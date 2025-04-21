@@ -2,6 +2,11 @@ require "rails_helper"
 
 RSpec.describe User, type: :model do
   describe "factory traits" do
+    it "has a default token_version of 1" do
+      user = create(:user)
+      expect(user.token_version).to eq(1)
+    end
+
     it "creates an admin user with :admin trait" do
       user = create(:user, :admin)
       expect(user.role).to eq("admin")
@@ -20,6 +25,21 @@ RSpec.describe User, type: :model do
     it "creates a user promoted from player using :unprivileged_to_privileged" do
       user = create(:user, :unprivileged_to_privileged)
       expect(user.role).to eq("admin")
+    end
+  end
+  describe "#make_admin!" do
+    it "sets the role to admin and saves the user" do
+        user = create(:user, role: "player")
+        user.make_admin!
+        expect(user.reload.role).to eq("admin")
+    end
+  end
+
+  describe "#remove_admin!" do
+    it "sets the role to player and saves the user" do
+        user = create(:user, role: "admin")
+        user.remove_admin!
+        expect(user.reload.role).to eq("player")
     end
   end
 end

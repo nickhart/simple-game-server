@@ -51,37 +51,39 @@ module Api
     end
 
     def authenticate_user!
-      authenticate_or_request_with_http_token do |token, _options|
-        payload = JWT.decode(token, Rails.application.credentials.secret_key_base).first
-        @current_user = User.find(payload["user_id"])
+      authenticated = authenticate_or_request_with_http_token do |token, _options|
+        begin
+          payload = JWT.decode(token, Rails.application.credentials.secret_key_base).first
+          @current_user = User.find(payload["user_id"])
 
-        token_record = Token.find_by(jti: payload["jti"])
-        if token_record&.expired?
+          token_record = Token.find_by(jti: payload["jti"])
+          if token_record&.expired?
+            render_error("Token has expired", status: :unauthorized)
+            false
+          elsif payload["token_version"] != @current_user.token_version
+            render_error("Token has been invalidated", status: :unauthorized)
+            false
+          elsif payload["role"] != @current_user.role
+            render_error("User role has changed, please log in again", status: :unauthorized)
+            false
+          else
+            Current.user = @current_user
+            true
+          end
+        rescue JWT::ExpiredSignature
           render_error("Token has expired", status: :unauthorized)
-          return false
+          false
+        rescue JWT::DecodeError, ActiveRecord::RecordNotFound
+          render_error("Invalid token", status: :unauthorized)
+          false
         end
-
-        # Check token version
-        if payload["token_version"] != @current_user.token_version
-          render_error("Token has been invalidated", status: :unauthorized)
-          return false
-        end
-
-        # Check role matches database
-        if payload["role"] != @current_user.role
-          render_error("User role has changed, please log in again", status: :unauthorized)
-          return false
-        end
-
-        Current.user = @current_user
-        true
-      rescue JWT::ExpiredSignature
-        render_error("Token has expired", status: :unauthorized)
-        false
-      rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-        render_error("Invalid token", status: :unauthorized)
-        false
+        return unless authenticated
       end
+
+      # unless authenticated
+      #   # Prevent double render only if response has not already been committed
+      #   render_error("Unauthorized", status: :unauthorized) unless performed?
+      # end
     end
 
     def authorize_admin!
