@@ -4,7 +4,7 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
-  has_many :players, dependent: :destroy
+  has_one :player, dependent: :destroy
   has_many :tokens, dependent: :destroy
 
   # Role management
@@ -15,6 +15,7 @@ class User < ApplicationRecord
   validates :token_version, presence: true
 
   before_validation :set_initial_token_version, on: :create
+  after_create :create_player_if_needed
 
   # Add token versioning for security
   attribute :token_version, :integer, default: 1
@@ -55,6 +56,30 @@ class User < ApplicationRecord
     JWT.encode(payload, Rails.application.secret_key_base, "HS256")
   end
 
+  def create_player!
+    return if player.present?
+    return unless persisted? # don't try to create player if user hasn't been saved
+    return unless player? # only players need associated Player record
+    
+    puts "[create_player!] about to build player for user_id=#{id}"
+    build_player(name: email.split("@").first)
+    puts "[create_player!] built player: #{player.inspect}"
+
+    player.save!
+  end
+    
+  def create_player_if_needed
+    return unless role == "player"
+    return unless persisted?
+    return if player.present?
+  
+    raise "Cannot create Player for User with nil id!" if id.nil?
+  
+    puts "[create_player_if_needed] building associated player for user_id=#{id}"
+    build_player(name: email.split("@").first)
+    puts "[create_player_if_needed] player.id before save: #{player.id.inspect}"
+    player.save!  
+  end
   private
 
   def set_initial_token_version

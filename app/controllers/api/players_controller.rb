@@ -19,7 +19,9 @@ module Api
     end
 
     def create
-      @player = Player.new(player_params.merge(user: current_user))
+      # @player = Player.new(player_params.merge(user: current_user))
+      @player = current_user.player || current_user.build_player
+      @player.assign_attributes(player_params)
 
       if @player.save
         render_success(@player, status: :created)

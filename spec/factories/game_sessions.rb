@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :game_session do
     name { Faker::Game.title }
     game
-    creator factory: %i[player]
+    association :creator, factory: :user
 
     trait :new_game_state do
       after(:build) do |game_session|

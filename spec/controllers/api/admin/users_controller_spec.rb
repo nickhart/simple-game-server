@@ -7,8 +7,7 @@ RSpec.describe Api::Admin::UsersController, type: :controller do
 
   describe "POST #create" do
     before do
-      Token.delete_all
-      User.delete_all
+      User.destroy_all
     end
 
     it "creates the first user as an admin" do

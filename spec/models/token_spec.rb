@@ -93,10 +93,11 @@ RSpec.describe Token, type: :model do
   end
 
   describe "scopes" do
-    let!(:active_access_token) { create(:token) }
-    let!(:expired_access_token) { create(:token, :expired) }
-    let!(:active_refresh_token) { create(:token, :refresh) }
-    let!(:expired_refresh_token) { create(:token, :refresh, :expired) }
+    let(:user) { create(:user) }
+    let!(:active_access_token) { create(:token, user: user) }
+    let!(:expired_access_token) { create(:token, :expired, user: user) }
+    let!(:active_refresh_token) { create(:token, :refresh, user: user) }
+    let!(:expired_refresh_token) { create(:token, :refresh, :expired, user: user) }
 
     describe ".active" do
       it "returns only active tokens" do

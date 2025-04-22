@@ -1,6 +1,7 @@
 FactoryBot.define do
   factory :game do
-    name { Faker::Game.title }
+    sequence(:name) { |n| "Zolite #{n}" }
+    # name { Faker::Game.title }
     # min_players { 2 }
     # max_players { 2 }
     state_json_schema {

@@ -20,11 +20,6 @@ Rails.application.routes.draw do
 
   # API routes
   namespace :api do
-    devise_for :users, controllers: {
-      sessions: "api/users/sessions",
-      registrations: "api/users/registrations"
-    }
-
     # Game routes
     resources :games
 
@@ -50,6 +45,7 @@ Rails.application.routes.draw do
     end
 
     resources :users, only: %i[create show update destroy]
+    get "users/me", to: "users#me"
 
     # Admin routes
     namespace :admin do
