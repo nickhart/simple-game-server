@@ -2,9 +2,10 @@ require "rails_helper"
 
 RSpec.describe Api::GameSessionsController, type: :controller do
   let(:user) { create(:user) }
-  let(:player) { create(:player, user: user) }
+  let(:player) { user.player }
   let(:game) { create(:game) }
   let(:game_session) { create(:game_session, creator: player, game: game) }
+
 
   describe "GET #index" do
     context "when authenticated" do
@@ -128,7 +129,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
   end
 
   describe "POST #join" do
-    let(:other_player) { create(:player) }
+    let(:other_player) { create(:user).player }
     let(:join_params) do
       {
         id: game_session.id,
@@ -149,6 +150,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
 
     context "when not authenticated" do
       it "returns unauthorized" do
+        puts "🚨 user.id=#{user.id}, persisted?=#{user.persisted?}"
         post :join, params: join_params
         expect(response).to have_http_status(:unauthorized)
       end
@@ -186,6 +188,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
   end
 
   describe "POST #start" do
+
     let(:start_params) do
       {
         id: game_session.id,
@@ -195,7 +198,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
     end
 
     context "when authenticated as creator" do
-      let(:other_player) { create(:player) }
+      let(:other_player) { create(:user).player }
 
       before do
         sign_in(user)
@@ -213,7 +216,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
     end
 
     context "when authenticated but not creator" do
-      let(:other_player) { create(:player) }
+      let(:other_player) { create(:user).player }
 
       before do
         sign_in(other_player.user)
@@ -221,6 +224,7 @@ RSpec.describe Api::GameSessionsController, type: :controller do
       end
 
       it "returns unauthorized" do
+        puts "🚨 user.id=#{user.id}, persisted?=#{user.persisted?}"
         post :start, params: start_params.merge(player_id: other_player.id)
         expect(response).to have_http_status(:unauthorized)
       end

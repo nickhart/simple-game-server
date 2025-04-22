@@ -9,6 +9,10 @@ class Player < ApplicationRecord
 
   before_create :ensure_uuid
 
+  before_save do
+    raise "Player has invalid id=0!" if id.present? && id == 0
+  end
+  
   private
 
   def ensure_uuid

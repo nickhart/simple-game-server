@@ -2,7 +2,8 @@ require "rails_helper"
 
 RSpec.describe GameSession, type: :model do
   let(:game) { create(:game, min_players: 2, max_players: 4) }
-  let(:creator) { create(:player) }
+  let(:user) { create(:user) }
+  let(:creator) { user.player }
 
   describe "validations" do
     it "is valid with valid attributes" do
@@ -50,7 +51,7 @@ RSpec.describe GameSession, type: :model do
       game = create(:game, state_json_schema: schema)
       game_session = GameSession.new(
         game: game,
-        creator: create(:player),
+        creator: create(:user).player,
         state: { board: [-1, 100, 13] }
       )
       
@@ -139,7 +140,7 @@ RSpec.describe GameSession, type: :model do
       let(:game) { create(:game, min_players: 3, max_players: 5) }
     
       it "inherits min_players and max_players from the game if not set" do
-        session = GameSession.create!(game: game, creator: create(:player))
+        session = GameSession.create!(game: game, creator: create(:user).player)
         expect(session.min_players).to eq(3)
         expect(session.max_players).to eq(5)
       end

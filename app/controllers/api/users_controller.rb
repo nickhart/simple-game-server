@@ -1,7 +1,7 @@
 module Api
   class UsersController < BaseController
     skip_before_action :authenticate_user!, only: [:create]
-    before_action :authenticate_user!, only: [:show, :update, :destroy]
+    before_action :authenticate_user!, only: [:show, :update, :destroy, :me]
     before_action :authorize_user!, only: [:show, :update, :destroy]
 
     def create
@@ -11,7 +11,7 @@ module Api
       if user.save
         render_success(user, status: :created)
       else
-        render_error(user.errors.full_messages, status: :unprocessable_entity)
+        render_error(user.errors.full_messages + user.player&.errors&.full_messages.to_a, status: :unprocessable_entity)
       end
     end
 
@@ -30,6 +30,10 @@ module Api
     def destroy
       @current_user.destroy
       render_success(message: "User deleted")
+    end
+
+    def me
+      render_success(@current_user)
     end
 
     private

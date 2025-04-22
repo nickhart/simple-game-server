@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :token do
-    user
+    association :user
     jti { Token.generate_jti }
     token_type { "access" }
     expires_at { 15.minutes.from_now }
