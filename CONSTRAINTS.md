@@ -11,14 +11,29 @@
   - Implements foreign key constraints for data integrity
 
 ### Data Models
+- **Game**:
+  - Stores game metadata and rules
+  - sets min/max players
+  - can specify a json schema for the game state, which will be enforced by the API
 - **GameSession**:
   - Stores game state in JSONB format
   - Maintains player relationships through join table
   - Tracks game status and current player
+  - Can specify min/max players for the session as long as they are within the Game's min/max player
+- **User**:
+  - Primary key remains as `bigint` (default Rails behavior)
+  - Can have zero or one associated Player (not created automatically)
+  - Uses Devise for authentication
+  - Includes a `role` field (either "admin" or "player") to distinguish user capabilities
+- **Token**:
+  - Belongs to User via `user_id` (bigint)
+  - Uses JWT `jti` field for unique token validation
+  - Includes `ON DELETE CASCADE` behavior for automatic cleanup when the user is deleted
 - **Player**:
-  - Simple model with basic player information
-  - No authentication system (currently)
-  - No email verification required
+  - Uses UUID as the primary key for increased security and to prevent ID guessability
+  - Belongs to a User via `user_id` (bigint)
+  - Enforces a one-to-one relationship with User via `UNIQUE` constraint on `user_id`
+  - Uses `ON DELETE CASCADE` for automatic cleanup when the associated user is deleted
 - **GamePlayer**:
   - Join model between GameSession and Player
   - Tracks player order and game-specific data
@@ -35,11 +50,17 @@
   - Follows Rails conventions for model relationships
 
 ### Authentication
-- **Current State**: No authentication required
+  - Uses Devise for user registration and authentication
+  - JWT token-based system implemented, including versioning and revocation support
+  - Role-based access enforced for admin-only actions
+  - Custom controller logic to ensure users have associated Player records before accessing player-specific routes
 - **Future Considerations**:
-  - Could implement Devise for user authentication
-  - JWT token-based authentication planned
   - OAuth integration possible for third-party auth
+
+### Controllers
+- All API routes return data wrapped in a `data: { ... }` JSON structure
+- Players must be explicitly created via `/api/players#create` before a user can join or create a GameSession
+- User creation does not automatically generate a Player
 
 ### Frontend
 - **JavaScript Framework**: Stimulus.js
@@ -95,16 +116,13 @@
 ## Development Constraints
 
 ### Testing
-- Uses Rails default test framework
-- No RSpec or other testing frameworks
-- No integration with CI/CD (planned)
-- Limited test coverage (to be expanded)
+- RSpec is now used as the primary testing framework
+- Uses DatabaseCleaner with `:transaction` strategy for faster test runs
+- Factories managed with FactoryBot and `create_user_with_player!` helper
 
 ### Code Style
-- Uses RuboCop for code style enforcement
-- Follows Rails style guide
-- No custom style rules
-- Limited documentation requirements
+- Tests are colocated under `spec/`
+- Uses `Rubocop` and `Standard` for linting
 
 ### Deployment
 - No specific deployment platform

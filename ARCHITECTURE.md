@@ -2,24 +2,23 @@
 
 ## Overview
 
-SimpleGameServer is a Ruby on Rails application that provides a REST API for managing multiplayer games. The server is designed to be extensible, currently supporting TicTacToe with the ability to add more game types in the future. In addition to the API, it includes a web-based management interface for monitoring and managing game sessions.
+SimpleGameServer is a Ruby on Rails application built using Rails API mode. It provides a REST API for managing multiplayer games with JWT-based authentication and role-based access control (admin/player). The game logic is extensible, supporting different game types via JSON-based game state management. The server handles authentication, authorization, and turn management while allowing flexible client-driven game state updates.
 
 ## Project Structure
 
 ```
 simple_game_server/
 ├── app/                    # Application code
-│   ├── models/            # Data models and business logic
-│   ├── controllers/       # API endpoints and request handling
-│   ├── views/            # Web interface templates for game management
-│   ├── javascript/       # Client-side JavaScript for web interface
-│   └── assets/           # Static assets and styling for web interface
-├── config/               # Rails configuration files
-├── db/                   # Database migrations and schema
-├── test/                # Test suite
-├── public/              # Public static files
-├── API.md               # API documentation
-└── openapi.yaml         # OpenAPI/Swagger specification
+│   ├── models/             # Data models and business logic
+│   ├── controllers/        # API endpoints and request handling (namespaced under Api/)
+│   ├── services/           # Service objects encapsulating business logic
+│   ├── lib/                # Custom libraries and modules
+├── config/                 # Rails configuration files
+├── db/                     # Database migrations and schema
+├── spec/                   # RSpec tests and support files
+├── public/                 # Public static files (minimal usage)
+├── API.md                  # API documentation
+└── openapi.yaml            # OpenAPI/Swagger specification
 ```
 
 ## Core Components
@@ -28,66 +27,82 @@ simple_game_server/
 
 #### GameSession
 `app/models/game_session.rb`
-- Central model for managing game state
-- Handles game logic, turn management, and win conditions
+- Central model managing game state and metadata
+- Handles game logic, turn management, and win conditions via client-driven JSON state
 - Supports different game types (currently TicTacToe)
 - Key attributes:
   - `game_type`: Type of game (e.g., "tictactoe")
-  - `status`: Current game state (waiting, in_progress, completed)
-  - `board`: Game board state
+  - `status`: Current game state (`waiting`, `active`, `finished`)
+  - `state`: JSONB column storing game-specific state data
   - `current_player_index`: Index of the current player's turn
-  - `winner_id`: ID of the winning player (if game is completed)
+  - `winner_id`: ID of the winning player (nullable)
+  - `min_players`: Minimum players required to start the game
+  - `max_players`: Maximum players allowed in the game
+  - `creator_id`: References the `Player` who created the game session
 
 #### Player
 `app/models/player.rb`
-- Represents a player in the system
-- Can participate in multiple game sessions
-- Connected to game sessions through GamePlayer join model
+- Represents a player entity linked to a user
+- Uses UUID as primary key
+- Has a one-to-one relationship with `User`
+- Participates in multiple game sessions through `GamePlayer` join model
 
-#### GamePlayer
-`app/models/game_player.rb`
-- Join model connecting Players and GameSessions
-- Tracks player-specific game information
-- Manages player order and game piece assignments
+#### User
+`app/models/user.rb`
+- Authentication model using Devise
+- Has many `Tokens` for JWT session management
+- Optionally has one associated `Player`
+- Includes a `role` column to distinguish `admin` and `player` roles
+
+#### Token
+`app/models/token.rb`
+- Stores versioned JWT tokens with expiration for session management
+- Attributes include token `jti` (JWT ID), token type, expiration timestamp, and association to `User`
+- Enables token revocation and tracking
 
 ### Controllers
 
-#### GameSessionsController
-`app/controllers/game_sessions_controller.rb`
-- Handles all game-related API endpoints
+Controllers are namespaced under `Api::` to reflect API-only architecture.
+
+#### Api::GameSessionsController
+- Manages game session lifecycle and player interactions
 - Key actions:
   - `index`: List all game sessions
-  - `show`: Get details of a specific game
-  - `create`: Start a new game
-  - `join`: Join an existing game
-  - `move`: Make a move in the game
-  - `cleanup`: Remove unused game sessions
+  - `show`: Retrieve details of a specific game session
+  - `create`: Create a new game session
+  - `join`: Join an existing game session
+  - `start`: Start a game session
+  - `update`: Update game state (e.g., moves, status)
+  - `leave`: Leave a game session
+  - `cleanup`: Remove unused or stale game sessions
 
-#### ApplicationController
-`app/controllers/application_controller.rb`
-- Base controller providing shared functionality
-- Handles authentication and error responses
+#### Api::PlayersController
+- Handles player-related operations
+- Key actions:
+  - `create`: Create a player profile linked to a user
+  - `show`: Retrieve player details
 
-### Web Interface
+#### Api::UsersController
+- Manages user registration and authentication
+- Key actions:
+  - `create`: Register a new user (sign up)
+  - `login`: Authenticate and issue JWT token
+  - `logout`: Revoke JWT token
 
-The application includes a web-based management interface for monitoring and managing game sessions:
+#### Api::Admin::UsersController
+- Admin-specific user management endpoints
+- Key actions:
+  - List users
+  - Manage user roles
+  - Perform administrative user operations
 
-#### Views (`app/views/`)
-- `game_sessions/index.html.erb`: List of all game sessions
-- `game_sessions/show.html.erb`: Detailed view of a game session
-- `game_sessions/new.html.erb`: Form for creating new game sessions
-- `layouts/application.html.erb`: Main application layout
+### Authentication and Roles
 
-#### JavaScript (`app/javascript/`)
-- `application.js`: Main JavaScript entry point
-- `controllers/`: Stimulus controllers for interactive features
-  - `application.js`: Base Stimulus controller setup
-  - `hello_controller.js`: Example controller (can be removed)
-  - `index.js`: Controller registration
-
-#### Assets (`app/assets/`)
-- Stylesheets and other static assets for the web interface
-- Currently using Bootstrap for styling
+- Uses Devise for user registration and login
+- JWT-based session management with versioned tokens stored in the `Token` model
+- Players are created separately from users and are required to participate in games
+- Admin users do not automatically have associated `Player` records
+- Role-based access control enforced via `role` attribute on `User` (`admin` or `player`)
 
 ## Database Schema
 
@@ -95,21 +110,50 @@ The application includes a web-based management interface for monitoring and man
 - `id`: Primary key
 - `game_type`: string
 - `status`: string
-- `board`: jsonb
+- `state`: jsonb
 - `current_player_index`: integer
-- `winner_id`: integer (foreign key to players)
+- `winner_id`: uuid (foreign key to players)
+- `min_players`: integer
+- `max_players`: integer
+- `creator_id`: uuid (foreign key to players)
 - timestamps
 
 ### players
-- `id`: Primary key
+- `id`: uuid primary key
+- `user_id`: uuid (foreign key to users)
 - `name`: string
 - timestamps
 
-### game_players
-- `id`: Primary key
-- `game_session_id`: integer (foreign key)
-- `player_id`: integer (foreign key)
+### users
+- `id`: uuid primary key
+- `email`: string, unique
+- `encrypted_password`: string
+- `role`: string (`admin` or `player`)
 - timestamps
+
+### tokens
+- `id`: primary key
+- `user_id`: uuid (foreign key to users)
+- `jti`: string (JWT ID)
+- `token_type`: string
+- `expires_at`: datetime
+- timestamps
+
+### game_players
+- `id`: primary key
+- `game_session_id`: integer (foreign key)
+- `player_id`: uuid (foreign key)
+- timestamps
+
+## Testing
+
+- Uses RSpec for unit, integration, and system tests
+- FactoryBot for test data creation
+- Includes a `FactoryHelpers` module providing helpers such as `create_user_with_player!` to streamline test setup
+
+## Web Interface
+
+The application is API-only and does not include a built-in web UI. Any web interface is expected to be implemented separately or as a client consuming the API.
 
 ## API Documentation
 
@@ -117,347 +161,48 @@ The API is documented in two formats:
 1. `API.md`: Markdown documentation with examples and explanations
 2. `openapi.yaml`: OpenAPI/Swagger specification for automated tooling
 
-## Testing
+## API Expectations and Conventions
 
-The test suite is organized into:
-- Unit tests for models
-- Integration tests for controllers
-- System tests for end-to-end scenarios
+- All API requests and responses use JSON with a `"data": {}` wrapper for resource objects
+- `player_id` and other IDs use UUID format
+- Authentication via Bearer tokens in headers
+- Role-based access enforced on endpoints
 
-Tests can be run using:
-```bash
-bin/rails test
-```
+## Authentication Flow
 
-## Development Setup
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   bundle install
-   ```
-3. Set up the database:
-   ```bash
-   bin/rails db:setup
-   ```
-4. Start the server:
-   ```bash
-   bin/rails server
-   ```
-
-## Security
-
-Security measures are documented in `SECURITY.md`, including:
-- Authentication requirements
-- Rate limiting
-- Input validation
-- CSRF protection
-
-## Future Considerations
-
-1. Support for additional game types
-2. Real-time updates for game state changes
-3. Player statistics and leaderboards
-4. Game replay functionality
-5. AI opponents
-6. Enhanced web interface features:
-   - Real-time game viewing
-   - Player management dashboard
-   - Game analytics and statistics
-   - Custom game type configuration
-
-## API Endpoints
-
-### Authentication
-
-#### Register a New User
-```http
-POST /api/players
-Content-Type: application/json
-
-{
-  "user": {
-    "email": "player@example.com",
-    "password": "password123",
-    "password_confirmation": "password123"
-  }
-}
-```
-
-Response:
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "player@example.com"
-  }
-}
-```
-
-#### Login
-```http
-POST /api/sessions
-Content-Type: application/json
-
-{
-  "email": "player@example.com",
-  "password": "password123"
-}
-```
-
-Response:
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "player@example.com"
-  }
-}
-```
-
-### Game Sessions
-
-#### List Available Game Sessions
-```http
-GET /api/game_sessions
-Authorization: Bearer <token>
-```
-
-Response:
-```json
-[
-  {
-    "id": 1,
-    "status": "waiting",
-    "min_players": 2,
-    "max_players": 2,
-    "current_player_index": null,
-    "state": {},
-    "players": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Player 1"
-      }
-    ],
-    "creator_id": "550e8400-e29b-41d4-a716-446655440000"
-  }
-]
-```
-
-#### Create a New Game Session
-```http
-POST /api/game_sessions
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "game_session": {
-    "game_name": "Tic-Tac-Toe",  // Required: name of the game to create a session for
-    "min_players": 2,            // Optional: minimum players required to start the game
-    "max_players": 2             // Optional: maximum players allowed in the game
-  }
-}
-```
-
-**Notes:**
-- `game_name` is required and must match an existing game in the database
-- `min_players` and `max_players` are optional and will default to the game's configuration if not provided
-- If either `min_players` or `max_players` is provided, both must be specified
-- `min_players` cannot be less than the game's minimum and `max_players` cannot be greater than the game's maximum
-
-Response:
-```json
-{
-  "id": 1,
-  "status": "waiting",
-  "min_players": 2,
-  "max_players": 2,
-  "current_player_index": null,
-  "state": {},
-  "players": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Player 1"
-    }
-  ],
-  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-#### Join a Game Session
-```http
-POST /api/game_sessions/:id/join
-Authorization: Bearer <token>
-```
-
-Response:
-```json
-{
-  "id": 1,
-  "status": "waiting",
-  "min_players": 2,
-  "max_players": 2,
-  "current_player_index": null,
-  "state": {},
-  "players": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Player 1"
-    },
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "Player 2"
-    }
-  ],
-  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-#### Start a Game
-```http
-POST /api/game_sessions/:id/start
-Authorization: Bearer <token>
-```
-
-Response:
-```json
-{
-  "id": 1,
-  "status": "active",
-  "min_players": 2,
-  "max_players": 2,
-  "current_player_index": 0,
-  "state": {},
-  "players": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Player 1"
-    },
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "Player 2"
-    }
-  ],
-  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-#### Update Game State
-```http
-PUT /api/game_sessions/:id
-Authorization: Bearer <token>
-Content-Type: application/json
-
-# Example 1: Normal move during active game
-{
-  "game_session": {
-    "state": {
-      "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
-      "current_player": 1
-    },
-    "status": "active"
-  }
-}
-
-# Example 2: Game finished with winner
-{
-  "game_session": {
-    "state": {
-      "board": [1, 1, 1, 2, 2, 0, 0, 0, 0],
-      "winner": 0
-    },
-    "status": "finished"
-  }
-}
-```
-
-Response:
-```json
-{
-  "id": 1,
-  "status": "active",  // or "finished" for end of game
-  "min_players": 2,
-  "max_players": 2,
-  "current_player_index": 1,  // Updated to next player
-  "state": {
-    "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
-    "current_player": 1
-  },
-  "players": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Player 1"
-    },
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "Player 2"
-    }
-  ],
-  "creator_id": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-#### Leave a Game
-```http
-DELETE /api/game_sessions/:id/leave
-Authorization: Bearer <token>
-```
-
-Response:
-```json
-{
-  "message": "Player left the game"
-}
-```
+- User registration and login handled via `Api::UsersController`
+- JWT tokens issued upon login and stored with versioning in `Token` model
+- Player creation is a separate step after user registration, required to participate in games
+- Admin users have elevated privileges but no default player entity
 
 ## Game State Management
 
-The game state is entirely managed by the client. The server acts as a state store and turn manager, but does not interpret or validate the game state. This allows for flexibility in implementing different types of games.
-
-### State Structure
-The `state` field in game sessions is a JSON object that can contain any game-specific data. For example, in a Tic-Tac-Toe game:
-```json
-{
-  "board": [1, 0, 0, 0, 0, 0, 0, 0, 0],
-  "current_player": 1,
-  "winner": 0  // Optional, only present when game is finished
-}
-```
-
-### Turn Management
-The server manages turns by:
-1. Tracking the current player index
-2. Advancing the turn when the game state is updated
-3. Preventing turn advancement when the game is finished
-
-### Game Status
-- `waiting`: Game is waiting for players to join
-- `active`: Game is in progress
-- `finished`: Game has ended (either with a winner or a draw)
+- The game state is fully managed by the client and stored as JSON in the `state` column of `GameSession`
+- The server manages turn order, game status, and player participation but does not interpret game-specific state
+- Status values: `waiting`, `active`, `finished`
+- Turn management via `current_player_index`
 
 ## Error Responses
 
-All endpoints may return the following error responses:
+Standardized error responses include:
 
 ```json
 {
-  "error": "Game session not found"
+  "errors": ["Resource not found"]
 }
 ```
 Status: 404 Not Found
 
 ```json
 {
-  "error": "Unauthorized"
+  "errors": ["Unauthorized access"]
 }
 ```
 Status: 401 Unauthorized
 
 ```json
 {
-  "errors": ["Status cannot transition from active to waiting"]
+  "errors": ["Validation failed: ..."]
 }
 ```
-Status: 422 Unprocessable Entity 
+Status: 422 Unprocessable Entity
