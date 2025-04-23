@@ -60,13 +60,13 @@ class User < ApplicationRecord
     return unless persisted? # don't try to create player if user hasn't been saved
 
     # Player creation is now explicit—this is not automatically called on user creation
-    puts "[create_player!] about to build player for user_id=#{id}"
+    Rails.logger.debug { "[create_player!] about to build player for user_id=#{id}" }
     build_player(name: email.split("@").first)
-    puts "[create_player!] built player: #{player.inspect}"
+    Rails.logger.debug { "[create_player!] built player: #{player.inspect}" }
 
     player.save!
   end
-    
+
   private
 
   def set_initial_token_version
