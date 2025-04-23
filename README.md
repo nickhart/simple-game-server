@@ -50,6 +50,10 @@ A simple game server built with Ruby on Rails, designed to handle multiplayer ga
 - Flexible game state storage
 - Turn-based game support
 - Example Tic Tac Toe implementation
+- Decoupled User and Player models (Player created via separate API endpoint)
+- UUID-based identifiers for Player and Token models
+- Role-based access (admin vs player)
+- JSON API with consistent top-level "data" wrapper
 
 ## Game Configuration
 
@@ -165,6 +169,8 @@ rails server
 
 The server will be available at `http://localhost:3000`
 
+The server uses JWT-based authentication for API requests. CSRF protection is disabled by default for API usage since token-based authentication is used instead of session-based authentication.
+
 ### CSRF Protection Configuration
 
 By default, CSRF (Cross-Site Request Forgery) protection is disabled for API requests. This is because the API uses token-based authentication (JWT) instead of session-based authentication, which is the typical use case for CSRF protection.
@@ -276,13 +282,18 @@ Our test suite is built on RSpec and follows a comprehensive testing strategy:
    - `JSONHelper`: Response parsing utilities
    - `DatabaseCleaner`: Ensures clean test state
 
-5. **CI Integration**:
+5. **UUID Usage**:
+   - Player and Token records use UUIDs as identifiers
+   - Player must be explicitly created for a user before they can join or create game sessions
+   - Specs rely on `create_user_with_player!` helper to set up users with associated players
+
+6. **CI Integration**:
    - GitHub Actions workflow
    - PostgreSQL test database
    - Automated schema loading
    - Security scanning (Brakeman, importmap audit)
 
-6. **Running Tests**:
+7. **Running Tests**:
    - Local development: `bundle exec rspec`
    - CI environment: `script/test_ci`
      - Matches GitHub Actions environment
@@ -370,6 +381,9 @@ rails db:seed
 
 # View database schema
 rails db:schema:dump
+
+# Rebuild database with UUIDs
+rails db:drop db:create db:migrate
 ```
 
 ### Testing Commands
@@ -431,6 +445,8 @@ If you're interested in contributing, please:
 1. Fork the repository
 2. Create a feature branch
 3. Submit a pull request with a clear description of your changes
+
+Note: This project uses UUIDs for certain tables. If modifying schema, ensure proper UUID handling.
 
 ## Future Plans
 

@@ -84,6 +84,13 @@ jobs:
           # Verify database setup
           bin/rails runner "puts 'Database connection successful' if ActiveRecord::Base.connection.active?"
 
+      - name: Verify Rails can load credentials
+        run: |
+          bin/rails runner "puts Rails.application.credentials.secret_key_base.present? ? '✅ credentials loaded' : '❌ credentials missing'"
+        env:
+          RAILS_ENV: test
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+
       - name: Run RSpec tests
         env:
           RAILS_ENV: test
