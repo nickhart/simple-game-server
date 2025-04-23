@@ -10,13 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_22_034226) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_15_175028) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "game_players", force: :cascade do |t|
     t.bigint "game_session_id", null: false
-    t.bigint "player_id", null: false
+    t.uuid "player_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["game_session_id", "player_id"], name: "index_game_players_on_game_session_id_and_player_id", unique: true
@@ -26,7 +26,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_22_034226) do
 
   create_table "game_sessions", force: :cascade do |t|
     t.bigint "game_id"
-    t.bigint "creator_id"
+    t.uuid "creator_id"
     t.integer "min_players"
     t.integer "max_players"
     t.integer "current_player_index", default: 0
@@ -49,8 +49,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_22_034226) do
     t.index ["name"], name: "index_games_on_name", unique: true
   end
 
-  create_table "players", force: :cascade do |t|
-    t.bigint "user_id", null: false
+  create_table "players", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.bigint "user_id"
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -87,6 +87,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_22_034226) do
   add_foreign_key "game_players", "players"
   add_foreign_key "game_sessions", "games"
   add_foreign_key "game_sessions", "players", column: "creator_id"
-  add_foreign_key "players", "users"
-  add_foreign_key "tokens", "users"
+  add_foreign_key "players", "users", on_delete: :cascade
+  add_foreign_key "tokens", "users", on_delete: :cascade
 end

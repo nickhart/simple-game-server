@@ -52,8 +52,6 @@ RSpec.describe "End-to-end game flow", type: :request, truncation: true do
 
     # Step 4: Register two players
 
-    puts "Next player ID: #{ActiveRecord::Base.connection.select_value("SELECT nextval('players_id_seq')")}"
-
     post "/api/users", params: {
       user: {
         email: "player1@example.com",
@@ -63,8 +61,6 @@ RSpec.describe "End-to-end game flow", type: :request, truncation: true do
     }, as: :json
     puts "Player1 creation status: #{response.status}, body: #{response.body}"
     expect(response).to have_http_status(:created)
-
-    puts "Next player ID: #{ActiveRecord::Base.connection.select_value("SELECT nextval('players_id_seq')")}"
 
     post "/api/users", params: {
       user: {
@@ -83,11 +79,21 @@ RSpec.describe "End-to-end game flow", type: :request, truncation: true do
     }, as: :json
     player1_token = JSON.parse(response.body)["access_token"]
 
+    # Create player record for player1
+    headers = { "Authorization" => "Bearer #{player1_token}" }
+    post "/api/players", params: { player: { name: "Player One" } }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
+
     post "/api/sessions", params: {
       email: "player2@example.com",
       password: "secret"
     }, as: :json
     player2_token = JSON.parse(response.body)["access_token"]
+
+    # Create player record for player2
+    headers = { "Authorization" => "Bearer #{player2_token}" }
+    post "/api/players", params: { player: { name: "Player Two" } }, headers: headers, as: :json
+    expect(response).to have_http_status(:created)
 
     # Step 6: Create a game session as player1
     headers = { "Authorization" => "Bearer #{player1_token}" }
