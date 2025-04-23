@@ -12,7 +12,7 @@
 #       token_version: user.token_version,
 #       role: user.role
 #     }
-#     JWT.encode(payload, Rails.application.credentials.secret_key_base)
+#     JwtService.encode(payload)
 #   end
 # end
 

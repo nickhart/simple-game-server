@@ -22,7 +22,6 @@ module Api
           if user.save
             render_success(user, status: :created)
           else
-            Rails.logger.debug(user.errors.full_messages.inspect)
             render_error(user.errors.full_messages, status: :unprocessable_entity)
           end
         else

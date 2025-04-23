@@ -53,17 +53,18 @@ module Api
     def authenticate_user!
       authenticated = authenticate_or_request_with_http_token do |token, _options|
         begin
-          payload = JWT.decode(token, Rails.application.credentials.secret_key_base).first
-          @current_user = User.find(payload["user_id"])
+          payload, = JwtService.decode(token)
+          payload = payload.with_indifferent_access
+          @current_user = User.find(payload[:user_id])
 
-          token_record = Token.find_by(jti: payload["jti"])
+          token_record = Token.find_by(jti: payload[:jti])
           if token_record&.expired?
             render_error("Token has expired", status: :unauthorized)
             false
-          elsif payload["token_version"] != @current_user.token_version
+          elsif payload[:token_version] != @current_user.token_version
             render_error("Token has been invalidated", status: :unauthorized)
             false
-          elsif payload["role"] != @current_user.role
+          elsif payload[:role] != @current_user.role
             render_error("User role has changed, please log in again", status: :unauthorized)
             false
           else
