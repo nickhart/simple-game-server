@@ -27,6 +27,20 @@ RSpec.describe User, type: :model do
       expect(user.role).to eq("admin")
     end
   end
+
+  describe "Player association" do
+    it "can exist without a player" do
+      user = create(:user)
+      expect(user.player).to be_nil
+    end
+
+    it "can be associated with a player after creation" do
+      user = create(:user)
+      player = create(:player, user: user)
+      expect(user.reload.player).to eq(player)
+    end
+  end
+
   describe "#make_admin!" do
     it "sets the role to admin and saves the user" do
         user = create(:user, role: "player")

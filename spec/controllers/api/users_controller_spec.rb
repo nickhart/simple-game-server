@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Api::UsersController, type: :controller do
   describe "POST #create" do
     context "with valid parameters" do
-      it "creates a new player user" do
+      it "creates a new player user and associated player record" do
         post :create, params: {
           user: {
             email: "player@example.com",
@@ -16,6 +16,8 @@ RSpec.describe Api::UsersController, type: :controller do
         user = User.find_by(email: "player@example.com")
         expect(user).not_to be_nil
         expect(user.role).to eq("player")
+        # Player is not created automatically upon user creation
+        expect(user.player).to be_nil
       end
     end
 

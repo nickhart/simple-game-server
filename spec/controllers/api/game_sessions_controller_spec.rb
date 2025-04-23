@@ -1,8 +1,11 @@
 require "rails_helper"
 
-RSpec.describe Api::GameSessionsController, type: :controller do
-  let(:user) { create(:user) }
-  let(:player) { user.player }
+RSpec.describe Api::GameSessionsController, type: :controller, truncation: true do
+  let(:user_and_player) do
+    create_user_with_player!
+  end
+  let(:user) { user_and_player[0] }
+  let(:player) { user_and_player[1] }
   let(:game) { create(:game) }
   let(:game_session) { create(:game_session, creator: player, game: game) }
 
@@ -129,20 +132,27 @@ RSpec.describe Api::GameSessionsController, type: :controller do
   end
 
   describe "POST #join" do
-    let(:other_player) { create(:user).player }
     let(:join_params) do
       {
         id: game_session.id,
-        player_id: other_player.id,
         format: :json
       }
     end
 
     context "when authenticated" do
-      before { sign_in(other_player.user) }
+      let(:other_user_and_player) do
+        create_user_with_player!
+      end      
+      let(:other_user) { other_user_and_player[0] }
+      let(:other_player) { other_user_and_player[1] }
+
+      before do
+        sign_in(other_user)
+        puts "🧼 Player.all.ids: #{Player.pluck(:id)}"
+      end
 
       it "adds the player to the game session" do
-        post :join, params: join_params
+        post :join, params: join_params.merge(player_id: other_player.id)
         expect(response).to have_http_status(:success)
         expect(game_session.reload.players).to include(other_player)
       end
@@ -198,9 +208,14 @@ RSpec.describe Api::GameSessionsController, type: :controller do
     end
 
     context "when authenticated as creator" do
-      let(:other_player) { create(:user).player }
+      let(:other_user_and_player) do
+        create_user_with_player!
+      end      
+      let(:other_user) { other_user_and_player[0] }
+      let(:other_player) { other_user_and_player[1] }
 
       before do
+        other_player # force eager evaluation and save
         sign_in(user)
         game_session.update!(min_players: 2, max_players: 4, status: :waiting)
         game_session.players << player
@@ -216,10 +231,18 @@ RSpec.describe Api::GameSessionsController, type: :controller do
     end
 
     context "when authenticated but not creator" do
-      let(:other_player) { create(:user).player }
-
       before do
-        sign_in(other_player.user)
+        puts "🧼 Player.all.ids: #{Player.pluck(:id)}"
+      end
+
+      let(:other_user_and_player) do
+        create_user_with_player!
+      end      
+      let(:other_user) { other_user_and_player[0] }
+      let(:other_player) { other_user_and_player[1] }
+    
+      before do
+        sign_in(other_user)
         game_session.players << other_player
       end
 

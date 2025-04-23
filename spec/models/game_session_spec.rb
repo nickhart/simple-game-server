@@ -1,11 +1,11 @@
 require "rails_helper"
 
 RSpec.describe GameSession, type: :model do
-  let(:game) { create(:game, min_players: 2, max_players: 4) }
   let(:user) { create(:user) }
-  let(:creator) { user.player }
+  let(:creator) { create(:player, user: user) }
 
   describe "validations" do
+    let(:game) { create(:game) }
     it "is valid with valid attributes" do
       game_session = build(:game_session, :new_game_state, game: game, creator: creator, status: :waiting)
       game_session.valid? # trigger set_defaults
@@ -140,7 +140,9 @@ RSpec.describe GameSession, type: :model do
       let(:game) { create(:game, min_players: 3, max_players: 5) }
     
       it "inherits min_players and max_players from the game if not set" do
-        session = GameSession.create!(game: game, creator: create(:user).player)
+        user = create(:user)
+        player = create(:player, user: user)
+        session = GameSession.create!(game: game, creator: player)
         expect(session.min_players).to eq(3)
         expect(session.max_players).to eq(5)
       end

@@ -12,6 +12,7 @@ class InitSchema < ActiveRecord::Migration[7.1]
       t.timestamps
     end
     add_index :users, :reset_password_token, unique: true
+    add_index :users, :email, unique: true
 
     create_table :tokens do |t|
       t.string :jti, null: false
@@ -22,8 +23,8 @@ class InitSchema < ActiveRecord::Migration[7.1]
     end
     add_index :tokens, :jti, unique: true
 
-    create_table :players do |t|
-      t.references :user, null: false, foreign_key: true
+    create_table :players, id: :uuid do |t|
+      t.references :user, null: true, foreign_key: { to_table: :users }, type: :bigint
       t.string :name
       t.timestamps
     end
@@ -39,7 +40,7 @@ class InitSchema < ActiveRecord::Migration[7.1]
 
     create_table :game_sessions do |t|
       t.references :game, foreign_key: true
-      t.references :creator, foreign_key: { to_table: :players }
+      t.references :creator, type: :uuid, foreign_key: { to_table: :players }
       t.integer :min_players
       t.integer :max_players
       t.integer :current_player_index, default: 0
@@ -51,9 +52,15 @@ class InitSchema < ActiveRecord::Migration[7.1]
 
     create_table :game_players do |t|
       t.references :game_session, null: false, foreign_key: true
-      t.references :player, null: false, foreign_key: true
+      t.references :player, null: false, foreign_key: true, type: :uuid
       t.timestamps
     end
     add_index :game_players, [:game_session_id, :player_id], unique: true
+
+    remove_foreign_key :players, :users
+    add_foreign_key :players, :users, on_delete: :cascade
+
+    remove_foreign_key :tokens, :users
+    add_foreign_key :tokens, :users, on_delete: :cascade
   end
 end

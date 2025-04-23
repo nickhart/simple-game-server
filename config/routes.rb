@@ -10,9 +10,6 @@ Rails.application.routes.draw do
     member do
       post :join
     end
-    collection do
-      post :create, constraints: { player_id: /[0-9a-f-]+/ }
-    end
   end
 
   # Add cleanup endpoint
