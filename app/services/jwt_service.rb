@@ -1,5 +1,7 @@
 class JwtService
-  SECRET = Rails.application.credentials.secret_key_base
+  SECRET = Rails.application.credentials.secret_key_base.presence ||
+           ENV["JWT_SECRET_KEY"] ||
+           (Rails.env.test? ? "test_secret_key" : abort("❌ Missing secret_key_base"))
 
   def self.encode(payload)
     payload = normalize_payload(payload) if payload.is_a?(Hash)
