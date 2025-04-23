@@ -4,8 +4,8 @@ class PlayersController < ApplicationController
   end
 
   def create
-# TODO: rewrite this controller.
-#    @player = Player.new(player_params)
+    # TODO: rewrite this controller.
+    #    @player = Player.new(player_params)
 
     if @player.save
       redirect_to new_user_session_path, notice: t(".account_created")

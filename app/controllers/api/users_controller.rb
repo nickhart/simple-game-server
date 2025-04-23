@@ -1,8 +1,12 @@
 module Api
   class UsersController < BaseController
     skip_before_action :authenticate_user!, only: [:create]
-    before_action :authenticate_user!, only: [:show, :update, :destroy, :me]
-    before_action :authorize_user!, only: [:show, :update, :destroy]
+    before_action :authenticate_user!, only: %i[show update destroy me]
+    before_action :authorize_user!, only: %i[show update destroy]
+
+    def show
+      render_success(@current_user)
+    end
 
     def create
       user = User.new(user_params)
@@ -13,10 +17,6 @@ module Api
       else
         render_error(user.errors.full_messages + user.player&.errors&.full_messages.to_a, status: :unprocessable_entity)
       end
-    end
-
-    def show
-      render_success(@current_user)
     end
 
     def update

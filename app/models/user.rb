@@ -60,26 +60,27 @@ class User < ApplicationRecord
     return if player.present?
     return unless persisted? # don't try to create player if user hasn't been saved
     return unless player? # only players need associated Player record
-    
-    puts "[create_player!] about to build player for user_id=#{id}"
+
+    Rails.logger.debug { "[create_player!] about to build player for user_id=#{id}" }
     build_player(name: email.split("@").first)
-    puts "[create_player!] built player: #{player.inspect}"
+    Rails.logger.debug { "[create_player!] built player: #{player.inspect}" }
 
     player.save!
   end
-    
+
   def create_player_if_needed
     return unless role == "player"
     return unless persisted?
     return if player.present?
-  
+
     raise "Cannot create Player for User with nil id!" if id.nil?
-  
-    puts "[create_player_if_needed] building associated player for user_id=#{id}"
+
+    Rails.logger.debug { "[create_player_if_needed] building associated player for user_id=#{id}" }
     build_player(name: email.split("@").first)
-    puts "[create_player_if_needed] player.id before save: #{player.id.inspect}"
-    player.save!  
+    Rails.logger.debug { "[create_player_if_needed] player.id before save: #{player.id.inspect}" }
+    player.save!
   end
+
   private
 
   def set_initial_token_version

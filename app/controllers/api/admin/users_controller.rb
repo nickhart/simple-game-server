@@ -2,8 +2,8 @@ module Api
   module Admin
     class UsersController < BaseController
       include AdminAuthorization
-      skip_before_action :require_admin!, only: [:create], if: -> { User.count.zero? }
-      skip_before_action :authenticate_user!, only: [:create], if: -> { User.count.zero? }
+      skip_before_action :require_admin!, only: [:create]
+      skip_before_action :authenticate_user!, only: [:create]
 
       def index
         users = User.all
@@ -29,7 +29,7 @@ module Api
           render_error("Admin user creation is not allowed", status: :forbidden)
         end
       end
-    
+
       def update
         user = User.find(params[:id])
         if user.update(user_params)
@@ -56,7 +56,7 @@ module Api
       def allow_admin_creation?
         User.count.zero? || User.where(role: "admin").count.zero?
       end
-    
+
       def user_params
         params.require(:user).permit(:email, :password, :password_confirmation)
       end

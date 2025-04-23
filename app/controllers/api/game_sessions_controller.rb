@@ -10,8 +10,8 @@ module Api
     end
 
     def show
-    puts "🔍 Looking up GameSession with id=#{params[:id]}"
-    game_session = GameSession.find(params[:id])
+      Rails.logger.debug { "🔍 Looking up GameSession with id=#{params[:id]}" }
+      game_session = GameSession.find(params[:id])
       render_success(game_session)
     rescue ActiveRecord::RecordNotFound
       render_error("Game session not found", status: :not_found)
@@ -131,11 +131,13 @@ module Api
     def ensure_player_present
       @player = Player.find_by(user_id: current_user.id)
       unless @player
-        puts "Player not found for user #{current_user.id}"
-        puts "🔍 current_user.id=#{current_user&.id}, role=#{current_user&.role}, player=#{current_user&.player.inspect}"
+        Rails.logger.debug { "Player not found for user #{current_user.id}" }
+        Rails.logger.debug do
+          "🔍 current_user.id=#{current_user&.id}, role=#{current_user&.role}, player=#{current_user&.player.inspect}"
+        end
         render_error("Player not found", status: :forbidden) and return
       end
-      puts "Found player #{@player.id} for user #{current_user.id}"
+      Rails.logger.debug { "Found player #{@player.id} for user #{current_user.id}" }
     end
   end
 end
