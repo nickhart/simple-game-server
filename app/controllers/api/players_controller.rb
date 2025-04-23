@@ -19,15 +19,13 @@ module Api
     end
 
     def create
-      if current_user.player.present?
-        return render_error("Player already exists", status: :unprocessable_entity)
-      end
+      return render_error("Player already exists", status: :unprocessable_entity) if current_user.player.present?
 
       @player = current_user.build_player
       @player.assign_attributes(player_params)
 
-      puts "player_params: #{player_params.to_h}"
-      puts "Assigned name: #{@player.name.inspect}, Params: #{params.to_unsafe_h}" 
+      Rails.logger.debug { "player_params: #{player_params.to_h}" }
+      Rails.logger.debug { "Assigned name: #{@player.name.inspect}, Params: #{params.to_unsafe_h}" }
 
       if @player.save
         render_success(@player, status: :created)
