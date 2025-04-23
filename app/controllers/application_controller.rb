@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
   # API controllers will specifically disable it
 
   before_action :set_current_user
-  before_action :debug_auth_headers, if: -> { Rails.env.test? || Rails.env.ci? }
+  before_action :debug_auth_headers, if: -> { Rails.env.test? }
 
   private
 
@@ -20,5 +20,4 @@ class ApplicationController < ActionController::Base
     Rails.logger.warn("📦 Content-Type: #{request.headers['Content-Type'].inspect}")
     Rails.logger.warn("🧾 Accept: #{request.headers['Accept'].inspect}")
   end
-
 end
