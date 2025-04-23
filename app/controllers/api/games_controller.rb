@@ -36,9 +36,7 @@ module Api
 
     def destroy
       game = Game.find(params[:id])
-      Rails.logger.debug { "🗑️ Deleting game with ID: #{game.id}, name: #{game.name}" }
       game.destroy
-      Rails.logger.debug "✅ Game deleted"
       head :no_content
     end
 

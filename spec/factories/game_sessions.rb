@@ -5,9 +5,9 @@ FactoryBot.define do
     association :creator, factory: :user
 
     trait :new_game_state do
-      after(:build) do |game_session|
-        puts "[FACTORY DEBUG] Applying new_game_state trait to GameSession ##{game_session.object_id}"
-      end
+      # after(:build) do |game_session|
+      #   puts "[FACTORY DEBUG] Applying new_game_state trait to GameSession ##{game_session.object_id}"
+      # end
 
       # state { { board: [0, 0, 0] } }
     end

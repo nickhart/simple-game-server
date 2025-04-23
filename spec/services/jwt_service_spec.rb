@@ -5,13 +5,25 @@ RSpec.describe JwtService do
 
   describe ".encode" do
     it "returns a valid JWT with expected claims" do
-      token = described_class.encode(user)
+      access_token = Token.create_access_token(user)
+      user.reload  # Ensure we have all latest DB-persisted attributes
+      puts "user: #{user.inspect}"
+      payload = {
+        user_id: user.id,
+        role: user.role,
+        token_version: user.token_version,
+        jti: access_token.jti,
+        exp: access_token.expires_at.to_i,
+        email: user.email
+      }
+      token = JwtService.encode(payload)
       decoded = described_class.decode(token)
 
-      expect(decoded["user_id"]).to eq(user.id)
-      expect(decoded["role"]).to eq(user.role)
-      expect(decoded["token_version"]).to eq(user.token_version)
-      expect(decoded["exp"]).to be_within(5).of(1.hour.from_now.to_i)
+      puts "decoded JWT claims: #{decoded.inspect}"
+      expect(decoded[:user_id]).to eq(user.id)
+      expect(decoded[:role]).to eq(user.role)
+      expect(decoded[:token_version]).to eq(user.token_version)
+      expect(decoded[:exp]).to eq(access_token.expires_at.to_i)
     end
   end
 

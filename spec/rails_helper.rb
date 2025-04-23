@@ -5,7 +5,7 @@ abort("The Rails environment is running in production mode!") if Rails.env.produ
 require "rspec/rails"
 require "database_cleaner/active_record"
 
-abort("❌ Missing secret_key_base") unless Rails.application.secret_key_base.present?
+abort("❌ Missing secret_key_base") unless Rails.application.credentials.secret_key_base.present?
 
 # Load support files
 Dir[Rails.root.join("spec/support/**/*.rb")].sort.each { |f| require f }

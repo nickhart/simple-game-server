@@ -20,7 +20,8 @@ RSpec.describe Api::Admin::UsersController, type: :controller do
 
     it "rejects subsequent admin user creation" do
       admin = User.create!(email: "admin@example.com", password: "securepass", role: "admin")
-      token = generate_token_for(admin)
+      access_token = Token.create_access_token(admin)
+      token = admin.to_jwt(access_token)
       request.headers["Authorization"] = "Bearer #{token}"
 
       post :create, params: { user: { email: "user@example.com", password: "securepass" } }, as: :json
@@ -64,7 +65,8 @@ RSpec.describe Api::Admin::UsersController, type: :controller do
     describe "POST #make_admin as non-admin" do
       it "returns forbidden" do
         non_admin = User.create!(email: "user@example.com", password: "securepass", role: "player")
-        token = generate_token_for(non_admin)
+        access_token = Token.create_access_token(non_admin)
+        token = non_admin.to_jwt(access_token)
         request.headers["Authorization"] = "Bearer #{token}"
 
         post :make_admin, params: { id: user.id }, as: :json
@@ -95,7 +97,8 @@ RSpec.describe Api::Admin::UsersController, type: :controller do
     describe "POST #remove_admin as non-admin" do
       it "returns forbidden" do
         non_admin = User.create!(email: "user@example.com", password: "securepass", role: "player")
-        token = generate_token_for(non_admin)
+        access_token = Token.create_access_token(non_admin)
+        token = non_admin.to_jwt(access_token)
         request.headers["Authorization"] = "Bearer #{token}"
 
         post :remove_admin, params: { id: user.id }, as: :json

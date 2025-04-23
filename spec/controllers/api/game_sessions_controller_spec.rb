@@ -148,7 +148,6 @@ RSpec.describe Api::GameSessionsController, type: :controller, truncation: true 
 
       before do
         sign_in(other_user)
-        puts "🧼 Player.all.ids: #{Player.pluck(:id)}"
       end
 
       it "adds the player to the game session" do
@@ -160,7 +159,6 @@ RSpec.describe Api::GameSessionsController, type: :controller, truncation: true 
 
     context "when not authenticated" do
       it "returns unauthorized" do
-        puts "🚨 user.id=#{user.id}, persisted?=#{user.persisted?}"
         post :join, params: join_params
         expect(response).to have_http_status(:unauthorized)
       end
@@ -231,10 +229,6 @@ RSpec.describe Api::GameSessionsController, type: :controller, truncation: true 
     end
 
     context "when authenticated but not creator" do
-      before do
-        puts "🧼 Player.all.ids: #{Player.pluck(:id)}"
-      end
-
       let(:other_user_and_player) do
         create_user_with_player!
       end      
@@ -247,7 +241,6 @@ RSpec.describe Api::GameSessionsController, type: :controller, truncation: true 
       end
 
       it "returns unauthorized" do
-        puts "🚨 user.id=#{user.id}, persisted?=#{user.persisted?}"
         post :start, params: start_params.merge(player_id: other_player.id)
         expect(response).to have_http_status(:unauthorized)
       end

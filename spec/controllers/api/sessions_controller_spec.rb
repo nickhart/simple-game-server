@@ -58,15 +58,7 @@ RSpec.describe Api::SessionsController, type: :controller do
 
   describe "POST #refresh" do
     let(:refresh_token) { create(:token, :refresh, user: user) }
-    let(:jwt_token) do
-      payload = {
-        jti: refresh_token.jti,
-        user_id: user.id,
-        token_version: user.token_version,
-        exp: refresh_token.expires_at.to_i
-      }
-      JWT.encode(payload, Rails.application.credentials.secret_key_base)
-    end
+    let(:jwt_token) { user.to_jwt(refresh_token) }
 
     context "with valid refresh token" do
       before do
