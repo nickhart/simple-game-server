@@ -2,12 +2,12 @@ module Api
   class UsersController < BaseController
     skip_before_action :authenticate_user!, only: [:create]
     before_action :authenticate_user!, only: %i[show update destroy]
-    before_action :authorize_user!, only: %i[show update destroy], if: -> { params[:id].present? && params[:id] != "me" }
+    before_action :authorize_user!, only: %i[show update destroy], if: lambda {
+      params[:id].present? && params[:id] != "me"
+    }
 
     def show
-      if params[:id] == "me"
-        render_success(@current_user)
-      elsif params[:id].to_i == @current_user.id
+      if params[:id] == "me" || params[:id].to_i == @current_user.id
         render_success(@current_user)
       else
         render_forbidden("Access denied")
@@ -19,7 +19,9 @@ module Api
       user.role = "player"
 
       if user.save
-        render_success(user, status: :created)
+        access_token, refresh_token = JwtService.issue_tokens_for(user)
+        render_success({ id: user.id, email: user.email, role: user.role, access_token:, refresh_token: },
+                       status: :created)
       else
         render_unprocessable_entity(user.errors.full_messages + user.player&.errors&.full_messages.to_a)
       end

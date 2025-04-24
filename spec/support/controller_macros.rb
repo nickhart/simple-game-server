@@ -8,10 +8,6 @@ module ControllerMacros
     request.headers['Authorization'] = "Bearer #{user.to_jwt(access_token)}"
   end
 
-  def sign_out
-    request.headers['Authorization'] = nil
-  end
-
   def authorize_as(user)
     token = Token.create_access_token(user)
     request.headers["Authorization"] = "Bearer #{user.to_jwt(token)}"

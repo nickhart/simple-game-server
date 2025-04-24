@@ -1,43 +1,47 @@
 module Api
   module Admin
     class GamesController < BaseController
-    before_action :authenticate_user!
-    before_action :authorize_admin!, except: %i[index show]
-    before_action :set_game, only: %i[update destroy]
+      before_action :authenticate_user!
+      before_action :authorize_admin!
+      before_action :set_game, only: %i[update destroy]
 
-    rescue_from ActiveRecord::RecordNotFound, with: -> { render_not_found(Game) }
+      rescue_from ActiveRecord::RecordNotFound, with: -> { render_not_found(Game) }
 
-    def create
-      game = Game.new(game_params)
-      if game.save
-        render_created(game)
-      else
-        render_unprocessable_entity(game.errors)
+      def index
+        head :not_implemented
       end
-    end
 
-    def update
-      if @game.update(game_params)
-        render_success(@game)
-      else
-        render_unprocessable_entity(@game.errors)
+      def create
+        game = Game.new(game_params)
+        if game.save
+          render_created(game)
+        else
+          render_unprocessable_entity(game.errors)
+        end
       end
-    end
 
-    def destroy
-      @game.destroy
-      head :no_content
-    end
+      def update
+        if @game.update(game_params)
+          render_success(@game)
+        else
+          render_unprocessable_entity(@game.errors)
+        end
+      end
 
-    private
+      def destroy
+        @game.destroy
+        head :no_content
+      end
 
-    def game_params
-      params.require(:game).permit(:name, :state_json_schema)
-    end
+      private
 
-    def set_game
-      @game = Game.find(params[:id])
+      def game_params
+        params.require(:game).permit(:name, :state_json_schema)
+      end
+
+      def set_game
+        @game = Game.find(params[:id])
+      end
     end
   end
-end
 end
