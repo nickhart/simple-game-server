@@ -13,22 +13,72 @@ module Api
     private
 
     # Renders a standardized success response
-    # Options hash may contain:
-    #   :status - the HTTP status (default: :ok)
-    #   :include - for rendering associations (if needed)
+    #
+    # @param payload [Object] the data to render
+    # @param options [Hash] optional rendering options
+    # @option options [Symbol] :status the HTTP status (default: :ok)
+    # @option options [Array, Hash] :include associations to include in the response
     def render_success(payload, options = {})
       render json: { data: payload }, status: options.fetch(:status, :ok), include: options[:include]
     end
 
+    # Renders a standardized created response
+    #
+    # @param payload [Object] the data to render
+    # @param options [Hash] optional rendering options
+    # @option options [Array, Hash] :include associations to include in the response
+    def render_created(payload, options = {})
+      render json: { data: payload }, status: :created, include: options[:include]
+    end
+
+    # Renders a standardized no content response
+    def render_no_content
+      head :no_content
+    end
+
     # Renders a standardized error response
-    # If errors is an Array, it assigns it to key :errors; if it's a single message, it assigns it to :error.
-    # Options hash may contain:
-    #   :status - the HTTP status (default: :unprocessable_entity)
+    #
+    # @param errors [Array, String] error messages or a single error message
+    # @param options [Hash] optional rendering options
+    # @option options [Symbol] :status the HTTP status (default: :unprocessable_entity)
     def render_error(errors, options = {})
       status = options.fetch(:status, :unprocessable_entity)
       error_payload = errors.is_a?(Array) ? { errors: errors } : { error: errors }
       render json: error_payload, status: status
     end
+
+    # Renders a standardized unprocessable entity response
+    #
+    # @param errors [Array, String] error messages or a single error message
+    def render_unprocessable_entity(errors)
+      render_error(errors, status: :unprocessable_entity)
+    end
+
+    # Renders a standardized not found response
+    #
+    # @param resource [String] the name of the resource not found (default: "Resource")
+    def render_not_found(resource = "Resource")
+      render_error("#{resource} not found", status: :not_found)
+    end
+
+    # Renders a standardized unauthorized response
+    def render_unauthorized
+      render_error("Unauthorized", status: :unauthorized)
+    end
+
+    # Renders a standardized forbidden response
+    #
+    # @param message [String] the error message (default: "Forbidden")
+    def render_forbidden(message = "Forbidden")
+      render json: { error: message }, status: :forbidden
+    end
+        
+    # Renders a standardized internal server error response
+    #
+    # @param message [String] the error message (default: "Internal server error")
+    def render_internal_error(message = "Internal server error")
+      render_error(message, status: :internal_server_error)
+    end    
 
     def ensure_json_request
       # Accept if content type is application/json or if the request format is json
@@ -78,13 +128,7 @@ module Api
           render_error("Invalid token", status: :unauthorized)
           false
         end
-        return unless authenticated
       end
-
-      # unless authenticated
-      #   # Prevent double render only if response has not already been committed
-      #   render_error("Unauthorized", status: :unauthorized) unless performed?
-      # end
     end
 
     def authorize_admin!
@@ -95,8 +139,9 @@ module Api
       @current_user || Current.user
     end
 
-    def render_unauthorized
-      render_error("Unauthorized", status: :unauthorized)
+    # Global rescue for ActiveRecord::RecordNotFound
+    rescue_from ActiveRecord::RecordNotFound do |exception|
+      render_not_found(exception.model)
     end
   end
 end

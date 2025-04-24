@@ -1,22 +1,6 @@
 module Api
   class PlayersController < BaseController
-    def current
-      player = current_user.players.first
-      if player
-        render_success(player)
-      else
-        render_error("No player found for current user", status: :not_found)
-      end
-    end
-
-    def show
-      @player = Player.find_by(id: params[:id])
-      if @player
-        render_success(@player)
-      else
-        render_error("Player not found", status: :not_found)
-      end
-    end
+    rescue_from ActiveRecord::RecordNotFound, with: -> { render_not_found("Player not found") }
 
     def create
       return render_error("Player already exists", status: :unprocessable_entity) if current_user.player.present?
@@ -29,6 +13,20 @@ module Api
       else
         render_error(@player.errors.full_messages, status: :unprocessable_entity)
       end
+    end
+
+    def me
+      player = current_user.player
+      if player
+        render_success(player)
+      else
+        render_not_found("No player found for current user")
+      end
+    end
+
+    def show
+      @player = Player.find_by!(id: params[:id], user_id: current_user.id)
+      render_success(@player)
     end
 
     private

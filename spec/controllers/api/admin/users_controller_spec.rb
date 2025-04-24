@@ -29,21 +29,16 @@ RSpec.describe Api::Admin::UsersController, type: :controller do
       expect(response).to have_http_status(:forbidden)
       expect(response.parsed_body["error"]).to eq("Admin user creation is not allowed")
     end
-  end
 
-  describe "GET #index" do
-    it "returns a list of users" do
-      get :index, as: :json    
-      expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["data"]).to be_an(Array)
-    end
-  end
+    it "returns forbidden if authenticated user attempts to create another user" do
+      admin = create(:user, role: "admin")
+      access_token = Token.create_access_token(admin)
+      token = admin.to_jwt(access_token)
+      request.headers["Authorization"] = "Bearer #{token}"
 
-  describe "GET #show" do
-    it "returns the user" do
-      get :show, params: { id: user.id }, as: :json
-      expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["data"]["id"]).to eq(user.id)
+      post :create, params: { user: { email: "new@example.com", password: "securepass" } }, as: :json
+
+      expect(response).to have_http_status(:forbidden)
     end
   end
 

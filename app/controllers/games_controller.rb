@@ -43,6 +43,6 @@ class GamesController < ApplicationController
   end
 
   def require_admin
-    render json: { error: "Forbidden" }, status: :forbidden unless current_user&.admin?
+    render_forbidden("Admin access required") unless current_user&.admin?
   end
 end

@@ -13,6 +13,8 @@ module Api
       def show
         user = User.find(params[:id])
         render_success(user)
+      rescue ActiveRecord::RecordNotFound
+        render_not_found("User not found")
       end
 
       def create
@@ -22,10 +24,10 @@ module Api
           if user.save
             render_success(user, status: :created)
           else
-            render_error(user.errors.full_messages, status: :unprocessable_entity)
+            render_unprocessable_entity(user.errors.full_messages)
           end
         else
-          render_error("Admin user creation is not allowed", status: :forbidden)
+          render_forbidden("Admin user creation is not allowed")
         end
       end
 
@@ -34,20 +36,32 @@ module Api
         if user.update(user_params)
           render_success(user)
         else
-          render_error(user.errors.full_messages)
+          render_unprocessable_entity(user.errors.full_messages)
         end
+      rescue ActiveRecord::RecordNotFound
+        render_not_found("User not found")
       end
 
       def make_admin
         user = User.find(params[:id])
-        user.make_admin!
-        render_success(user)
+        if user.make_admin!
+          render_success(user)
+        else
+          render_unprocessable_entity("Unable to promote user to admin")
+        end
+      rescue ActiveRecord::RecordNotFound
+        render_not_found("User not found")
       end
 
       def remove_admin
         user = User.find(params[:id])
-        user.remove_admin!
-        render_success(user)
+        if user.remove_admin!
+          render_success(user)
+        else
+          render_unprocessable_entity("Unable to demote user from admin")
+        end
+      rescue ActiveRecord::RecordNotFound
+        render_not_found("User not found")
       end
 
       private
