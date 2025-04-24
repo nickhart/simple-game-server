@@ -1,48 +1,274 @@
-# Simple Game Server - Route Documentation
+# Simple Game Server - API Documentation
 
 ## Base URL
 ```
 http://localhost:3000
 ```
 
-## Authentication
-Currently, the API does not require authentication.
+---
 
-## Game Session Routes
+# Authentication Routes
 
-### 1. List Game Sessions
+### 1. User Registration
+```http
+POST /auth/register
+```
+
+**Request Body**
+```json
+{
+  "username": "user123",
+  "password": "securePassword"
+}
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "username": "user123",
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+**Description**  
+Registers a new user account.
+
+---
+
+### 2. User Login
+```http
+POST /auth/login
+```
+
+**Request Body**
+```json
+{
+  "username": "user123",
+  "password": "securePassword"
+}
+```
+
+**Response**
+```json
+{
+  "token": "jwt-token-string",
+  "user": {
+    "id": 1,
+    "username": "user123"
+  }
+}
+```
+
+**Description**  
+Authenticates a user and returns a JWT token for authorized requests.
+
+---
+
+# User Routes
+
+### 3. Get Current User Profile
+```http
+GET /users/me
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "username": "user123",
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+**Description**  
+Returns the profile information of the authenticated user.
+
+---
+
+### 4. Update Current User Profile
+```http
+PATCH /users/me
+```
+
+**Request Body**
+```json
+{
+  "username": "newUsername"
+}
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "username": "newUsername",
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+**Description**  
+Updates the authenticated user's profile information.
+
+---
+
+# Player Routes
+
+### 5. List Players
+```http
+GET /players
+```
+
+**Response**
+```json
+[
+  {
+    "id": 1,
+    "name": "Player 1",
+    "user_id": 1
+  },
+  {
+    "id": 2,
+    "name": "Player 2",
+    "user_id": 2
+  }
+]
+```
+
+**Description**  
+Returns a list of all players.
+
+---
+
+### 6. Create Player
+```http
+POST /players
+```
+
+**Request Body**
+```json
+{
+  "name": "Player 1"
+}
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "name": "Player 1",
+  "user_id": 1
+}
+```
+
+**Description**  
+Creates a new player associated with the authenticated user.
+
+---
+
+### 7. Update Player
+```http
+PATCH /players/:id
+```
+
+**Request Body**
+```json
+{
+  "name": "Updated Player Name"
+}
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "name": "Updated Player Name",
+  "user_id": 1
+}
+```
+
+**Description**  
+Updates the specified player's information.
+
+---
+
+### 8. Delete Player
+```http
+DELETE /players/:id
+```
+
+**Response**
+```json
+{
+  "message": "Player deleted successfully"
+}
+```
+
+**Description**  
+Deletes the specified player.
+
+---
+
+# Game Routes
+
+### 9. List Available Games
+```http
+GET /games
+```
+
+**Response**
+```json
+[
+  {
+    "id": 1,
+    "name": "Tic Tac Toe",
+    "min_players": 2,
+    "max_players": 2
+  }
+]
+```
+
+**Description**  
+Returns a list of available games.
+
+---
+
+# Game Session Routes
+
+### 10. List Game Sessions
 ```http
 GET /game_sessions
 ```
 
 **Response**
 ```json
-{
-  "game_sessions": [
-    {
-      "id": 1,
-      "status": "waiting",
-      "min_players": 2,
-      "max_players": 2,
-      "current_player_index": 0,
-      "game_type": "tictactoe",
-      "players": [
-        {
-          "id": 1,
-          "name": "Player 1"
-        }
-      ],
-      "board": ["", "", "", "", "", "", "", "", ""],
-      "winner": null
-    }
-  ]
-}
+[
+  {
+    "id": 1,
+    "game_id": 1,
+    "status": "waiting",
+    "min_players": 2,
+    "max_players": 2,
+    "current_player_index": 0,
+    "players": [
+      {
+        "id": 1,
+        "name": "Player 1"
+      }
+    ],
+    "board": ["", "", "", "", "", "", "", "", ""],
+    "winner": null,
+    "created_at": "2024-06-01T12:00:00Z"
+  }
+]
 ```
 
-**Description**
-Returns a list of all available game sessions, including their current state and players.
+**Description**  
+Returns all game sessions with their current state and players.
 
-### 2. Create Game Session
+---
+
+### 11. Create Game Session
 ```http
 POST /game_sessions
 ```
@@ -50,7 +276,7 @@ POST /game_sessions
 **Request Body**
 ```json
 {
-  "game_type": "tictactoe"
+  "game_id": 1
 }
 ```
 
@@ -58,21 +284,24 @@ POST /game_sessions
 ```json
 {
   "id": 1,
+  "game_id": 1,
   "status": "waiting",
   "min_players": 2,
   "max_players": 2,
   "current_player_index": 0,
-  "game_type": "tictactoe",
   "players": [],
   "board": ["", "", "", "", "", "", "", "", ""],
-  "winner": null
+  "winner": null,
+  "created_at": "2024-06-01T12:00:00Z"
 }
 ```
 
-**Description**
-Creates a new game session of the specified type. Currently only supports "tictactoe" as the game type.
+**Description**  
+Creates a new game session for a specified game.
 
-### 3. Join Game Session
+---
+
+### 12. Join Game Session
 ```http
 POST /game_sessions/:id/join
 ```
@@ -80,7 +309,7 @@ POST /game_sessions/:id/join
 **Request Body**
 ```json
 {
-  "player_name": "Player 1"
+  "player_id": 1
 }
 ```
 
@@ -92,7 +321,6 @@ POST /game_sessions/:id/join
   "min_players": 2,
   "max_players": 2,
   "current_player_index": 0,
-  "game_type": "tictactoe",
   "players": [
     {
       "id": 1,
@@ -100,14 +328,17 @@ POST /game_sessions/:id/join
     }
   ],
   "board": ["", "", "", "", "", "", "", "", ""],
-  "winner": null
+  "winner": null,
+  "created_at": "2024-06-01T12:00:00Z"
 }
 ```
 
-**Description**
-Allows a player to join an existing game session. The game will start automatically when the minimum number of players (2 for Tic Tac Toe) has joined.
+**Description**  
+Allows a player to join an existing game session. The game starts automatically when minimum players join.
 
-### 4. Make Move
+---
+
+### 13. Make Move
 ```http
 POST /game_sessions/:id/move
 ```
@@ -128,7 +359,6 @@ POST /game_sessions/:id/move
   "min_players": 2,
   "max_players": 2,
   "current_player_index": 1,
-  "game_type": "tictactoe",
   "players": [
     {
       "id": 1,
@@ -140,14 +370,76 @@ POST /game_sessions/:id/move
     }
   ],
   "board": ["X", "", "", "", "", "", "", "", ""],
-  "winner": null
+  "winner": null,
+  "created_at": "2024-06-01T12:00:00Z"
 }
 ```
 
-**Description**
-Allows a player to make a move in the game. The position parameter represents the board position (0-8) where the move should be made.
+**Description**  
+Allows a player to make a move in the game. Position is the board index (0-8).
 
-### 5. Cleanup Unused Game Sessions
+---
+
+### 14. Update Game Session (e.g., for status updates)
+```http
+PATCH /game_sessions/:id
+```
+
+**Request Body**
+```json
+{
+  "status": "finished",
+  "winner": 1
+}
+```
+
+**Response**
+```json
+{
+  "id": 1,
+  "status": "finished",
+  "min_players": 2,
+  "max_players": 2,
+  "current_player_index": 1,
+  "players": [
+    {
+      "id": 1,
+      "name": "Player 1"
+    },
+    {
+      "id": 2,
+      "name": "Player 2"
+    }
+  ],
+  "board": ["X", "O", "X", "O", "X", "O", "O", "X", "X"],
+  "winner": 1,
+  "created_at": "2024-06-01T12:00:00Z"
+}
+```
+
+**Description**  
+Updates game session properties such as status or winner.
+
+---
+
+### 15. Delete Game Session
+```http
+DELETE /game_sessions/:id
+```
+
+**Response**
+```json
+{
+  "message": "Game session deleted successfully"
+}
+```
+
+**Description**  
+Deletes a specified game session.
+
+---
+
+### 16. Cleanup Unused Game Sessions
 ```http
 POST /game_sessions/cleanup
 ```
@@ -155,85 +447,132 @@ POST /game_sessions/cleanup
 **Request Body**
 ```json
 {
-  "before": "2024-03-26T00:00:00Z"
+  "before": "2024-06-01T00:00:00Z"
 }
 ```
 
 **Response**
 ```json
 {
-  "message": "Deleted 5 unused game sessions created before 2024-03-26T00:00:00Z",
-  "deleted_count": 5
+  "message": "Deleted 3 unused game sessions created before 2024-06-01T00:00:00Z",
+  "deleted_count": 3
 }
 ```
 
-**Description**
-Deletes all game sessions that:
-- Were created before the specified date
-- Have no players (haven't been joined)
-- Are in 'waiting' status
+**Description**  
+Deletes game sessions that are in 'waiting' status, have no players, and were created before the specified date.
 
-## Response Status Codes
+---
 
-- `200 OK`: Request successful
-- `400 Bad Request`: Invalid request parameters
-- `404 Not Found`: Resource not found
-- `422 Unprocessable Entity`: Validation error
-- `500 Internal Server Error`: Server error
+# HTTP Status Codes Summary
 
-## Error Response Format
+- `200 OK`: Request succeeded.
+- `201 Created`: Resource created successfully.
+- `204 No Content`: Resource deleted successfully.
+- `400 Bad Request`: Invalid request parameters or malformed request.
+- `401 Unauthorized`: Authentication required or failed.
+- `403 Forbidden`: Insufficient permissions.
+- `404 Not Found`: Resource not found.
+- `422 Unprocessable Entity`: Validation errors.
+- `500 Internal Server Error`: Server error.
+
+---
+
+# Error Response Format
+
 ```json
 {
-  "error": "Error message description"
+  "error": "Error message describing what went wrong"
 }
 ```
 
-## Game Session States
-1. `waiting`: Initial state, waiting for players to join
-2. `active`: Game is in progress
-3. `finished`: Game has ended (either won or drawn)
+---
 
-## Board Position Mapping
-The board is represented as a 9-element array where positions are mapped as follows:
-```
-0 | 1 | 2
----------
-3 | 4 | 5
----------
-6 | 7 | 8
-```
-
-## TypeScript Types for API Responses
+# TypeScript Interfaces
 
 ```typescript
+// Authentication
+interface RegisterRequest {
+  username: string;
+  password: string;
+}
+
+interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+// User
+interface User {
+  id: number;
+  username: string;
+  created_at: string; // ISO 8601 date string
+}
+
+interface UpdateUserRequest {
+  username?: string;
+}
+
+// Player
 interface Player {
   id: number;
   name: string;
+  user_id: number;
 }
+
+interface CreatePlayerRequest {
+  name: string;
+}
+
+interface UpdatePlayerRequest {
+  name?: string;
+}
+
+// Game
+interface Game {
+  id: number;
+  name: string;
+  min_players: number;
+  max_players: number;
+}
+
+// Game Session
+type GameSessionStatus = 'waiting' | 'active' | 'finished';
 
 interface GameSession {
   id: number;
-  status: 'waiting' | 'active' | 'finished';
+  game_id: number;
+  status: GameSessionStatus;
   min_players: number;
   max_players: number;
   current_player_index: number;
-  game_type: 'tictactoe';
   players: Player[];
-  board: string[];
-  winner: number | null;
+  board: string[]; // e.g., ["", "X", "O", ...]
+  winner: number | null; // player id or null
+  created_at: string; // ISO 8601 date string
 }
 
 interface CreateGameSessionRequest {
-  game_type: 'tictactoe';
+  game_id: number;
 }
 
 interface JoinGameSessionRequest {
-  player_name: string;
+  player_id: number;
 }
 
 interface MakeMoveRequest {
   player_id: number;
-  position: number;
+  position: number; // 0-8 board index
+}
+
+interface UpdateGameSessionRequest {
+  status?: GameSessionStatus;
+  winner?: number | null;
 }
 
 interface CleanupRequest {
@@ -241,9 +580,10 @@ interface CleanupRequest {
 }
 ```
 
-## Implementation Notes
-- Game sessions are stored in memory and will be lost when the server restarts
-- Player IDs are assigned sequentially starting from 1
-- The first player to join uses X, the second player uses O
-- The game automatically starts when the minimum number of players (2) joins
-- The game ends when there's a winner or a draw 
+---
+
+# Notes
+
+- All endpoints requiring authentication expect a Bearer token in the `Authorization` header.
+- Player IDs are linked to user accounts.
+- Game-specific logic, such as board layouts and turn sequencing, is defined per game and not part of this shared API documentation.

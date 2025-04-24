@@ -19,6 +19,7 @@
   - [Installation](#installation)
   - [Running the Server](#running-the-server)
     - [CSRF Protection Configuration](#csrf-protection-configuration)
+    - [RESTful API Design](#restful-api-design)
   - [Testing](#testing)
     - [Test Directory Structure](#test-directory-structure)
       - [Key Test Files](#key-test-files)
@@ -54,6 +55,8 @@ A simple game server built with Ruby on Rails, designed to handle multiplayer ga
 - UUID-based identifiers for Player and Token models
 - Role-based access (admin vs player)
 - JSON API with consistent top-level "data" wrapper
+- Fully RESTful API for managing game resources (sessions, players, turns)
+- Custom member routes for domain-specific actions (`start`, `join`, `leave`) with semantic HTTP verbs
 
 ## Game Configuration
 
@@ -189,6 +192,19 @@ ENABLE_CSRF_PROTECTION=false rails server
 - CSRF protection is disabled by default to simplify local development and testing
 - When deploying to production, consider enabling CSRF protection if your API will be accessed from web browsers
 - For API-only applications accessed by mobile apps or other services, CSRF protection is typically not needed
+
+### RESTful API Design
+
+The server adheres to REST principles for clarity and consistency. Resources are exposed via standard HTTP methods:
+
+- `POST /api/games/:game_id/sessions`: Create a new game session
+- `GET /api/games/:game_id/sessions/:id`: Show a specific session
+- `PUT /api/games/:game_id/sessions/:id`: Update a session's state
+- `POST /api/games/:game_id/sessions/:id/start`: Start the session (creator only)
+- `POST /api/games/:game_id/sessions/:id/join`: Join the session as a player
+- `POST /api/games/:game_id/sessions/:id/leave`: Leave the session
+
+These member routes allow domain-specific state transitions (e.g., starting or joining a session) while maintaining a RESTful structure.
 
 ## Testing
 
