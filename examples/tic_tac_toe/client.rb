@@ -1,9 +1,18 @@
 require "net/http"
 require "json"
 require "uri"
+require "yaml"
 require_relative "config"
 require_relative "game_session"
 require_relative "result"
+
+config_path = File.join(__dir__, "config.yml")
+unless File.exist?(config_path)
+  abort("[ERROR] config.yml not found at #{config_path}")
+end
+
+CONFIG = YAML.load_file(config_path)
+puts "[DEBUG] Loaded CONFIG from #{config_path}: #{CONFIG.inspect}"
 
 class HttpClient
   def initialize(server_url, token = nil)
@@ -81,30 +90,12 @@ class GameClient
     @token = nil
   end
 
-  def register(email, password)
-    response = @http.post("/api/players", {
-                            user: {
-                              email: email,
-                              password: password,
-                              password_confirmation: password
-                            }
-                          })
-
-    if response["token"]
-      @token = response["token"]
-      @http = HttpClient.new(@http.instance_variable_get(:@server_url), @token)
-      puts "Successfully registered user #{response['user']['email']}"
-      Result.success(response)
-    else
-      error_message = extract_error_message(response.to_json)
-      puts "Failed to register: #{error_message}"
-      Result.failure(error_message)
-    end
-  end
 
   def login(email, password)
+    puts "[DEBUG] Logging in with email=#{email}"
     response = @http.post("/api/sessions", { email: email, password: password })
-    @token = response["token"]
+    puts "[DEBUG] Login response: #{response.inspect}"
+    @token = response["access_token"]
     @http = HttpClient.new(@http.instance_variable_get(:@server_url), @token)
   end
 
@@ -113,26 +104,31 @@ class GameClient
     Player.new(response)
   end
 
-  def create_game_session(player_id, game_name = "Tic-Tac-Toe")
-    response = @http.post("/api/game_sessions/create/#{player_id}", {
-                            game_session: {
-                              game_name: game_name
-                            }
+  def create_game_session(game_name_override = nil)
+    game_name = CONFIG["game_name"]
+    raise "Missing game_name in config.yml" unless game_name
+    puts "[DEBUG] Creating game session for game_name=#{game_name}"
+    response = @http.post("/api/game_sessions", {
+                            game_session: { game_name: game_name }
                           })
     GameSession.new(response)
   end
 
   def join_game_session(player_id, game_session_id)
+    puts "[DEBUG] Joining game session #{game_session_id} as player #{player_id}"
     response = @http.post("/api/game_sessions/#{game_session_id}/join/#{player_id}")
     GameSession.new(response)
   end
 
   def list_game_sessions
+    puts "[DEBUG] Fetching list of game sessions"
     response = @http.get("/api/game_sessions")
     response.map { |session| GameSession.new(session) }
   end
 
   def update_game_state(game_session_id, state, status = :active, winner = nil)
+    puts "[DEBUG] Updating game state for session #{game_session_id}, status=#{status}, winner=#{winner.inspect}"
+    puts "[DEBUG] State: #{state.inspect}"
     state["winner"] = winner if winner
     response = @http.put("/api/game_sessions/#{game_session_id}", {
                            game_session: {
@@ -147,6 +143,7 @@ class GameClient
   end
 
   def get_game_session(game_session_id)
+    puts "[DEBUG] Getting game session #{game_session_id}"
     return Result.failure("No game session ID provided") unless game_session_id
 
     begin
@@ -160,6 +157,7 @@ class GameClient
 
   def start_game(game_session_id, player_id = nil)
     puts "Starting game with session_id: #{game_session_id}, player_id: #{player_id}"
+    puts "[DEBUG] Starting game for session #{game_session_id}, player_id=#{player_id}"
     request_body = {}
     request_body[:player_id] = player_id if player_id
 
@@ -171,6 +169,7 @@ class GameClient
   end
 
   def leave_game(game_session_id, player_id)
+    puts "[DEBUG] Leaving game session #{game_session_id} as player #{player_id}"
     return Result.failure("No game session ID or player ID provided") unless game_session_id && player_id
 
     @http.delete("/api/game_sessions/#{game_session_id}/leave?player_id=#{player_id}")
