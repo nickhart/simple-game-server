@@ -1,6 +1,13 @@
 module Api
   class PlayersController < BaseController
-    rescue_from ActiveRecord::RecordNotFound, with: -> { render_not_found("Player not found") }
+    def current
+      player = current_user.player
+      if player
+        render_success(player)
+      else
+        render_error("No player found for current user", status: :not_found)
+      end
+    end
 
     def show
       return me if params[:id] == "me"
