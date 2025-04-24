@@ -14,9 +14,10 @@ Rails.application.routes.draw do
     resources :users, only: %i[create show update destroy]
     get "users/me", to: "users#me"
 
-    resources :sessions, only: %i[create destroy] do
-      post :refresh, on: :collection
-    end
+    # Token-based authentication routes
+    post   "tokens/login",   to: "tokens#create"
+    post   "tokens/refresh", to: "tokens#refresh"
+    delete "tokens/logout",  to: "tokens#destroy"
 
     # Player profile
     resources :players, only: %i[create show] do
@@ -24,12 +25,11 @@ Rails.application.routes.draw do
     end
 
     # Public games
-    resources :games, only: %i[index show], param: :name do
-      resources :sessions, controller: "games/sessions", only: %i[index show create] do
+    resources :games, only: %i[index show] do
+      resources :sessions, controller: "games/sessions", only: %i[index show create update] do
         member do
           post :join
           post :start
-          post :move
           delete :leave
         end
       end
@@ -44,7 +44,7 @@ Rails.application.routes.draw do
         end
       end
 
-      resources :games, only: %i[create update destroy], param: :name do
+      resources :games, only: %i[create update destroy] do
         post :schema, on: :member
       end
 

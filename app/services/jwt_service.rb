@@ -40,4 +40,11 @@ class JwtService
   rescue JWT::DecodeError
     nil
   end
+
+  def self.issue_tokens_for(user)
+    access_token = encode(user)
+    refresh_payload = build_payload_from_user(user).merge(jti: SecureRandom.uuid, exp: 30.days.from_now.to_i)
+    refresh_token = encode(refresh_payload)
+    [access_token, refresh_token]
+  end
 end

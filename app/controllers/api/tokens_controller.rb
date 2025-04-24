@@ -16,36 +16,39 @@ module Api
         refresh_token = Token.create_refresh_token(user)
 
         render_success({
-          access_token: access_token.user.to_jwt(access_token),
-          refresh_token: refresh_token.user.to_jwt(refresh_token),
-          user: {
-            id: user.id,
-            email: user.email,
-            role: user.role
-          }
-        })
+                         access_token: access_token.user.to_jwt(access_token),
+                         refresh_token: refresh_token.user.to_jwt(refresh_token),
+                         user: {
+                           id: user.id,
+                           email: user.email,
+                           role: user.role
+                         }
+                       })
       else
         render_unauthorized("Invalid email or password")
       end
     end
 
     def refresh
-      refresh_token = params[:refresh_token] || params.dig(:session, :refresh_token)
-      return render_unauthorized("Refresh token is required") unless refresh_token
+      begin
+        token_params = params.require(:token).permit(:refresh_token)
+      rescue ActionController::ParameterMissing
+        return render_bad_request("Refresh token is required")
+      end
 
+      refresh_token = token_params[:refresh_token]
       payload = JwtService.decode(refresh_token)
       user = verify_refresh_token(payload)
 
       if user
         access_token = Token.create_access_token(user)
         render_success({
-          access_token: access_token.user.to_jwt(access_token)
-        })
+                         access_token: access_token.user.to_jwt(access_token)
+                       })
       else
         render_unauthorized("Invalid refresh token")
       end
-    rescue JWT::DecodeError, ActiveRecord::RecordNotFound => e
-      # Debug: Log exception e.message here for troubleshooting invalid refresh token errors
+    rescue JWT::DecodeError, ActiveRecord::RecordNotFound
       render_unauthorized("Invalid refresh token")
     end
 

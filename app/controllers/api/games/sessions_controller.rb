@@ -12,17 +12,20 @@ module Api
       def show
         game_session = GameSession.find(params[:id])
         # Optional: validate access rights
-        unless game_session.players.include?(current_user.player)
-          head :forbidden and return
-        end
+        head :forbidden and return unless current_user.player && game_session.players.include?(current_user.player)
+
         render_success(game_session)
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
       end
 
       def create
+        Rails.logger.debug { "GameSessionsController#create - Current.user: #{Current.user.inspect}" }
         game = Game.find(params[:game_id])
-        game_session = game.game_sessions.create!(player: current_user.player)
+        return render_unprocessable_entity("No associated player") unless current_user.player
+
+        game_session = game.game_sessions.create!(creator: current_user.player)
+        game_session.players << current_user.player
         render_created(game_session)
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game")
@@ -33,7 +36,7 @@ module Api
       def update
         game_session = GameSession.find(params[:id])
         # TODO: Add authorization logic here if needed
-        unless game_session.players.include?(current_user.player)
+        unless current_user.player && game_session.players.include?(current_user.player)
           return render_forbidden("Not authorized to update this game session")
         end
 
@@ -48,9 +51,7 @@ module Api
 
       def join
         game_session = GameSession.find(params[:id])
-        unless current_user.player
-          return render_unprocessable_entity("No associated player")
-        end
+        return render_unprocessable_entity("No associated player") unless current_user.player
 
         if game_session.add_player(current_user.player)
           render_success(game_session)
@@ -63,17 +64,37 @@ module Api
 
       def leave
         game_session = GameSession.find(params[:id])
-        unless current_user.player
-          return render_unprocessable_entity("No associated player")
-        end
+        return render_unprocessable_entity("No associated player") unless current_user.player
 
-        if game_session.remove_player(current_user.player)
+        if game_session.players.destroy(current_user.player)
           render_success(message: "Left the game session")
         else
           render_forbidden("Unable to leave game session")
         end
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
+      end
+
+      def start
+        game_session = GameSession.find(params[:id])
+
+        unless current_user.player && game_session.creator == current_user.player
+          return render_forbidden("Not authorized to start this game session")
+        end
+
+        return render_unprocessable_entity("Game session is not in a waiting state") if game_session.status != "waiting"
+
+        player_count = game_session.players.count
+        if player_count < game_session.game.min_players || player_count > game_session.game.max_players
+          return render_unprocessable_entity("Invalid number of players to start the game")
+        end
+
+        game_session.update!(status: "active")
+        render_success(game_session)
+      rescue ActiveRecord::RecordNotFound
+        render_not_found("Game session")
+      rescue ActiveRecord::RecordInvalid => e
+        render_unprocessable_entity(e.record)
       end
 
       private

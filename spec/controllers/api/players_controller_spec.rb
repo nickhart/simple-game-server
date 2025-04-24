@@ -36,7 +36,7 @@ RSpec.describe Api::PlayersController, type: :controller do
 
     context "when unauthenticated" do
       it "returns unauthorized" do
-        sign_out user
+        request.headers["Authorization"] = nil
         post :create, params: { player: { name: "Hacker" } }, as: :json
         expect(response).to have_http_status(:unauthorized)
       end

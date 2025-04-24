@@ -57,28 +57,35 @@ module Api
     # Renders a standardized not found response
     #
     # @param resource [String] the name of the resource not found (default: "Resource")
-    def render_not_found(resource = "Resource")
-      render_error("#{resource} not found", status: :not_found)
+    # @param message [String, nil] optional custom error message
+    def render_not_found(resource = "Resource", message = nil)
+      render_error(message || "#{resource} not found", status: :not_found)
     end
 
     # Renders a standardized unauthorized response
-    def render_unauthorized
-      render_error("Unauthorized", status: :unauthorized)
+    #
+    # @param message [String] the error message (default: "Unauthorized")
+    def render_unauthorized(message = "Unauthorized")
+      render_error(message, status: :unauthorized)
     end
 
     # Renders a standardized forbidden response
     #
     # @param message [String] the error message (default: "Forbidden")
     def render_forbidden(message = "Forbidden")
-      render json: { error: message }, status: :forbidden
+      render_error(message, status: :forbidden)
     end
-        
+
     # Renders a standardized internal server error response
     #
     # @param message [String] the error message (default: "Internal server error")
     def render_internal_error(message = "Internal server error")
       render_error(message, status: :internal_server_error)
-    end    
+    end
+
+    def render_bad_request(message = "Bad request")
+      render_error(message, status: :bad_request)
+    end
 
     def ensure_json_request
       # Accept if content type is application/json or if the request format is json
@@ -101,34 +108,35 @@ module Api
     end
 
     def authenticate_user!
-      authenticated = authenticate_or_request_with_http_token do |token, _options|
-        begin
-          payload, = JwtService.decode(token)
-          payload = payload.with_indifferent_access
-          @current_user = User.find(payload[:user_id])
-
-          token_record = Token.find_by(jti: payload[:jti])
-          if token_record&.expired?
-            render_error("Token has expired", status: :unauthorized)
-            false
-          elsif payload[:token_version] != @current_user.token_version
-            render_error("Token has been invalidated", status: :unauthorized)
-            false
-          elsif payload[:role] != @current_user.role
-            render_error("User role has changed, please log in again", status: :unauthorized)
-            false
-          else
-            Current.user = @current_user
-            true
-          end
-        rescue JWT::ExpiredSignature
-          render_error("Token has expired", status: :unauthorized)
-          false
-        rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-          render_error("Invalid token", status: :unauthorized)
-          false
-        end
+      authenticate_or_request_with_http_token do |token, _options|
+        @current_user = decoded_user_from_token(token)
+        Current.user = @current_user
+        true
       end
+    rescue JWT::ExpiredSignature
+      Rails.logger.debug "JWT expired"
+      render_error("Token has expired", status: :unauthorized)
+      false
+    rescue JWT::DecodeError, ActiveRecord::RecordNotFound => e
+      Rails.logger.debug { "JWT decode failed or user not found: #{e.class} - #{e.message}" }
+      render_error("Invalid token", status: :unauthorized)
+      false
+    end
+
+    def decoded_user_from_token(token)
+      payload, = JwtService.decode(token)
+      payload = payload.with_indifferent_access
+      user = User.find(payload[:user_id])
+
+      Rails.logger.debug { "Decoded JWT payload: #{payload.inspect}" }
+      Rails.logger.debug { "Found user: #{user.inspect}" }
+
+      token_record = Token.find_by(jti: payload[:jti])
+      validate_token_record!(token_record, payload)
+      validate_token_version!(user, payload)
+      validate_token_role!(user, payload)
+
+      user
     end
 
     def authorize_admin!
@@ -142,6 +150,30 @@ module Api
     # Global rescue for ActiveRecord::RecordNotFound
     rescue_from ActiveRecord::RecordNotFound do |exception|
       render_not_found(exception.model)
+    end
+
+    def validate_token_record!(token_record, payload)
+      if token_record&.expired?
+        Rails.logger.debug { "Token expired: jti=#{payload[:jti]}" }
+        render_error("Token has expired", status: :unauthorized)
+        raise JWT::ExpiredSignature
+      end
+    end
+
+    def validate_token_version!(user, payload)
+      if payload[:token_version] != user.token_version
+        Rails.logger.debug { "Token version mismatch: #{payload[:token_version]} != #{user.token_version}" }
+        render_error("Token has been invalidated", status: :unauthorized)
+        raise JWT::DecodeError
+      end
+    end
+
+    def validate_token_role!(user, payload)
+      if payload[:role] != user.role
+        Rails.logger.debug { "Role mismatch: #{payload[:role]} != #{user.role}" }
+        render_error("User role has changed, please log in again", status: :unauthorized)
+        raise JWT::DecodeError
+      end
     end
   end
 end

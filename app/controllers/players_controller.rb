@@ -4,13 +4,20 @@ class PlayersController < ApplicationController
   end
 
   def create
-    # TODO: rewrite this controller.
-    #    @player = Player.new(player_params)
+    @player = Player.new(player_params)
 
     if @player.save
       redirect_to new_user_session_path, notice: t(".account_created")
     else
       render :new, status: :unprocessable_entity
+    end
+  end
+
+  def me
+    if current_user&.player
+      render_success(current_user.player)
+    else
+      render_not_found("Player not found")
     end
   end
 
