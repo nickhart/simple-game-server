@@ -29,8 +29,44 @@ RSpec.describe Api::PlayersController, type: :controller do
           post :create, as: :json
         }.not_to change(Player, :count)
 
-        expect(response).to have_http_status(:unprocessable_content)
+        expect(response).to have_http_status(:unprocessable_entity)
         expect(JSON.parse(response.body)["error"]).to match(/Player already exists/)
+      end
+    end
+
+    context "when unauthenticated" do
+      it "returns unauthorized" do
+        sign_out user
+        post :create, params: { player: { name: "Hacker" } }, as: :json
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+
+  describe "GET #show" do
+    let(:user) { create(:user, role: "player") }
+    let!(:player) { create(:player, user: user, name: "MePlayer") }
+
+    context "as the authenticated user" do
+      before { sign_in user }
+
+      it "returns the current player's info when using :me" do
+        get :show, params: { id: "me" }, as: :json
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)["data"]["name"]).to eq("MePlayer")
+      end
+
+      it "does not allow accessing another player's record" do
+        other_player = create(:player)
+        get :show, params: { id: other_player.id }, as: :json
+        expect(response).to have_http_status(:forbidden).or have_http_status(:not_found)
+      end
+    end
+
+    context "when unauthenticated" do
+      it "returns unauthorized for :me" do
+        get :show, params: { id: "me" }, as: :json
+        expect(response).to have_http_status(:unauthorized)
       end
     end
   end

@@ -1,50 +1,41 @@
 Rails.application.routes.draw do
   devise_for :users
+
+  # Public root path for web (optional)
   root "game_sessions#index"
 
-  # Web player registration
+  # Web views for registration
   resources :users, only: %i[new create]
   resources :players, only: %i[new create]
 
-  resources :game_sessions do
-    member do
-      post :join
-    end
-  end
-
-  # Add cleanup endpoint
-  post "game_sessions/cleanup", to: "game_sessions#cleanup"
-
-  # API routes
+  # Public API
   namespace :api do
-    # Game routes
-    resources :games
+    # Auth routes
+    resources :users, only: %i[create show update destroy]
+    get "users/me", to: "users#me"
 
-    # Authentication routes
     resources :sessions, only: %i[create destroy] do
       post :refresh, on: :collection
     end
 
+    # Player profile
     resources :players, only: %i[create show] do
-      get :current, on: :collection
+      get :me, on: :collection
     end
 
-    resources :game_sessions do
-      member do
-        post :join
-        post :move
-        post :start
-        delete :leave
-      end
-      collection do
-        post :cleanup
+    # Public games
+    resources :games, only: %i[index show], param: :name do
+      resources :sessions, controller: "games/sessions", only: %i[index show create] do
+        member do
+          post :join
+          post :start
+          post :move
+          delete :leave
+        end
       end
     end
 
-    resources :users, only: %i[create show update destroy]
-    get "users/me", to: "users#me"
-
-    # Admin routes
+    # Admin namespace
     namespace :admin do
       resources :users, only: %i[index show update create] do
         member do
@@ -52,19 +43,19 @@ Rails.application.routes.draw do
           post :remove_admin
         end
       end
+
+      resources :games, only: %i[create update destroy], param: :name do
+        post :schema, on: :member
+      end
+
+      resources :game_sessions, only: %i[destroy] do
+        collection do
+          post :cleanup
+        end
+      end
     end
   end
 
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Health check
   get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
-
-  # Defines the root path route ("/")
-  # root "posts#index"
 end

@@ -1,15 +1,21 @@
 module Api
-  class SessionsController < BaseController
+  # TokensController handles user sessions and authentication, including token creation, refresh, and invalidation.
+  class TokensController < BaseController
     skip_before_action :authenticate_user!, only: %i[create refresh]
 
     def create
-      session_params = params.require(:session).permit(:email, :password)
+      begin
+        session_params = params.require(:session).permit(:email, :password)
+      rescue ActionController::ParameterMissing, ActionController::UnpermittedParameters
+        return render_bad_request("Invalid session parameters")
+      end
+
       user = User.find_by(email: session_params[:email])
       if user&.valid_password?(session_params[:password])
         access_token = Token.create_access_token(user)
         refresh_token = Token.create_refresh_token(user)
 
-        render json: {
+        render_success({
           access_token: access_token.user.to_jwt(access_token),
           refresh_token: refresh_token.user.to_jwt(refresh_token),
           user: {
@@ -17,27 +23,30 @@ module Api
             email: user.email,
             role: user.role
           }
-        }
+        })
       else
-        render_error("Invalid email or password", status: :unauthorized)
+        render_unauthorized("Invalid email or password")
       end
     end
 
     def refresh
       refresh_token = params[:refresh_token] || params.dig(:session, :refresh_token)
-      return render_error("Refresh token is required", status: :unauthorized) unless refresh_token
+      return render_unauthorized("Refresh token is required") unless refresh_token
 
       payload = JwtService.decode(refresh_token)
       user = verify_refresh_token(payload)
 
       if user
         access_token = Token.create_access_token(user)
-        render json: { access_token: access_token.user.to_jwt(access_token) }
+        render_success({
+          access_token: access_token.user.to_jwt(access_token)
+        })
       else
-        render_error("Invalid refresh token", status: :unauthorized)
+        render_unauthorized("Invalid refresh token")
       end
-    rescue JWT::DecodeError, ActiveRecord::RecordNotFound
-      render_error("Invalid refresh token", status: :unauthorized)
+    rescue JWT::DecodeError, ActiveRecord::RecordNotFound => e
+      # Debug: Log exception e.message here for troubleshooting invalid refresh token errors
+      render_unauthorized("Invalid refresh token")
     end
 
     def destroy
