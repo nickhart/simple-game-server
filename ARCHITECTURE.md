@@ -71,8 +71,9 @@ Controllers are namespaced under `Api::` to reflect API-only architecture.
   - `show`: Retrieve details of a specific game session
   - `create`: Create a new game session
   - `join`: Join an existing game session
-  - `start`: Start a game session
-  - `update`: Update game state (e.g., moves, status)
+  - `start`: Start a game session (only the creator can do this; requires the session to be in `waiting` status and player count within limits)
+  - `move`: Submit a player's move during their turn
+  - `update`: Update game state or status (generic updates)
   - `leave`: Leave a game session
   - `cleanup`: Remove unused or stale game sessions
 
@@ -167,6 +168,8 @@ The API is documented in two formats:
 - `player_id` and other IDs use UUID format
 - Authentication via Bearer tokens in headers
 - Role-based access enforced on endpoints
+- Only the game session creator can call `start`
+- `move` actions are expected to be submitted via `PUT /api/games/:game_id/sessions/:id`
 
 ## Authentication Flow
 
