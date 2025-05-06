@@ -1,17 +1,27 @@
-require_relative "client"
+require_relative "../lib/services"
+require_relative "../lib/api_client"
+require_relative "../lib/config_loader"
+require_relative "../lib/clients/tokens_client"
+require_relative "../lib/clients/games_client"
+require_relative "../lib/services"
 require_relative "game"
+require_relative "game_session"
 require_relative "player"
 require "optparse"
 
+CONFIG = ConfigLoader.load!(%w[game_name], config_dir: __dir__)
+GAME_NAME = CONFIG["game_name"]
+
 class TicTacToeCLI
   def initialize
-    @client = GameClient.new
     @current_player = nil
+    @game_id = nil
   end
 
   def run
     parse_options
     login
+    set_game_id
     handle_game_command
   end
 
@@ -80,18 +90,36 @@ class TicTacToeCLI
 
   def login
     if @options[:email] && @options[:password]
-      # Use command line credentials
       email = @options[:email]
       password = @options[:password]
     else
-      # Prompt for credentials
       email = prompt("Enter your email: ")
       password = prompt("Enter your password: ", secret: true)
     end
 
-    @client.login(email, password)
-    @current_player = @client.current_player
-    puts "Logged in as #{@current_player.name}"
+    # Perform authentication to get JWT
+    raw_api = ApiClient.new(CONFIG["api_url"])
+    auth_client = TokensClient.new(raw_api)
+    token_result = auth_client.login(email, password)
+    return puts "Login failed: #{token_result.error}" if token_result.failure?
+
+    Services.setup(api_url: CONFIG["api_url"], token: token_result.data)
+
+    current_result = Services.players.me
+    return puts "Could not fetch current player: #{current_result.error}" if current_result.failure?
+
+    @current_player = current_result.data
+    puts "Logged in as #{@current_player.inspect}"
+  end
+
+  def set_game_id
+    games = GamesClient.new(Services.api_client)
+    result = games.find_by_name(GAME_NAME)
+    if result.failure?
+      puts "Error: Could not find game named '#{GAME_NAME}'. Reason: #{result.error}"
+      exit 1
+    end
+    @game_id = result.data["id"]
   end
 
   def handle_game_command
@@ -130,7 +158,11 @@ class TicTacToeCLI
   end
 
   def create_game
-    game_session = @client.create_game_session(@current_player.id)
+    result = Services.sessions.create(@game_id)
+    return puts "Error creating game session: #{result.error}" if result.failure?
+
+    game_session = GameSession.new(result.data)
+    puts "game_session: #{game_session}"
     puts "Game created with ID: #{game_session.id}"
     puts "Waiting for another player to join..."
 
@@ -143,7 +175,7 @@ class TicTacToeCLI
   def wait_for_players(game_session)
     loop do
       # Refresh the game session to get the latest player count
-      result = @client.get_game_session(game_session.id)
+      result = Services.sessions.get(game_session.game_id, game_session.id)
 
       if result.failure?
         puts "Error refreshing game session: #{result.error}"
@@ -151,7 +183,7 @@ class TicTacToeCLI
         next
       end
 
-      updated_session = result.data
+      updated_session = GameSession.new(result.data)
 
       if updated_session.players.size >= 2
         puts "Another player has joined! Starting the game..."
@@ -165,50 +197,64 @@ class TicTacToeCLI
 
   def start_game(game_session)
     # Refresh the game session to get the latest state
-    updated_session = @client.get_game_session(game_session.id).data
+    result = Services.sessions.get(game_session.game_id, game_session.id)
+    return puts "Error refreshing game session: #{result.error}" if result.failure?
+
+    game_session = GameSession.new(result.data)
 
     # Start the game on the server
-    result = @client.start_game(updated_session.id, @current_player.id)
+    start_result = Services.sessions.start(game_session.game_id, game_session.id)
+    return puts "Failed to start game: #{start_result.error}" if start_result.failure?
 
-    if result.success?
+    game_session = GameSession.new(start_result.data)
+
+    if game_session.status == "active"
       puts "Game started successfully!"
-      game = Game.new(@client, result.data)
+      game = Game.new(game_session)
       game.play
     else
-      puts "Failed to start game: #{result.error}"
+      puts "Failed to start game: #{game_session.inspect}"
     end
   end
 
   def join_game
-    game_sessions = @client.list_game_sessions
-    if game_sessions.empty?
-      puts "No available games"
+    result = Services.sessions.list(@game_id)
+    return puts "Error listing game sessions: #{result.error}" if result.failure?
+
+    sessions_array = result.data  
+    game_sessions = sessions_array.map do |session_data|
+      GameSession.new(session_data)
+    end
+
+    game_session = if @options[:game_id]
+                    game_sessions.find { |s| s.id.to_s == @options[:game_id].to_s }
+                   else
+                    game_sessions.select { |s| s.status == "waiting" }.max_by(&:id)
+                   end
+
+    unless game_session
+      puts "No available matching game session to join"
       return
     end
 
-    if @options[:game_id]
-      # Join specific game
-      game_session = @client.join_game_session(@current_player.id, @options[:game_id])
-    else
-      # Join newest waiting game
-      game_session = find_newest_waiting_game(game_sessions)
-      return unless game_session
-    end
+    join_result = Services.sessions.join(@game_id, game_session.id)
+    return puts "Failed to join game session: #{join_result.error}" if join_result.failure?
 
+    game_session = GameSession.new(join_result.data)
     puts "Joined game with ID: #{game_session.id}"
     puts "Waiting for the game creator to start the game..."
 
     wait_for_game_start(game_session)
 
     # Start playing once the game has started
-    game = Game.new(@client, game_session)
+    game = Game.new(game_session)
     game.play
   end
 
   def wait_for_game_start(game_session)
     loop do
       # Refresh the game session to get the latest state
-      result = @client.get_game_session(game_session.id)
+      result = Services.sessions.get(game_session.game_id, game_session.id)
 
       if result.failure?
         puts "Error refreshing game session: #{result.error}"
@@ -216,9 +262,9 @@ class TicTacToeCLI
         next
       end
 
-      updated_session = result.data
+      updated_session = GameSession.new(result.data)
 
-      if updated_session.status == :active
+      if updated_session.status == "active"
         puts "Game has started! Let's play!"
         break
       end
@@ -228,26 +274,20 @@ class TicTacToeCLI
     end
   end
 
-  def find_newest_waiting_game(game_sessions)
-    waiting_sessions = game_sessions.select { |s| s.status == :waiting }
-    if waiting_sessions.empty?
-      puts "No waiting games found"
-      return nil
-    end
-    newest_session = waiting_sessions.max_by(&:id)
-    @client.join_game_session(@current_player.id, newest_session.id)
-  end
-
   def list_games
-    game_sessions = @client.list_game_sessions
+    result = Services.sessions.list(@game_id)
+    return puts "Error listing games: #{result.error}" if result.failure?
+
+    game_sessions = result.data
     if game_sessions.empty?
       puts "No available games"
       return
     end
 
     puts "\nAvailable games:"
-    game_sessions.each do |session|
-      puts "Game #{session['id']} (#{session['players'].size}/#{session['max_players']} players)"
+    game_sessions.each do |session_data|
+      session = GameSession.new(session_data)
+      puts "Game #{session.id} (#{session.players.size} players)"
     end
   end
 

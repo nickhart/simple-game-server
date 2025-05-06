@@ -1,11 +1,12 @@
-require "net/http"
-require "uri"
-require "json"
 require "yaml"
 require "optparse"
+require_relative "../lib/api_client"
+require_relative "../lib/config_loader"
+require_relative "../lib/clients/tokens_client"
+require_relative "../lib/clients/users_client"
+require_relative "../lib/clients/players_client"
 
-CONFIG = YAML.load_file(File.expand_path("config.yml", __dir__))
-
+CONFIG = ConfigLoader.load!(%w[api_url], config_dir: __dir__)
 API_URL = CONFIG["api_url"]
 
 options = {
@@ -22,77 +23,36 @@ end.parse!
 
 raise "Email and password are required" unless options[:email] && options[:password]
 
-def make_request(method_class, path, body = {}, headers = {})
-  uri = URI("#{API_URL}#{path}")
-  request = method_class.new(uri)
-  headers.each { |k, v| request[k] = v }
-  request.body = body.to_json unless body.empty?
-
-  response = Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(request) }
-
-  parsed = JSON.parse(response.body) rescue nil
-  unless response.is_a?(Net::HTTPSuccess)
-    raise "#{method_class.name} #{path} failed: #{response.code} - #{response.body}"
-  end
-
-  parsed
-end
-
-def post(path, body = {}, headers = {})
-  make_request(Net::HTTP::Post, path, body, headers.merge({ "Content-Type" => "application/json" }))
-end
-
-def login(email, password)
-  response = make_request(
-    Net::HTTP::Post,
-    "/api/sessions",
-    { email: email, password: password },
-    { "Content-Type" => "application/json" }
-  )
-
-  if response.is_a?(Hash) && response.key?("access_token")
-    response["access_token"]
-  elsif response.is_a?(Hash) && response.dig("data", "access_token")
-    response["data"]["access_token"]
-  else
-    raise "Login response did not contain an access_token"
-  end
-end
-
-def register_user(email, password)
-  begin
-    make_request(
-      Net::HTTP::Post,
-      "/api/users",
-      { user: { email: email, password: password } },
-      { "Content-Type" => "application/json" }
-    )
-  rescue RuntimeError => e
-    if e.message.include?("422") && e.message.include?("has already been taken")
-      return
-    else
-      raise
-    end
-  end
-end
-
-def create_player(token, email)
-  name = email.split("@").first
-  make_request(
-    Net::HTTP::Post,
-    "/api/players",
-    { player: { name: name } },
-    {
-      "Authorization" => "Bearer #{token}",
-      "Content-Type" => "application/json"
-    }
-  )
-end
+email = options[:email]
+password = options[:password]
 
 puts "Creating player..."
 
-register_user(options[:email], options[:password])
-token = login(options[:email], options[:password])
-create_player(token, options[:email])
+api = ApiClient.new(API_URL)
 
+# Create user account (non-admin)
+users = UsersClient.new(api)
+create_result = users.create(email, password)
+
+if create_result.failure?
+  unless create_result.error.include?("already exists")
+    raise "User creation failed: #{create_result.error}"
+  end
+  puts "⚠️ User already exists"
+end
+
+# Authenticate and get token
+token_result = TokensClient.new(api).login(email, password)
+raise "Login failed: #{token_result.error}" if token_result.failure?
+
+token = token_result.data
+puts "✅ Logged in"
+
+# Create player profile
+authed_api = api.with_token(token)
+players = PlayersClient.new(authed_api)
+name = email.split("@").first
+create_player_result = players.create(name)
+
+raise "Player creation failed: #{create_player_result.error}" if create_player_result.failure?
 puts "✅ Player created"

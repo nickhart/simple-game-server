@@ -14,7 +14,7 @@ module Api
         # Optional: validate access rights
         head :forbidden and return unless current_user.player && game_session.players.include?(current_user.player)
 
-        render_success(game_session)
+        render_success(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
       end
@@ -26,7 +26,7 @@ module Api
 
         game_session = game.game_sessions.create!(creator: current_user.player)
         game_session.players << current_user.player
-        render_created(game_session)
+        render_created(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game")
       rescue ActiveRecord::RecordInvalid => e
@@ -34,14 +34,16 @@ module Api
       end
 
       def update
+        puts "GameSessionsController#update id: #{params[:id]}"
         game_session = GameSession.find(params[:id])
+        puts "GameSessionsController#update game_session: #{game_session.inspect}"
         # TODO: Add authorization logic here if needed
         unless current_user.player && game_session.players.include?(current_user.player)
           return render_forbidden("Not authorized to update this game session")
         end
 
         if game_session.update(game_session_params)
-          render_success(game_session)
+          render_success(game_session.as_json.merge(game_id: game_session.game_id))
         else
           render_unprocessable_entity(game_session)
         end
@@ -54,7 +56,7 @@ module Api
         return render_unprocessable_entity("No associated player") unless current_user.player
 
         if game_session.add_player(current_user.player)
-          render_success(game_session)
+          render_success(game_session.as_json.merge(game_id: game_session.game_id))
         else
           render_forbidden("Unable to join game session")
         end
@@ -90,7 +92,7 @@ module Api
         end
 
         game_session.update!(status: "active")
-        render_success(game_session)
+        render_success(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
       rescue ActiveRecord::RecordInvalid => e
@@ -100,7 +102,7 @@ module Api
       private
 
       def game_session_params
-        params.require(:game_session).permit(:state, :status)
+        params.require(:game_session).permit(:state, :status, :current_player_index)
       end
     end
   end

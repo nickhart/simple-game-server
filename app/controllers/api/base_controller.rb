@@ -125,6 +125,8 @@ module Api
 
     def decoded_user_from_token(token)
       payload, = JwtService.decode(token)
+      raise JWT::DecodeError, "Nil payload" if payload.nil?
+
       payload = payload.with_indifferent_access
       user = User.find(payload[:user_id])
 

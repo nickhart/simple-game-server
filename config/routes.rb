@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   devise_for :users
 
   # Public root path for web (optional)
-  root "game_sessions#index"
+  # root "game_sessions#index"
 
   # Web views for registration
   resources :users, only: %i[new create]
@@ -11,8 +11,9 @@ Rails.application.routes.draw do
   # Public API
   namespace :api do
     # Auth routes
-    resources :users, only: %i[create show update destroy]
-    get "users/me", to: "users#me"
+    resources :users, only: %i[create show update destroy] do
+      get :me, on: :collection
+    end
 
     # Token-based authentication routes
     post   "tokens/login",   to: "tokens#create"
