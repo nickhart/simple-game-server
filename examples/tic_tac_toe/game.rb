@@ -1,19 +1,21 @@
-require_relative "client"
 require_relative "board"
-require_relative "result"
+require_relative "../lib/result"
+require_relative "../lib/services"
 require_relative "game_session"
 require_relative "player"
 
 class Game
-  attr_reader :client, :game_session, :current_player
+  attr_reader :game_session, :current_player
 
-  def initialize(client, game_session)
-    @client = client
+  def initialize(game_session)
     @game_session = game_session
   end
 
   def play
-    @current_player = @client.current_player
+    result = Services.players.me
+    return puts result.error unless result.success?
+    @current_player = Player.new(result.data)
+    
     puts "Welcome to Tic-Tac-Toe!"
     puts "You are player #{@game_session.players.find_index { |p| p.id == @current_player.id } + 1}"
     puts "Game ID: #{@game_session.id}"
@@ -22,9 +24,19 @@ class Game
       display_board
       break if game_over?
 
-      if @game_session.current_player_id == @current_player.id
-        result = player_move
-        break if result.game_over?
+      if @game_session.current_player.id == @current_player.id
+        res = player_move
+        if res.success?
+          # Inspect the payload your handlers put into data
+          if res.data[:game_over]
+            # Optional: print the message they returned
+            puts res.data[:message] if res.data[:message]
+            break
+          end
+        else
+          # Handle the validation or API error
+          puts res.error
+        end
       else
         wait_for_turn
       end
@@ -41,8 +53,13 @@ class Game
     puts "Waiting for your turn..."
     loop do
       sleep(1)
-      @game_session = @client.get_game_session(@game_session.id)
-      break if @game_session.current_player_id == @current_player.id || game_over?
+      result = Services.sessions.get(@game_session.game_id, @game_session.id)
+      if result.failure?
+        puts result.error
+        next
+      end
+      @game_session = GameSession.new(result.data)
+      break if @game_session.current_player.id == @current_player.id || game_over?
     end
   end
 
@@ -101,18 +118,23 @@ class Game
 
   def handle_winner(winner)
     player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, :finished, player_index)
+    result = @game_session.update_state(state: { board: @game_session.board.board }, status: :finished, winner: player_index)
+    return result unless result.success?
     Result.success(game_over: true, message: "Player #{winner} wins!")
   end
 
   def handle_draw
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board }, :finished)
+    result = @game_session.update_state(state: { board: @game_session.board.board }, status: :finished)
+    return result unless result.success?
     Result.success(game_over: true, message: "It's a draw!")
   end
 
   def handle_next_turn
-    @game_session.players.find { |p| p.id != @current_player.id }.id
-    @client.update_game_state(@game_session.id, { board: @game_session.board.board })
+    # current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
+    # next_index = (current_index + 1) % @game_session.players.size
+    
+    result = @game_session.update_state(state: { board: @game_session.board.board })
+    return result unless result.success?
     Result.success(game_over: false)
   end
 end
