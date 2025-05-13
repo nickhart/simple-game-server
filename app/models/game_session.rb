@@ -21,7 +21,7 @@ class GameSession < ApplicationRecord
   validate :creator_must_be_valid_player, if: :starting_game?
   validate :validate_player_count, if: :starting_game?
   validate :validate_state_matches_schema,
-         if: -> { state.present? && game&.state_json_schema.present? }
+           if: -> { state.present? && game&.state_json_schema.present? }
 
   before_validation :set_defaults
 
@@ -204,9 +204,7 @@ class GameSession < ApplicationRecord
     schemer = JSONSchemer.schema(parsed_schema)
 
     validation_errors = schemer.validate(state.deep_stringify_keys).to_a
-    unless validation_errors.empty?
-      errors.add(:state, :invalid_state)
-    end
+    errors.add(:state, :invalid_state) unless validation_errors.empty?
   rescue JSON::ParserError => e
     errors.add(:state, "schema parsing error: #{e.message}")
   end
