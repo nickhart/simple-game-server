@@ -7,6 +7,12 @@ RSpec.describe Api::Games::SessionsController, type: :controller, truncation: tr
   let(:user) { user_and_player[0] }
   let(:player) { user_and_player[1] }
   let(:game) { create(:game) }
+
+  # Example for finished game state validation:
+  # describe "GameSession validations is valid with a finished game state" do
+  #   let(:game) { create(:game, :with_board_and_winner_schema) }
+  #   # ... rest of the spec ...
+  # end
   let(:game_session) { create(:game_session, creator: player, game: game) }
 
 
@@ -131,6 +137,96 @@ RSpec.describe Api::Games::SessionsController, type: :controller, truncation: tr
       it "returns unauthorized" do
         put :update, params: valid_params
         expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "when authenticated and providing current_player_index" do
+      let(:valid_index) { 0 }
+      let(:valid_params_with_index) do
+        {
+          id: game_session.id,
+          game_id: game.id,
+          game_session: {
+            state: { current_turn: 1 },
+            current_player_index: valid_index
+          },
+          format: :json
+        }
+      end
+
+      before do
+        sign_in(user)
+        # ensure at least one other player to avoid single-player wrap issues
+        game_session.players << player
+      end
+
+      it "accepts the provided valid index and returns it" do
+        put :update, params: valid_params_with_index
+        expect(response).to have_http_status(:success)
+        body = response.parsed_body["data"]
+        expect(body["current_player_index"]).to eq(valid_index)
+      end
+    end
+
+    context "when authenticated and providing out-of-range current_player_index" do
+      let(:invalid_index) { game_session.players.count + 5 }
+      let(:invalid_params) do
+        {
+          id: game_session.id,
+          game_id: game.id,
+          game_session: {
+            state: { current_turn: 1 },
+            current_player_index: invalid_index
+          },
+          format: :json
+        }
+      end
+
+      before do
+        sign_in(user)
+        game_session.players << player
+      end
+
+      it "returns unprocessable_entity" do
+        put :update, params: invalid_params
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response.parsed_body["error"]).to include("Invalid current_player_index")
+      end
+    end
+
+    context "when authenticated and omitting current_player_index" do
+      let(:no_index_params) do
+        {
+          id: game_session.id,
+          game_id: game.id,
+          game_session: {
+            state: { current_turn: 1 }
+          },
+          format: :json
+        }
+      end
+
+      before do
+        sign_in(user)
+        # set a known starting index and two players to test wrap behavior
+        game_session.update(current_player_index: 0)
+        game_session.players << player
+        game_session.players << create(:player)
+        # Mark the session as started so updates are allowed
+        game_session.update!(status: :active)
+        puts "game_session: #{game_session.inspect}"
+        puts "  >> players now: #{game_session.players.map(&:id)}"
+      end
+
+      it "auto-increments and wraps current_player_index" do
+        expect(game_session.reload.current_player_index).to eq(0)
+        put :update, params: no_index_params
+        expect(response).to have_http_status(:success)
+        body = response.parsed_body["data"]
+        puts "params: #{no_index_params}"
+        puts "body: #{body}"
+        # next index should be (0+1)%player_count => 1
+        expect(body["current_player_index"]).to eq(1)
       end
     end
   end
