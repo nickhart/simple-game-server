@@ -49,7 +49,7 @@ RSpec.describe Api::Admin::GamesController, type: :controller do
   describe "PATCH #update" do
     context "as admin" do
       include_context "authenticated as admin"
-      let!(:game) { create(:game) }
+      let!(:game) { create(:game, :with_current_turn_schema) }
 
       it "updates the game" do
         patch :update, params: { id: game.id, game: { name: "Updated Game" } }, as: :json
@@ -68,7 +68,7 @@ RSpec.describe Api::Admin::GamesController, type: :controller do
       end
     end
 
-    let!(:game) { create(:game) }
+    let!(:game) { create(:game, :with_current_turn_schema) }
 
     it "returns unauthorized when not authenticated" do
       patch :update, params: { id: game.id, game: { name: "Hacked Game" } }, as: :json
@@ -79,7 +79,7 @@ RSpec.describe Api::Admin::GamesController, type: :controller do
   describe "DELETE #destroy" do
     context "as admin" do
       include_context "authenticated as admin"
-      let!(:game) { create(:game) }
+      let!(:game) { create(:game, :with_current_turn_schema) }
 
       it "deletes the game" do
         delete :destroy, params: { id: game.id }, as: :json
@@ -93,7 +93,7 @@ RSpec.describe Api::Admin::GamesController, type: :controller do
       end
     end
 
-    let!(:game) { create(:game) }
+    let!(:game) { create(:game, :with_current_turn_schema) }
 
     it "returns unauthorized when not authenticated" do
       delete :destroy, params: { id: game.id }, as: :json
