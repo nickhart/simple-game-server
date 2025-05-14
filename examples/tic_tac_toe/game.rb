@@ -77,11 +77,6 @@ class Game
         next
       end
       @game_session = GameSession.new(result.data)
-      puts "Current player index: #{@game_session.current_player_index}"
-      puts "My player index: #{@game_session.players.find_index { |p| p.id == @current_player.id }}"
-      puts "Current player ID: #{@game_session.current_player&.id}"
-      puts "My player ID: #{@current_player.id}"
-      puts "Game status: #{@game_session.status}"
       
       # Break immediately if game is over
       if @game_session.status == "finished"
@@ -156,7 +151,6 @@ class Game
   def handle_winner(winner)
     player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
     current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
-    puts "Making winning move as player index: #{current_index}"
     
     result = @game_session.update_state(
       state: { board: @game_session.board.board },
@@ -176,16 +170,10 @@ class Game
 
   def handle_next_turn
     current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
-    puts "Making move as player index: #{current_index}"
-    
     result = @game_session.update_state(
       state: { board: @game_session.board.board }
     )
     return result unless result.success?
-    
-    puts "After move - Current player index: #{@game_session.current_player_index}"
-    puts "After move - Current player ID: #{@game_session.current_player&.id}"
-    
     Result.success(game_over: false)
   end
 end

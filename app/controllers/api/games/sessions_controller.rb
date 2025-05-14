@@ -111,15 +111,17 @@ module Api
         attrs = raw.symbolize_keys
 
         if attrs.key?(:current_player_index)
-          Rails.logger.debug "Current player index provided in request: #{attrs[:current_player_index]}"
+          Rails.logger.debug { "Current player index provided in request: #{attrs[:current_player_index]}" }
           validate_current_player_index!(attrs[:current_player_index], game_session)
         else
           next_idx = next_player_index(game_session)
-          Rails.logger.debug "Auto-incrementing current player index from #{game_session.current_player_index} to #{next_idx}"
+          Rails.logger.debug do
+            "Auto-incrementing current player index from #{game_session.current_player_index} to #{next_idx}"
+          end
           attrs[:current_player_index] = next_idx
         end
 
-        Rails.logger.debug "Final game session attributes: #{attrs.inspect}"
+        Rails.logger.debug { "Final game session attributes: #{attrs.inspect}" }
         attrs
       end
 
@@ -127,7 +129,9 @@ module Api
         current = game_session.current_player_index.to_i
         count   = game_session.players.count
         next_idx = (current + 1) % count
-        Rails.logger.debug "Calculating next player index: current=#{current}, player_count=#{count}, next=#{next_idx}"
+        Rails.logger.debug do
+          "Calculating next player index: current=#{current}, player_count=#{count}, next=#{next_idx}"
+        end
         next_idx
       end
 
