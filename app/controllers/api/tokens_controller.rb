@@ -5,7 +5,7 @@ module Api
 
     def create
       begin
-        session_params = params.require(:session).permit(:email, :password)
+        session_params = params.expect(session: %i[email password])
       rescue ActionController::ParameterMissing, ActionController::UnpermittedParameters
         return render_bad_request("Invalid session parameters")
       end
@@ -31,7 +31,7 @@ module Api
 
     def refresh
       begin
-        token_params = params.require(:token).permit(:refresh_token)
+        token_params = params.expect(token: [:refresh_token])
       rescue ActionController::ParameterMissing
         return render_bad_request("Refresh token is required")
       end

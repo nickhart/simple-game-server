@@ -143,8 +143,8 @@ module Api
       end
 
       def game_session_params
-        params.require(:game_session)
-              .permit(:status, :current_player_index, state: {})
+        params
+          .expect(game_session: [:status, :current_player_index, { state: {} }])
       end
     end
   end

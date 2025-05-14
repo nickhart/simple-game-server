@@ -57,7 +57,7 @@ class GameSessionsController < ApplicationController
   end
 
   def game_session_params
-    params.require(:game_session).permit(:min_players, :max_players, :game_type)
+    params.expect(game_session: %i[min_players max_players game_type])
   end
 
   def add_creator_as_player

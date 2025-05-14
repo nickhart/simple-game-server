@@ -36,7 +36,7 @@ module Api
       private
 
       def game_params
-        params.require(:game).permit(:name, :state_json_schema)
+        params.expect(game: %i[name state_json_schema])
       end
 
       def set_game
