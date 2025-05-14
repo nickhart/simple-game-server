@@ -84,14 +84,25 @@ class GameSession
   end
 
   # Update the game state
-  def update_state(state:, status: :active, winner: nil)
+  def update_state(state:, status: :active, winner: nil, current_player_index: nil)
     state["winner"] = winner if winner
-    Services.sessions.update(
-      @game_id,
-      @id,
+    attrs = {
       state: state,
       status: status
-    )
+    }
+    attrs[:current_player_index] = current_player_index if current_player_index
+    result = Services.sessions.update(@game_id, @id, **attrs)
+    return result unless result.success?
+    
+    # Update our instance with the response data
+    data = result.data
+    @status = data["status"]
+    @current_player_index = data["current_player_index"]
+    @state = data["state"]
+    @board = Board.new(@state["board"])
+    @players = (data["players"] || []).map { |p| Player.new(p) }
+    
+    result
   end
 
   # Leave the game session
