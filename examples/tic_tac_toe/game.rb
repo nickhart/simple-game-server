@@ -22,7 +22,24 @@ class Game
 
     loop do
       display_board
-      break if game_over?
+      
+      # Refresh game session to get latest state
+      result = Services.sessions.get(@game_session.game_id, @game_session.id)
+      if result.success?
+        @game_session = GameSession.new(result.data)
+      end
+
+      # Check if game is over after refresh
+      if game_over?
+        winner_index = @game_session.state["winner"]
+        if winner_index
+          winner = @game_session.players[winner_index]
+          puts "Game is over! Player #{winner_index + 1} (#{winner.name}) wins!"
+        else
+          puts "Game is over! It's a draw!"
+        end
+        return  # Exit the entire game
+      end
 
       if @game_session.current_player.id == @current_player.id
         res = player_move
@@ -31,7 +48,7 @@ class Game
           if res.data[:game_over]
             # Optional: print the message they returned
             puts res.data[:message] if res.data[:message]
-            break
+            return  # Exit the entire game
           end
         else
           # Handle the validation or API error
@@ -39,6 +56,7 @@ class Game
         end
       else
         wait_for_turn
+        return if game_over?  # Exit if game is over after waiting
       end
     end
   end
@@ -46,7 +64,7 @@ class Game
   private
 
   def game_over?
-    @game_session.status == :finished
+    @game_session.status == "finished"
   end
 
   def wait_for_turn
@@ -59,7 +77,26 @@ class Game
         next
       end
       @game_session = GameSession.new(result.data)
-      break if @game_session.current_player.id == @current_player.id || game_over?
+      puts "Current player index: #{@game_session.current_player_index}"
+      puts "My player index: #{@game_session.players.find_index { |p| p.id == @current_player.id }}"
+      puts "Current player ID: #{@game_session.current_player&.id}"
+      puts "My player ID: #{@current_player.id}"
+      puts "Game status: #{@game_session.status}"
+      
+      # Break immediately if game is over
+      if @game_session.status == "finished"
+        winner_index = @game_session.state["winner"]
+        if winner_index
+          winner = @game_session.players[winner_index]
+          puts "Game is over! Player #{winner_index + 1} (#{winner.name}) wins!"
+        else
+          puts "Game is over! It's a draw!"
+        end
+        return  # Exit the method immediately
+      end
+      
+      # Break if it's our turn
+      break if @game_session.current_player.id == @current_player.id
     end
   end
 
@@ -118,7 +155,15 @@ class Game
 
   def handle_winner(winner)
     player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
-    result = @game_session.update_state(state: { board: @game_session.board.board }, status: :finished, winner: player_index)
+    current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
+    puts "Making winning move as player index: #{current_index}"
+    
+    result = @game_session.update_state(
+      state: { board: @game_session.board.board },
+      status: :finished,
+      winner: player_index,
+      current_player_index: current_index
+    )
     return result unless result.success?
     Result.success(game_over: true, message: "Player #{winner} wins!")
   end
@@ -130,11 +175,17 @@ class Game
   end
 
   def handle_next_turn
-    # current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
-    # next_index = (current_index + 1) % @game_session.players.size
+    current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
+    puts "Making move as player index: #{current_index}"
     
-    result = @game_session.update_state(state: { board: @game_session.board.board })
+    result = @game_session.update_state(
+      state: { board: @game_session.board.board }
+    )
     return result unless result.success?
+    
+    puts "After move - Current player index: #{@game_session.current_player_index}"
+    puts "After move - Current player ID: #{@game_session.current_player&.id}"
+    
     Result.success(game_over: false)
   end
 end
