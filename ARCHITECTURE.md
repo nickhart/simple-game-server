@@ -16,28 +16,38 @@ simple_game_server/
 ├── config/                 # Rails configuration files
 ├── db/                     # Database migrations and schema
 ├── spec/                   # RSpec tests and support files
+├── examples/               # Example game implementations
+│   └── tic_tac_toe/        # Tic Tac Toe game example
 ├── public/                 # Public static files (minimal usage)
-├── API.md                  # API documentation
-└── openapi.yaml            # OpenAPI/Swagger specification
+├── ROUTES.md               # API documentation
+└── ARCHITECTURE.md         # Architecture documentation
 ```
 
 ## Core Components
 
 ### Models
 
+#### Game
+`app/models/game.rb`
+- Defines available games and their configuration
+- Key attributes:
+  - `name`: Name of the game
+  - `description`: Game description
+  - `state_schema`: JSON schema for validating game state
+  - `min_players`: Minimum players required to start the game
+  - `max_players`: Maximum players allowed in the game
+
 #### GameSession
 `app/models/game_session.rb`
 - Central model managing game state and metadata
 - Handles game logic, turn management, and win conditions via client-driven JSON state
-- Supports different game types (currently TicTacToe)
+- Supports different game types through association with `Game`
 - Key attributes:
-  - `game_type`: Type of game (e.g., "tictactoe")
+  - `game_id`: Reference to the `Game` model
   - `status`: Current game state (`waiting`, `active`, `finished`)
   - `state`: JSONB column storing game-specific state data
   - `current_player_index`: Index of the current player's turn
   - `winner_id`: ID of the winning player (nullable)
-  - `min_players`: Minimum players required to start the game
-  - `max_players`: Maximum players allowed in the game
   - `creator_id`: References the `Player` who created the game session
 
 #### Player
@@ -49,7 +59,7 @@ simple_game_server/
 
 #### User
 `app/models/user.rb`
-- Authentication model using Devise
+- Authentication model
 - Has many `Tokens` for JWT session management
 - Optionally has one associated `Player`
 - Includes a `role` column to distinguish `admin` and `player` roles
@@ -67,28 +77,35 @@ Controllers are namespaced under `Api::` to reflect API-only architecture.
 #### Api::GameSessionsController
 - Manages game session lifecycle and player interactions
 - Key actions:
-  - `index`: List all game sessions
+  - `index`: List game sessions for a specific game
   - `show`: Retrieve details of a specific game session
   - `create`: Create a new game session
   - `join`: Join an existing game session
-  - `start`: Start a game session (only the creator can do this; requires the session to be in `waiting` status and player count within limits)
-  - `move`: Submit a player's move during their turn
-  - `update`: Update game state or status (generic updates)
+  - `start`: Start a game session (requires the session to be in `waiting` status and player count within limits)
+  - `update`: Update game state or status (including moves)
   - `leave`: Leave a game session
-  - `cleanup`: Remove unused or stale game sessions
 
 #### Api::PlayersController
 - Handles player-related operations
 - Key actions:
   - `create`: Create a player profile linked to a user
   - `show`: Retrieve player details
+  - `me`: Get current player's details
+
+#### Api::TokensController
+- Manages JWT token lifecycle
+- Key actions:
+  - `login`: Authenticate and issue JWT token
+  - `refresh`: Refresh an existing token
+  - `logout`: Revoke JWT token
 
 #### Api::UsersController
-- Manages user registration and authentication
+- Manages user registration and profile
 - Key actions:
-  - `create`: Register a new user (sign up)
-  - `login`: Authenticate and issue JWT token
-  - `logout`: Revoke JWT token
+  - `create`: Register a new user
+  - `show`: Get user details
+  - `update`: Update user profile
+  - `me`: Get current user's details
 
 #### Api::Admin::UsersController
 - Admin-specific user management endpoints
@@ -97,9 +114,16 @@ Controllers are namespaced under `Api::` to reflect API-only architecture.
   - Manage user roles
   - Perform administrative user operations
 
+#### Api::Admin::GamesController
+- Admin-specific game management endpoints
+- Key actions:
+  - Create games
+  - Update games
+  - Delete games
+  - Update game schemas
+
 ### Authentication and Roles
 
-- Uses Devise for user registration and login
 - JWT-based session management with versioned tokens stored in the `Token` model
 - Players are created separately from users and are required to participate in games
 - Admin users do not automatically have associated `Player` records
@@ -107,15 +131,22 @@ Controllers are namespaced under `Api::` to reflect API-only architecture.
 
 ## Database Schema
 
+### games
+- `id`: Primary key
+- `name`: string
+- `description`: string
+- `state_schema`: jsonb
+- `min_players`: integer
+- `max_players`: integer
+- timestamps
+
 ### game_sessions
 - `id`: Primary key
-- `game_type`: string
+- `game_id`: integer (foreign key to games)
 - `status`: string
 - `state`: jsonb
 - `current_player_index`: integer
 - `winner_id`: uuid (foreign key to players)
-- `min_players`: integer
-- `max_players`: integer
 - `creator_id`: uuid (foreign key to players)
 - timestamps
 
@@ -127,7 +158,7 @@ Controllers are namespaced under `Api::` to reflect API-only architecture.
 
 ### users
 - `id`: uuid primary key
-- `email`: string, unique
+- `username`: string, unique
 - `encrypted_password`: string
 - `role`: string (`admin` or `player`)
 - timestamps
@@ -158,22 +189,26 @@ The application is API-only and does not include a built-in web UI. Any web inte
 
 ## API Documentation
 
-The API is documented in two formats:
-1. `API.md`: Markdown documentation with examples and explanations
-2. `openapi.yaml`: OpenAPI/Swagger specification for automated tooling
+The API is documented in `ROUTES.md`, which includes:
+- Detailed endpoint descriptions
+- Request/response examples
+- TypeScript interfaces
+- Error handling
+- Authentication requirements
 
 ## API Expectations and Conventions
 
-- All API requests and responses use JSON with a `"data": {}` wrapper for resource objects
+- All API requests and responses use JSON
 - `player_id` and other IDs use UUID format
 - Authentication via Bearer tokens in headers
 - Role-based access enforced on endpoints
-- Only the game session creator can call `start`
-- `move` actions are expected to be submitted via `PUT /api/games/:game_id/sessions/:id`
+- Game state updates are submitted via `PUT /api/games/:game_id/sessions/:id`
+- Game state is validated against the game's JSON schema
 
 ## Authentication Flow
 
-- User registration and login handled via `Api::UsersController`
+- User registration handled via `Api::UsersController`
+- Login and token management via `Api::TokensController`
 - JWT tokens issued upon login and stored with versioning in `Token` model
 - Player creation is a separate step after user registration, required to participate in games
 - Admin users have elevated privileges but no default player entity
@@ -181,6 +216,7 @@ The API is documented in two formats:
 ## Game State Management
 
 - The game state is fully managed by the client and stored as JSON in the `state` column of `GameSession`
+- The server validates state updates against the game's JSON schema
 - The server manages turn order, game status, and player participation but does not interpret game-specific state
 - Status values: `waiting`, `active`, `finished`
 - Turn management via `current_player_index`
@@ -191,21 +227,21 @@ Standardized error responses include:
 
 ```json
 {
-  "errors": ["Resource not found"]
+  "error": "Resource not found"
 }
 ```
 Status: 404 Not Found
 
 ```json
 {
-  "errors": ["Unauthorized access"]
+  "error": "Unauthorized access"
 }
 ```
 Status: 401 Unauthorized
 
 ```json
 {
-  "errors": ["Validation failed: ..."]
+  "error": "Validation failed: ..."
 }
 ```
 Status: 422 Unprocessable Entity
