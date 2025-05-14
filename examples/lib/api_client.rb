@@ -26,7 +26,6 @@ class ApiClient
   def put(path, body = {})
     req = Net::HTTP::Put.new(uri(path))
     req.body = body.to_json
-    puts "request: #{req.body}"
     request(req)
   end
 
