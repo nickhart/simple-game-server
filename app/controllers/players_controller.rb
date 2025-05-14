@@ -24,6 +24,6 @@ class PlayersController < ApplicationController
   private
 
   def player_params
-    params.require(:player).permit(:name, :email, :password, :password_confirmation)
+    params.expect(player: %i[name email password password_confirmation])
   end
 end

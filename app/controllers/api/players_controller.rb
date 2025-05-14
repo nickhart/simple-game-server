@@ -41,7 +41,7 @@ module Api
     private
 
     def player_params
-      params.require(:player).permit(:name)
+      params.expect(player: [:name])
     end
   end
 end

@@ -39,7 +39,7 @@ class GamesController < ApplicationController
   end
 
   def game_params
-    params.require(:game).permit(:name, :min_players, :max_players, :state_json_schema)
+    params.expect(game: %i[name min_players max_players state_json_schema])
   end
 
   def require_admin
