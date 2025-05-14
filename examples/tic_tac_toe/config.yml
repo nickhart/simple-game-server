@@ -1,0 +1,25 @@
+admin_email: admin@example.com
+admin_password: password123
+game_name: Tic-Tac-Toe
+api_url: http://localhost:3000
+state_json_schema: >
+  {
+    "type": "object",
+    "properties": {
+      "board": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "enum": [0, 1, 2]
+        },
+        "maxItems": 9
+      },
+      "winner": {
+        "type": "integer",
+        "enum": [0, 1, 2]
+      }
+    },
+    "required": ["board"],
+    "additionalProperties": false
+  }
+  

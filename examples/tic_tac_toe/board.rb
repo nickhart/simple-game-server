@@ -47,7 +47,7 @@ class Board
   end
 
   def full?
-    @board.exclude?(CELL_VALUES[:empty])
+    !@board.include?(CELL_VALUES[:empty])
   end
 
   def display

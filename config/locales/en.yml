@@ -29,3 +29,11 @@
 
 en:
   hello: "Hello world"
+
+  activerecord:
+    errors:
+      models:
+        game_session:
+          attributes:
+            state:
+              invalid_state: "is not valid for this game"

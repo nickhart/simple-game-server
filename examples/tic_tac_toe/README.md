@@ -8,43 +8,23 @@ A command-line implementation of Tic Tac Toe that demonstrates how to use the Si
 
 ## Server Configuration
 
-Before running the Tic Tac Toe example, you need to configure the game type in the server:
+Before running the Tic Tac Toe example, you need to configure the game type in the server. We provide a bootstrap script to handle this automatically:
 
-1. Start the Rails console in the server directory:
+1. Run the bootstrap script:
 ```bash
-cd /path/to/simple_game_server
-rails console
+ruby bootstrap.rb
 ```
 
-2. Create the Tic Tac Toe game configuration:
-```ruby
-# Create the game
-game = Game.create!(
-  name: "Tic Tac Toe",
-  min_players: 2,
-  max_players: 2
-)
-
-# Create the game configuration with state schema
-game_config = GameConfiguration.create!(
-  game: game,
-  state_schema: {
-    board: [],  # Array for the 3x3 board
-    winner: { type: :integer }  # Integer for winner index (0 or 1) or nil for draw
-  }
-)
-```
-
-3. Verify the configuration was created:
-```ruby
-Game.find_by(name: "Tic Tac Toe").state_json_schema
-```
+This script will:
+- Create the Tic Tac Toe game configuration
+- Set up the game state schema
+- Verify the configuration was created successfully
 
 ## Requirements
 
 - Ruby 3.2.2 or later
 - Access to a running Simple Game Server instance
-- Valid player credentials (email and password)
+- Valid player credentials (username and password)
 
 ## Installation
 
@@ -60,37 +40,50 @@ bundle install
 
 ## Usage
 
-### Command Line Arguments
+### Setting Up Players
+
+Before playing, you need to create player accounts. Use the `create_player.rb` script:
 
 ```bash
-ruby game.rb [options]
+ruby create_player.rb --username player1 --password password123
+ruby create_player.rb --username player2 --password password123
 ```
 
-#### Options:
-- `--server-url URL`: URL of the game server (default: http://localhost:3000)
-- `--email EMAIL`: Player email for authentication
-- `--password PASSWORD`: Player password for authentication
-- `--create`: Create a new game session
-- `--join SESSION_ID`: Join an existing game session
-- `--help`: Show help message
+### Playing the Game
 
-### Creating a New Game
+The game can be played using the `main.rb` script:
+
+#### Creating a New Game
 
 1. Start the game as the first player (creator):
 ```bash
-ruby game.rb --server-url http://localhost:3000 --email player1@example.com --password password123 --create
+ruby main.rb --create --username player1 --password password123
 ```
 
 2. The game will display a session ID. Share this ID with the second player.
 
-### Joining a Game
+#### Joining a Game
 
 1. Start the game as the second player:
 ```bash
-ruby game.rb --server-url http://localhost:3000 --email player2@example.com --password password123 --join SESSION_ID
+ruby main.rb --join --username player2 --password password123
 ```
 
 Replace `SESSION_ID` with the ID provided by the first player.
+
+### Command Line Arguments
+
+```bash
+ruby main.rb [options]
+```
+
+#### Options:
+- `--server-url URL`: URL of the game server (default: http://localhost:3000)
+- `--username USERNAME`: Player username for authentication
+- `--password PASSWORD`: Player password for authentication
+- `--create`: Create a new game session
+- `--join SESSION_ID`: Join an existing game session
+- `--help`: Show help message
 
 ### Gameplay
 

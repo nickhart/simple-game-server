@@ -5,7 +5,7 @@ RSpec.describe GameSession, type: :model do
   let(:creator) { create(:player, user: user) }
 
   describe "validations" do
-    let(:game) { create(:game) }
+    let(:game) { create(:game, :with_board_and_winner_schema) }
     it "is valid with valid attributes" do
       game_session = build(:game_session, :new_game_state, game: game, creator: creator, status: :waiting)
       game_session.valid? # trigger set_defaults
@@ -21,7 +21,7 @@ RSpec.describe GameSession, type: :model do
     it "is not valid with a malformed state" do
       game_session = build(:game_session, game: game, creator: creator, state: { board: ["a", "b", "c"] })
       game_session.valid?
-      expect(game_session.errors[:state]).to include(I18n.t("activerecord.errors.models.game_session.attributes.state.invalid_state"))
+      expect(game_session.errors[:state]).to include("is not valid for this game")
     end
 
     it "is not valid with an invalid status" do
@@ -56,7 +56,7 @@ RSpec.describe GameSession, type: :model do
       )
       
       expect(game_session.valid?).to be(false)
-      expect(game_session.errors[:state]).to include(I18n.t("activerecord.errors.models.game_session.attributes.state.invalid_state"))
+      expect(game_session.errors[:state]).to include("is not valid for this game")
 
     end    
   end

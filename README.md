@@ -48,26 +48,26 @@ A simple game server built with Ruby on Rails, designed to handle multiplayer ga
 
 - Player authentication and management
 - Game session creation and management
-- Flexible game state storage
+- Flexible game state storage with JSON schema validation
 - Turn-based game support
 - Example Tic Tac Toe implementation
 - Decoupled User and Player models (Player created via separate API endpoint)
 - UUID-based identifiers for Player and Token models
 - Role-based access (admin vs player)
-- JSON API with consistent top-level "data" wrapper
+- JSON API with consistent error handling
 - Fully RESTful API for managing game resources (sessions, players, turns)
 - Custom member routes for domain-specific actions (`start`, `join`, `leave`) with semantic HTTP verbs
 
 ## Game Configuration
 
-The server supports configurable game types through the `Game` and `GameConfiguration` models. Each game type defines:
+The server supports configurable game types through the `Game` model. Each game type defines:
 - Minimum and maximum players
-- Game state schema
+- Game state schema for validation
 - Game-specific rules and logic
 
 ### Bootstrapping
 
-To create the first admin user, make a POST request to `/api/admin/users` with an email. This only works when no users exist.
+To create the first admin user, make a POST request to `/api/admin/users` with a username and password. This only works when no users exist.
 
 ### Creating a New Game Type
 
@@ -78,50 +78,67 @@ rails console
 
 2. Create a new game with its configuration:
 ```ruby
-# Create the game
+# Create the game with state schema
 game = Game.create!(
   name: "YourGameName",
+  description: "Description of your game",
   min_players: 2,
-  max_players: 4
-)
-
-# Create the game configuration with state schema
-game_config = GameConfiguration.create!(
-  game: game,
+  max_players: 4,
   state_schema: {
-    # Define your game state structure here
-    # Example for a board game:
-    board: [],  # Array type for the game board
-    scores: {},  # Hash type for player scores
-    current_player: { type: :integer },  # Integer type for current player index
-    game_status: { type: :string }  # String type for game status
+    type: "object",
+    properties: {
+      board: {
+        type: "array",
+        items: {
+          type: "integer"
+        }
+      },
+      scores: {
+        type: "object",
+        additionalProperties: {
+          type: "integer"
+        }
+      },
+      current_player: {
+        type: "integer"
+      },
+      game_status: {
+        type: "string"
+      }
+    }
   }
 )
 ```
 
 ### State Schema Types
 
-The state schema supports the following types:
-- `Array`: For lists like game boards or move history
-- `Hash`: For key-value pairs like scores or player data
-- `{ type: :integer }`: For numeric values like player indices or scores
-- `{ type: :string }`: For text values like game status or messages
-- `{ type: :boolean }`: For true/false values
+The state schema uses JSON Schema format and supports the following types:
+- `array`: For lists like game boards or move history
+- `object`: For key-value pairs like scores or player data
+- `integer`: For numeric values like player indices or scores
+- `string`: For text values like game status or messages
+- `boolean`: For true/false values
 
 ### Example: Tic Tac Toe Configuration
 
 ```ruby
 game = Game.create!(
   name: "Tic Tac Toe",
+  description: "A classic game of X's and O's",
   min_players: 2,
-  max_players: 2
-)
-
-game_config = GameConfiguration.create!(
-  game: game,
+  max_players: 2,
   state_schema: {
-    board: [],  # Array for the 3x3 board
-    winner: { type: :integer }  # Integer for winner index (0 or 1) or nil for draw
+    type: "object",
+    properties: {
+      board: {
+        type: "array",
+        items: {
+          type: "integer"
+        },
+        minItems: 9,
+        maxItems: 9
+      }
+    }
   }
 )
 ```
@@ -197,12 +214,14 @@ ENABLE_CSRF_PROTECTION=false rails server
 
 The server adheres to REST principles for clarity and consistency. Resources are exposed via standard HTTP methods:
 
+- `GET /api/games`: List available games
+- `GET /api/games/:id`: Get game details
 - `POST /api/games/:game_id/sessions`: Create a new game session
 - `GET /api/games/:game_id/sessions/:id`: Show a specific session
 - `PUT /api/games/:game_id/sessions/:id`: Update a session's state
-- `POST /api/games/:game_id/sessions/:id/start`: Start the session (creator only)
+- `POST /api/games/:game_id/sessions/:id/start`: Start the session
 - `POST /api/games/:game_id/sessions/:id/join`: Join the session as a player
-- `POST /api/games/:game_id/sessions/:id/leave`: Leave the session
+- `DELETE /api/games/:game_id/sessions/:id/leave`: Leave the session
 
 These member routes allow domain-specific state transitions (e.g., starting or joining a session) while maintaining a RESTful structure.
 
@@ -216,7 +235,10 @@ spec/                           # Main test directory
 ├── rails_helper.rb            # Rails-specific test setup
 ├── controllers/               # Controller tests
 │   └── api/                   # API controller tests
-│       ├── sessions_controller_spec.rb    # Authentication tests
+│       ├── tokens_controller_spec.rb    # Authentication tests
+│       ├── users_controller_spec.rb     # User management tests
+│       ├── players_controller_spec.rb   # Player management tests
+│       ├── games_controller_spec.rb     # Game management tests
 │       └── game_sessions_controller_spec.rb # Game session tests
 ├── models/                    # Model tests
 ├── factories/                 # Factory definitions
@@ -245,7 +267,10 @@ spec/                           # Main test directory
    - `.rubocop.yml`: Code style configuration
 
 2. **Controller Tests**:
-   - `sessions_controller_spec.rb`: Tests for authentication endpoints
+   - `tokens_controller_spec.rb`: Tests for authentication endpoints
+   - `users_controller_spec.rb`: Tests for user management
+   - `players_controller_spec.rb`: Tests for player management
+   - `games_controller_spec.rb`: Tests for game management
    - `game_sessions_controller_spec.rb`: Tests for game session management
 
 3. **Support Files**:
@@ -329,8 +354,9 @@ The test suite emphasizes:
 The repository includes a Tic Tac Toe example implementation in the `/examples/tic_tac_toe` directory. This example demonstrates:
 - Game session management
 - Turn-based gameplay
-- State management
+- State management with JSON schema validation
 - Client-server communication
+- Error handling and game state validation
 
 See the [Tic Tac Toe README](examples/tic_tac_toe/README.md) for implementation details.
 
@@ -405,16 +431,16 @@ rails db:drop db:create db:migrate
 ### Testing Commands
 ```bash
 # Run all tests
-rails test
+bundle exec rspec
 
 # Run specific test file
-rails test test/models/game_session_test.rb
+bundle exec rspec spec/models/game_session_spec.rb
 
 # Run specific test method
-rails test test/models/game_session_test.rb:123
+bundle exec rspec spec/models/game_session_spec.rb:123
 
 # Run tests with coverage
-COVERAGE=true rails test
+COVERAGE=true bundle exec rspec
 ```
 
 ### Linting Commands

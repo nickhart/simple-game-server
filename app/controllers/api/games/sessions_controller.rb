@@ -14,19 +14,19 @@ module Api
         # Optional: validate access rights
         head :forbidden and return unless current_user.player && game_session.players.include?(current_user.player)
 
-        render_success(game_session)
+        render_success(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
       end
 
       def create
-        Rails.logger.debug { "GameSessionsController#create - Current.user: #{Current.user.inspect}" }
+        Rails.logger.info { "GameSessionsController#create - Current.user: #{Current.user.inspect}" }
         game = Game.find(params[:game_id])
         return render_unprocessable_entity("No associated player") unless current_user.player
 
         game_session = game.game_sessions.create!(creator: current_user.player)
         game_session.players << current_user.player
-        render_created(game_session)
+        render_created(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game")
       rescue ActiveRecord::RecordInvalid => e
@@ -35,13 +35,14 @@ module Api
 
       def update
         game_session = GameSession.find(params[:id])
-        # TODO: Add authorization logic here if needed
-        unless current_user.player && game_session.players.include?(current_user.player)
-          return render_forbidden("Not authorized to update this game session")
-        end
 
-        if game_session.update(game_session_params)
-          render_success(game_session)
+        authorize_update!(game_session)
+
+        attrs = build_update_attrs(game_session)
+        return if performed?
+
+        if game_session.update(attrs)
+          render_success(game_session.as_json.merge(game_id: game_session.game_id))
         else
           render_unprocessable_entity(game_session)
         end
@@ -54,7 +55,7 @@ module Api
         return render_unprocessable_entity("No associated player") unless current_user.player
 
         if game_session.add_player(current_user.player)
-          render_success(game_session)
+          render_success(game_session.as_json.merge(game_id: game_session.game_id))
         else
           render_forbidden("Unable to join game session")
         end
@@ -90,7 +91,7 @@ module Api
         end
 
         game_session.update!(status: "active")
-        render_success(game_session)
+        render_success(game_session.as_json.merge(game_id: game_session.game_id))
       rescue ActiveRecord::RecordNotFound
         render_not_found("Game session")
       rescue ActiveRecord::RecordInvalid => e
@@ -99,8 +100,51 @@ module Api
 
       private
 
+      def authorize_update!(game_session)
+        unless current_user.player && game_session.players.include?(current_user.player)
+          render_forbidden("Not authorized to update this game session")
+        end
+      end
+
+      def build_update_attrs(game_session)
+        raw = game_session_params.to_h
+        attrs = raw.symbolize_keys
+
+        if attrs.key?(:current_player_index)
+          Rails.logger.debug { "Current player index provided in request: #{attrs[:current_player_index]}" }
+          validate_current_player_index!(attrs[:current_player_index], game_session)
+        else
+          next_idx = next_player_index(game_session)
+          Rails.logger.debug do
+            "Auto-incrementing current player index from #{game_session.current_player_index} to #{next_idx}"
+          end
+          attrs[:current_player_index] = next_idx
+        end
+
+        Rails.logger.debug { "Final game session attributes: #{attrs.inspect}" }
+        attrs
+      end
+
+      def next_player_index(game_session)
+        current = game_session.current_player_index.to_i
+        count   = game_session.players.count
+        next_idx = (current + 1) % count
+        Rails.logger.debug do
+          "Calculating next player index: current=#{current}, player_count=#{count}, next=#{next_idx}"
+        end
+        next_idx
+      end
+
+      def validate_current_player_index!(index, game_session)
+        max = game_session.players.count - 1
+        unless (0..max).cover?(index.to_i)
+          render_unprocessable_entity("Invalid current_player_index: must be between 0 and #{max}")
+        end
+      end
+
       def game_session_params
-        params.require(:game_session).permit(:state, :status)
+        params.require(:game_session)
+              .permit(:status, :current_player_index, state: {})
       end
     end
   end
