@@ -1,3 +1,4 @@
+
 module Api
   module Games
     class SessionsController < BaseController
@@ -42,6 +43,9 @@ module Api
         return if performed?
 
         if game_session.update(attrs)
+          # Broadcast update via WebSocket
+          ApplicationCable::GameSessionChannel.broadcast_update(game_session) if Rails.configuration.x.broadcast_updates
+
           render_success(game_session.as_json.merge(game_id: game_session.game_id))
         else
           render_unprocessable_entity(game_session)
