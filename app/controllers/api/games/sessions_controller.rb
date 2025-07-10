@@ -1,4 +1,3 @@
-
 module Api
   module Games
     class SessionsController < BaseController
