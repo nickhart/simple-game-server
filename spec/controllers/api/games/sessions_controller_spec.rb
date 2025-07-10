@@ -229,6 +229,34 @@ RSpec.describe Api::Games::SessionsController, type: :controller, truncation: tr
         expect(body["current_player_index"]).to eq(1)
       end
     end
+
+    context "when broadcasting is enabled" do
+      before do
+        sign_in(user)
+        game_session.players << player
+        allow(Rails.configuration.x).to receive(:broadcast_updates).and_return(true)
+      end
+
+      it "broadcasts to GameSessionChannel after update" do
+        expect(ApplicationCable::GameSessionChannel).to receive(:broadcast_update).with(game_session)
+
+        put :update, params: valid_params
+      end
+    end
+
+    context "when broadcasting is disabled" do
+      before do
+        sign_in(user)
+        game_session.players << player
+        allow(Rails.configuration.x).to receive(:broadcast_updates).and_return(false)
+      end
+
+      it "does not broadcast to GameSessionChannel after update" do
+        expect(ApplicationCable::GameSessionChannel).not_to receive(:broadcast_update)
+
+        put :update, params: valid_params
+      end
+    end
   end
 
   describe "POST #join" do
