@@ -1,5 +1,5 @@
 require_relative "player"
-require_relative "../lib/services"
+require "simple_game_server/services"
 
 class GameSession
   attr_reader :id, :game_id, :player_id, :creator_id, :status, :current_player_index, :state, :players, :board

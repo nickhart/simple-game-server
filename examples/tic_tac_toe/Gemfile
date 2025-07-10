@@ -1,0 +1,4 @@
+source "https://rubygems.org"
+
+gem "simple_game_server", path: "../"
+gem "action_cable_client", git: "https://github.com/NullVoxPopuli/action_cable_client"

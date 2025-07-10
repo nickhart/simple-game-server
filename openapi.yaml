@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
   title: SimpleGameServer API
   version: 1.0.0
@@ -8,7 +8,16 @@ servers:
   - url: http://localhost:3000
     description: Local development server
 
+security:
+  - bearerAuth: []
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     Player:
       type: object
@@ -127,12 +136,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  game_sessions:
+                  data:
                     type: array
                     items:
                       $ref: '#/components/schemas/GameSession'
                 required:
-                  - game_sessions
+                  - data
         '500':
           description: Server error
           content:
@@ -155,7 +164,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameSession'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GameSession'
+                required:
+                  - data
         '422':
           description: Validation error
           content:
@@ -192,7 +206,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameSession'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GameSession'
+                required:
+                  - data
         '404':
           description: Game session not found
           content:
@@ -235,7 +254,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameSession'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GameSession'
+                required:
+                  - data
         '400':
           description: Invalid move
           content:
@@ -259,4 +283,4 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error' 
+                $ref: '#/components/schemas/Error'
