@@ -1,18 +1,8 @@
 import { GameServerClient } from '../src/client';
 import { GameServerError } from '../src/types';
 
-// Mock WebSocket
-const MockWebSocket = jest.fn().mockImplementation(() => ({
-  readyState: 1, // OPEN
-  send: jest.fn(),
-  close: jest.fn(),
-  on: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-}));
-
-// Replace global WebSocket
-(global as any).WebSocket = MockWebSocket;
+// Mock WebSocket - use the same mock from setup
+const MockWebSocket = require('ws');
 
 describe('GameServerClient WebSocket', () => {
   let client: GameServerClient;
@@ -132,6 +122,9 @@ describe('GameServerClient WebSocket', () => {
 
       const errorSpy = jest.spyOn(client, 'emit');
 
+      // Add error listener to prevent unhandled error
+      client.on('error', () => {});
+
       // Get the message handler and call it with invalid JSON
       const messageHandler = mockWs.on.mock.calls.find((call: any) => call[0] === 'message')[1];
       messageHandler('invalid json');
@@ -167,6 +160,9 @@ describe('GameServerClient WebSocket', () => {
 
       const emitSpy = jest.spyOn(client, 'emit');
       const testError = new Error('Connection failed');
+
+      // Add error listener to prevent unhandled error
+      client.on('error', () => {});
 
       // Get the error handler and call it
       const errorHandler = mockWs.on.mock.calls.find((call: any) => call[0] === 'error')[1];

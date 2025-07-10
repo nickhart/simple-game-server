@@ -16,6 +16,7 @@ const MockWebSocket = jest.fn().mockImplementation(() => ({
   on: jest.fn(),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
+  removeAllListeners: jest.fn(),
 }));
 
 // Add static properties
@@ -25,6 +26,9 @@ const MockWebSocket = jest.fn().mockImplementation(() => ({
 (MockWebSocket as any).CLOSED = 3;
 
 global.WebSocket = MockWebSocket as any;
+
+// Mock the ws module specifically
+jest.mock('ws', () => MockWebSocket);
 
 // Reset mocks before each test
 beforeEach(() => {

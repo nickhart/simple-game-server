@@ -115,8 +115,8 @@ export class GameServerClient extends EventEmitter {
   }
 
   async updateGameSession(
-    gameId: number, 
-    sessionId: number, 
+    gameId: number,
+    sessionId: number,
     data: UpdateGameSessionRequest
   ): Promise<GameSession> {
     return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}`, {
@@ -132,7 +132,7 @@ export class GameServerClient extends EventEmitter {
     }
 
     this.subscriptions.add(sessionId);
-    
+
     this.on(`session:${sessionId}`, callback);
 
     // Send subscription message once connected
@@ -198,7 +198,20 @@ export class GameServerClient extends EventEmitter {
 
   disconnect(): void {
     if (this.ws) {
-      this.ws.close();
+      // Remove all event listeners before closing to prevent race conditions
+      if (typeof this.ws.removeAllListeners === 'function') {
+        this.ws.removeAllListeners();
+      }
+
+      // Only close if WebSocket is in a valid state for closing
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        try {
+          this.ws.close();
+        } catch (error) {
+          // Ignore errors during close, we're disconnecting anyway
+        }
+      }
+
       this.ws = undefined;
     }
     this.subscriptions.clear();
@@ -208,7 +221,7 @@ export class GameServerClient extends EventEmitter {
   // HTTP Request Helper
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.apiUrl}${path}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
