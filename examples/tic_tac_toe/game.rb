@@ -3,7 +3,7 @@ require "simple_game_server/result"
 require "simple_game_server/services"
 require_relative "game_session"
 require_relative "player"
-require "simple_game_server/clients/channels/game_session_channel"
+# require "simple_game_server/clients/channels/game_session_channel"
 
 class Game
   attr_reader :game_session, :current_player
@@ -16,28 +16,30 @@ class Game
     result = Services.players.me
     return puts result.error unless result.success?
     @current_player = Player.new(result.data)
-    
+
     puts "Welcome to Tic-Tac-Toe!"
     puts "You are player #{@game_session.players.find_index { |p| p.id == @current_player.id } + 1}"
     puts "Game ID: #{@game_session.id}"
 
-    @channel = ::Clients::Channels::GameSessionChannel.new("ws://localhost:3000/cable", @game_session.id) do |message|
-      if message["event"] == "updated"
-        puts "\n[WebSocket] Game session updated!"
-        result = Services.sessions.get(@game_session.game_id, @game_session.id)
-        if result.success?
-          @game_session = GameSession.new(result.data)
-          display_board
-        else
-          puts "[WebSocket] Failed to refresh game session: #{result.error}"
-        end
-      end
-    end
-    
+    # WebSocket client temporarily disabled to fix input issues
+    # @channel = ::Client::Channels::GameSessionChannel.new("ws://localhost:3000/cable", @game_session.id) do |message|
+    #   if message["event"] == "updated"
+    #     puts "\n[WebSocket] Game session updated!"
+    #     result = Services.sessions.get(@game_session.game_id, @game_session.id)
+    #     if result.success?
+    #       @game_session = GameSession.new(result.data)
+    #       display_board
+    #     else
+    #       puts "[WebSocket] Failed to refresh game session: #{result.error}"
+    #     end
+    #   end
+    # end
+    puts "[Info] WebSocket temporarily disabled - game uses polling for updates"
+
     begin
       loop do
         display_board
-        
+
         # Refresh game session to get latest state
         result = Services.sessions.get(@game_session.game_id, @game_session.id)
         if result.success?
@@ -57,6 +59,7 @@ class Game
         end
 
         if @game_session.current_player.id == @current_player.id
+          puts "It's your turn!"
           res = player_move
           if res.success?
             # Inspect the payload your handlers put into data
@@ -70,11 +73,31 @@ class Game
             puts res.error
           end
         else
-          return if game_over?  # Exit if game is over after waiting
+          current_player_name = @game_session.current_player.name
+          puts "Waiting for #{current_player_name} to make a move..."
+
+          # Wait for the other player to make a move
+          loop do
+            sleep(2)  # Poll every 2 seconds
+
+            result = Services.sessions.get(@game_session.game_id, @game_session.id)
+            if result.success?
+              updated_session = GameSession.new(result.data)
+
+              # Check if it's now our turn or game is over
+              if updated_session.current_player.id == @current_player.id || updated_session.status == "finished"
+                @game_session = updated_session
+                break
+              end
+            end
+          end
+
+          # Continue to next iteration to check game_over and display final state
+          next
         end
       end
     ensure
-      @channel.disconnect
+      # @channel.disconnect if @channel
     end
   end
 
@@ -141,7 +164,7 @@ class Game
   def handle_winner(winner)
     player_index = winner == Board::CELL_VALUES[:player1] ? 0 : 1
     current_index = @game_session.players.find_index { |p| p.id == @current_player.id }
-    
+
     result = @game_session.update_state(
       state: { board: @game_session.board.board },
       status: :finished,
