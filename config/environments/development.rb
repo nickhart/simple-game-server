@@ -5,9 +5,9 @@ Rails.application.configure do
 
   # Enable websocket support
   Rails.configuration.x.broadcast_updates = true
-  
+
   # Allow Action Cable connections from any origin in development
-  config.action_cable.allowed_request_origins = [/http:\/\/localhost:*/, /http:\/\/127\.0\.0\.1:*/, nil]
+  config.action_cable.allowed_request_origins = [%r{http://localhost:*}, %r{http://127\.0\.0\.1:*}, nil]
 
   # In the development environment your application's code is reloaded any time
   # it changes. This slows down response time but is perfect for development
