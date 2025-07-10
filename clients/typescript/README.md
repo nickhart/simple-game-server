@@ -13,8 +13,18 @@ A TypeScript client for the Simple Game Server API, providing both REST API acce
 
 ## Installation
 
+### From npm (when published)
 ```bash
 npm install @simple-game-server/client
+```
+
+### From monorepo (local development)
+```bash
+# In your React/Node.js project
+npm install file:../path/to/simple-game-server/clients/typescript
+
+# Or with relative path from your project
+npm install ../simple-game-server/clients/typescript
 ```
 
 ## Quick Start
@@ -165,6 +175,60 @@ const client = new GameServerClient({
 });
 ```
 
+## React Integration
+
+For React applications, see the comprehensive integration guides:
+
+- **[React Integration Guide](./REACT_INTEGRATION.md)** - Complete patterns and examples
+- **[React Hooks](./examples/react-hooks.tsx)** - Copy-paste hooks for your project
+
+### Quick React Example
+```tsx
+import { useGameClient, useGameSession } from './hooks/gameHooks';
+
+const MyGame = () => {
+  const { client, currentPlayer, login } = useGameClient();
+  const [sessionId, setSessionId] = useState<number>();
+  const { session, makeMove } = useGameSession(client, sessionId);
+
+  // Login, create session, make moves, handle real-time updates
+  return <div>Game UI here</div>;
+};
+```
+
+## Monorepo Development
+
+This client is part of the Simple Game Server monorepo:
+
+```
+simple-game-server/
+├── server/                 # Rails API server
+├── clients/
+│   ├── typescript/        # This client
+│   ├── dart/              # Dart client  
+│   └── ruby/              # Ruby client (in examples/)
+└── examples/
+    └── tic_tac_toe/       # Ruby CLI example
+```
+
+### Using in Same Monorepo
+```bash
+# From your React app in the monorepo
+npm install ../clients/typescript
+
+# Or from outside the monorepo  
+npm install file:/path/to/simple-game-server/clients/typescript
+```
+
+### Publishing Workflow
+```bash
+# Build and test
+npm run build && npm test
+
+# Publish to npm (when ready)
+npm publish --access public
+```
+
 ## Development
 
 ```bash
@@ -183,6 +247,22 @@ npm test
 # Lint
 npm run lint
 ```
+
+## Architecture Notes for Claude
+
+This client implements the **hybrid REST + WebSocket pattern**:
+
+- **REST API**: All game actions (login, create/join sessions, make moves)
+- **WebSocket**: Real-time state synchronization and event broadcasting
+- **Event-driven**: React components subscribe to game session updates
+- **Type-safe**: Full TypeScript coverage for game state and API responses
+
+Key integration points:
+1. Use `useGameClient()` hook for authentication and client setup
+2. Use `useGameSession()` hook for real-time game state management  
+3. All game actions return promises and trigger WebSocket broadcasts
+4. Handle loading states and errors in React components
+5. WebSocket automatically reconnects and resubscribes
 
 ## License
 
