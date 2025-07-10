@@ -3,6 +3,9 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Enable websocket support
+  Rails.configuration.x.broadcast_updates = true
+
   # Code is not reloaded between requests.
   config.cache_classes = true
 

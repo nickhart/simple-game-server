@@ -1,11 +1,11 @@
 require "yaml"
-require_relative "../lib/api_client"
-require_relative "../lib/result"
-require_relative "../lib/clients/tokens_client"
-require_relative "../lib/clients/admin_users_client"
-require_relative "../lib/clients/games_client"
-require_relative "../lib/clients/admin_games_client"
-require_relative "../lib/config_loader"
+require "simple_game_server/api_client"
+require "simple_game_server/result"
+require "simple_game_server/clients/tokens_client"
+require "simple_game_server/clients/admin_users_client"
+require "simple_game_server/clients/games_client"
+require "simple_game_server/clients/admin_games_client"
+require "simple_game_server/config_loader"
 
 CONFIG = ConfigLoader.load!(%w[
   api_url
@@ -26,7 +26,7 @@ puts "Bootstrapping admin user and game..."
 api = ApiClient.new(api_url)
 
 # Ensure admin user exists
-admin_users = AdminUsersClient.new(api)
+admin_users = Clients::AdminUsersClient.new(api)
 create_result = admin_users.create(email, password)
 
 if create_result.failure?
@@ -37,14 +37,14 @@ if create_result.failure?
 end
 
 # Log in as admin
-token_result = TokensClient.new(api).login(email, password)
+token_result = Clients::TokensClient.new(api).login(email, password)
 raise "Login failed: #{token_result.error}" if token_result.failure?
 
 token = token_result.data
 authed_api = api.with_token(token)
 
 # Create or update game
-games_client = GamesClient.new(authed_api)
+games_client = Clients::GamesClient.new(authed_api)
 list_result = games_client.list
 
 raise "Failed to list games: #{list_result.error}" if list_result.failure?
@@ -52,11 +52,11 @@ raise "Failed to list games: #{list_result.error}" if list_result.failure?
 existing = list_result.data.find { |g| g["name"] == game_name }
 if existing
   puts "⚠️ Game '#{game_name}' already exists. Updating schema..."
-  admin_games = AdminGamesClient.new(authed_api)
+  admin_games = Clients::AdminGamesClient.new(authed_api)
   update_result = admin_games.update(existing["id"], schema)
   raise "Failed to update game: #{update_result.error}" if update_result.failure?
 else
-  admin_games = AdminGamesClient.new(authed_api)
+  admin_games = Clients::AdminGamesClient.new(authed_api)
   create_result = admin_games.create(game_name, schema)
   raise "Failed to create game: #{create_result.error}" if create_result.failure?
 end

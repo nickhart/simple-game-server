@@ -1,9 +1,13 @@
-require_relative "../lib/services"
-require_relative "../lib/api_client"
-require_relative "../lib/config_loader"
-require_relative "../lib/clients/tokens_client"
-require_relative "../lib/clients/games_client"
-require_relative "../lib/services"
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+require "bundler/setup"
+require "simple_game_server/services"
+require "simple_game_server/api_client"
+require "simple_game_server/config_loader"
+require "simple_game_server/clients/tokens_client"
+require "simple_game_server/clients/games_client"
+require "simple_game_server/services"
 require_relative "game"
 require_relative "game_session"
 require_relative "player"
@@ -99,7 +103,7 @@ class TicTacToeCLI
 
     # Perform authentication to get JWT
     raw_api = ApiClient.new(CONFIG["api_url"])
-    auth_client = TokensClient.new(raw_api)
+    auth_client = Clients::TokensClient.new(raw_api)
     token_result = auth_client.login(email, password)
     return puts "Login failed: #{token_result.error}" if token_result.failure?
 
@@ -113,7 +117,7 @@ class TicTacToeCLI
   end
 
   def set_game_id
-    games = GamesClient.new(Services.api_client)
+    games = Clients::GamesClient.new(Services.api_client)
     result = games.find_by_name(GAME_NAME)
     if result.failure?
       puts "Error: Could not find game named '#{GAME_NAME}'. Reason: #{result.error}"

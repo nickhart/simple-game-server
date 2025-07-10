@@ -1,10 +1,10 @@
 require "yaml"
 require "optparse"
-require_relative "../lib/api_client"
-require_relative "../lib/config_loader"
-require_relative "../lib/clients/tokens_client"
-require_relative "../lib/clients/users_client"
-require_relative "../lib/clients/players_client"
+require "simple_game_server/api_client"
+require "simple_game_server/config_loader"
+require "simple_game_server/clients/tokens_client"
+require "simple_game_server/clients/users_client"
+require "simple_game_server/clients/players_client"
 
 CONFIG = ConfigLoader.load!(%w[api_url], config_dir: __dir__)
 API_URL = CONFIG["api_url"]
@@ -31,7 +31,7 @@ puts "Creating player..."
 api = ApiClient.new(API_URL)
 
 # Create user account (non-admin)
-users = UsersClient.new(api)
+users = Clients::UsersClient.new(api)
 create_result = users.create(email, password)
 
 if create_result.failure?
@@ -42,7 +42,7 @@ if create_result.failure?
 end
 
 # Authenticate and get token
-token_result = TokensClient.new(api).login(email, password)
+token_result = Clients::TokensClient.new(api).login(email, password)
 raise "Login failed: #{token_result.error}" if token_result.failure?
 
 token = token_result.data
@@ -50,7 +50,7 @@ puts "✅ Logged in"
 
 # Create player profile
 authed_api = api.with_token(token)
-players = PlayersClient.new(authed_api)
+players = Clients::PlayersClient.new(authed_api)
 name = email.split("@").first
 create_player_result = players.create(name)
 

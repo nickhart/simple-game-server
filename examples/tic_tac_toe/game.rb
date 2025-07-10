@@ -1,8 +1,9 @@
 require_relative "board"
-require_relative "../lib/result"
-require_relative "../lib/services"
+require "simple_game_server/result"
+require "simple_game_server/services"
 require_relative "game_session"
 require_relative "player"
+require "simple_game_server/clients/channels/game_session_channel"
 
 class Game
   attr_reader :game_session, :current_player
@@ -20,44 +21,60 @@ class Game
     puts "You are player #{@game_session.players.find_index { |p| p.id == @current_player.id } + 1}"
     puts "Game ID: #{@game_session.id}"
 
-    loop do
-      display_board
-      
-      # Refresh game session to get latest state
-      result = Services.sessions.get(@game_session.game_id, @game_session.id)
-      if result.success?
-        @game_session = GameSession.new(result.data)
-      end
-
-      # Check if game is over after refresh
-      if game_over?
-        winner_index = @game_session.state["winner"]
-        if winner_index
-          winner = @game_session.players[winner_index]
-          puts "Game is over! Player #{winner_index + 1} (#{winner.name}) wins!"
+    @channel = ::Clients::Channels::GameSessionChannel.new("ws://localhost:3000/cable", @game_session.id) do |message|
+      if message["event"] == "updated"
+        puts "\n[WebSocket] Game session updated!"
+        result = Services.sessions.get(@game_session.game_id, @game_session.id)
+        if result.success?
+          @game_session = GameSession.new(result.data)
+          display_board
         else
-          puts "Game is over! It's a draw!"
+          puts "[WebSocket] Failed to refresh game session: #{result.error}"
         end
-        return  # Exit the entire game
       end
+    end
+    
+    begin
+      loop do
+        display_board
+        
+        # Refresh game session to get latest state
+        result = Services.sessions.get(@game_session.game_id, @game_session.id)
+        if result.success?
+          @game_session = GameSession.new(result.data)
+        end
 
-      if @game_session.current_player.id == @current_player.id
-        res = player_move
-        if res.success?
-          # Inspect the payload your handlers put into data
-          if res.data[:game_over]
-            # Optional: print the message they returned
-            puts res.data[:message] if res.data[:message]
-            return  # Exit the entire game
+        # Check if game is over after refresh
+        if game_over?
+          winner_index = @game_session.state["winner"]
+          if winner_index
+            winner = @game_session.players[winner_index]
+            puts "Game is over! Player #{winner_index + 1} (#{winner.name}) wins!"
+          else
+            puts "Game is over! It's a draw!"
+          end
+          return  # Exit the entire game
+        end
+
+        if @game_session.current_player.id == @current_player.id
+          res = player_move
+          if res.success?
+            # Inspect the payload your handlers put into data
+            if res.data[:game_over]
+              # Optional: print the message they returned
+              puts res.data[:message] if res.data[:message]
+              return  # Exit the entire game
+            end
+          else
+            # Handle the validation or API error
+            puts res.error
           end
         else
-          # Handle the validation or API error
-          puts res.error
+          return if game_over?  # Exit if game is over after waiting
         end
-      else
-        wait_for_turn
-        return if game_over?  # Exit if game is over after waiting
       end
+    ensure
+      @channel.disconnect
     end
   end
 
@@ -67,33 +84,6 @@ class Game
     @game_session.status == "finished"
   end
 
-  def wait_for_turn
-    puts "Waiting for your turn..."
-    loop do
-      sleep(1)
-      result = Services.sessions.get(@game_session.game_id, @game_session.id)
-      if result.failure?
-        puts result.error
-        next
-      end
-      @game_session = GameSession.new(result.data)
-      
-      # Break immediately if game is over
-      if @game_session.status == "finished"
-        winner_index = @game_session.state["winner"]
-        if winner_index
-          winner = @game_session.players[winner_index]
-          puts "Game is over! Player #{winner_index + 1} (#{winner.name}) wins!"
-        else
-          puts "Game is over! It's a draw!"
-        end
-        return  # Exit the method immediately
-      end
-      
-      # Break if it's our turn
-      break if @game_session.current_player.id == @current_player.id
-    end
-  end
 
   def display_board
     puts "\nCurrent board:"
