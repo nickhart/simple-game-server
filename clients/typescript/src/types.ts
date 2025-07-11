@@ -74,6 +74,25 @@ export interface UpdateGameSessionRequest {
   winner_index?: number;
 }
 
+export interface CreateUserRequest {
+  email: string;
+  password: string;
+  password_confirmation?: string;
+}
+
+export interface UpdateUserRequest {
+  email?: string;
+  password?: string;
+  password_confirmation?: string;
+}
+
+export interface CreateGameRequest {
+  name: string;
+  state_json_schema: string; // JSON string
+  min_players?: number;
+  max_players?: number;
+}
+
 // WebSocket Types
 export interface WebSocketMessage {
   event: string;

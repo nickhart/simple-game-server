@@ -52,6 +52,7 @@ gem "kamal", require: false
 # Authentication
 gem "devise"
 gem "devise-jwt"
+gem 'rack-cors'
 
 # Use bcrypt for password hashing
 gem "bcrypt", "~> 3.1.7"

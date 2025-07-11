@@ -1,6 +1,7 @@
 {
     "info": {
-        "name": "SimpleGameServer API",
+        "name": "Simple Game Server API v2",
+        "description": "Complete API collection for Simple Game Server with correct authentication and admin endpoints",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -12,136 +13,10 @@
     ],
     "item": [
         {
-            "name": "Game Configurations",
-            "item": [
-                {
-                    "name": "Update Game Configuration",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{{update_game_config_body}}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "games", "{{game_configuration_id}}"]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Schema field is stored and looks correct', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.state_json_schema).to.be.a('string');",
-                                    "    pm.expect(response.state_json_schema).to.include('\"properties\"');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                }
-                ,
-                {
-                    "name": "List Game Configurations",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/games",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "games"]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Game Configuration",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "games", "{{game_configuration_id}}"]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Game Configuration",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{{create_game_config_body}}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/games",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "games"]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Game Configuration",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/games/{{game_configuration_id}}",
-                            "host": ["{{base_url}}"],
-                            "path": ["api", "games", "{{game_configuration_id}}"]
-                        }
-                    }
-                }
-            ]
-        },
-        {
             "name": "Authentication",
             "item": [
                 {
-                    "name": "Register New User",
+                    "name": "Register User",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -155,14 +30,9 @@
                             "raw": "{\n    \"user\": {\n        \"email\": \"{{api_email}}\",\n        \"password\": \"{{api_password}}\",\n        \"password_confirmation\": \"{{api_password}}\"\n    }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/players",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "players"
-                            ]
+                            "raw": "{{base_url}}/api/users",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "users"]
                         }
                     },
                     "event": [
@@ -174,17 +44,21 @@
                                     "    pm.response.to.have.status(201);",
                                     "});",
                                     "",
-                                    "pm.test('Response contains token', function () {",
+                                    "pm.test('Response contains tokens', function () {",
                                     "    const response = pm.response.json();",
-                                    "    pm.expect(response.token).to.be.a('string');",
-                                    "    pm.expect(response.token).to.not.be.empty;",
+                                    "    pm.expect(response.data.access_token).to.be.a('string');",
+                                    "    pm.expect(response.data.refresh_token).to.be.a('string');",
                                     "});",
                                     "",
-                                    "// Save the token for future requests",
+                                    "// Save tokens for future requests",
                                     "const response = pm.response.json();",
-                                    "if (response && response.token) {",
-                                    "    pm.environment.set('jwt_token', response.token);",
-                                    "    console.log('Token saved to environment');",
+                                    "if (response && response.data) {",
+                                    "    pm.environment.set('access_token', response.data.access_token);",
+                                    "    pm.environment.set('refresh_token', response.data.refresh_token);",
+                                    "    if (response.data.user) {",
+                                    "        pm.environment.set('user_id', response.data.user.id);",
+                                    "    }",
+                                    "    console.log('Tokens saved to environment');",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -194,58 +68,6 @@
                 },
                 {
                     "name": "Login",
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "// Debug environment variables",
-                                    "console.log('Environment:', pm.environment.name);",
-                                    "console.log('api_email value:', pm.environment.get('api_email'));",
-                                    "console.log('api_password value:', pm.environment.get('api_password'));",
-                                    "",
-                                    "// Debug request body",
-                                    "const rawBody = pm.request.body.raw;",
-                                    "console.log('Raw request body:', rawBody);",
-                                    "",
-                                    "// Debug variable resolution",
-                                    "const resolvedBody = pm.variables.replaceIn(rawBody);",
-                                    "console.log('Resolved request body:', resolvedBody);"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Response contains token', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.token).to.be.a('string');",
-                                    "    pm.expect(response.token).to.not.be.empty;",
-                                    "});",
-                                    "",
-                                    "pm.test('Response contains user info', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.user).to.be.an('object');",
-                                    "    pm.expect(response.user.email).to.eql(pm.environment.get('api_email'));",
-                                    "});",
-                                    "",
-                                    "// Save the token for future requests",
-                                    "const response = pm.response.json();",
-                                    "if (response && response.token) {",
-                                    "    pm.environment.set('jwt_token', response.token);",
-                                    "    console.log('Token saved to environment');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -256,17 +78,100 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"email\": \"{{api_email}}\",\n    \"password\": \"{{api_password}}\"\n}"
+                            "raw": "{\n    \"session\": {\n        \"email\": \"{{api_email}}\",\n        \"password\": \"{{api_password}}\"\n    }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/sessions",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "sessions"
-                            ]
+                            "raw": "{{base_url}}/api/tokens/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "tokens", "login"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response contains tokens', function () {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.expect(response.data.access_token).to.be.a('string');",
+                                    "    pm.expect(response.data.refresh_token).to.be.a('string');",
+                                    "});",
+                                    "",
+                                    "// Save tokens for future requests",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.data) {",
+                                    "    pm.environment.set('access_token', response.data.access_token);",
+                                    "    pm.environment.set('refresh_token', response.data.refresh_token);",
+                                    "    if (response.data.user) {",
+                                    "        pm.environment.set('user_id', response.data.user.id);",
+                                    "    }",
+                                    "    console.log('Tokens saved to environment');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"token\": {\n        \"refresh_token\": \"{{refresh_token}}\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/tokens/refresh",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "tokens", "refresh"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "// Update access token",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.data && response.data.access_token) {",
+                                    "    pm.environment.set('access_token', response.data.access_token);",
+                                    "    console.log('Access token refreshed');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/tokens/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "tokens", "logout"]
                         }
                     }
                 }
@@ -275,43 +180,6 @@
         {
             "name": "Players",
             "item": [
-                {
-                    "name": "Get Current Player",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/players/current",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "players",
-                                "current"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const response = pm.response.json();",
-                                    "if (response && response.id) {",
-                                    "    pm.environment.set('player_id', response.id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
                 {
                     "name": "Create Player",
                     "request": {
@@ -323,22 +191,17 @@
                             },
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"Test Player\"\n}"
+                            "raw": "{\n    \"player\": {\n        \"name\": \"{{player_name}}\"\n    }\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/players",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "players"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "players"]
                         }
                     },
                     "event": [
@@ -346,9 +209,15 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "// Save player ID",
                                     "const response = pm.response.json();",
-                                    "if (response && response.id) {",
-                                    "    pm.environment.set('player_id', response.id);",
+                                    "if (response && response.data && response.data.id) {",
+                                    "    pm.environment.set('player_id', response.data.id);",
+                                    "    console.log('Player ID saved:', response.data.id);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -357,25 +226,106 @@
                     ]
                 },
                 {
-                    "name": "Get Player",
+                    "name": "Get Current Player",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/players/me",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "players", "me"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Save player ID if not already set",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.data && response.data.id) {",
+                                    "    pm.environment.set('player_id', response.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Player by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/players/{{player_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "players",
-                                "{{player_id}}"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "players", "{{player_id}}"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Games",
+            "item": [
+                {
+                    "name": "List Games",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Save first game ID for testing",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.data && response.data.length > 0) {",
+                                    "    pm.environment.set('game_id', response.data[0].id);",
+                                    "    console.log('Game ID saved:', response.data[0].id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Game by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}"]
                         }
                     }
                 }
@@ -384,6 +334,23 @@
         {
             "name": "Game Sessions",
             "item": [
+                {
+                    "name": "List Game Sessions",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions"]
+                        }
+                    }
+                },
                 {
                     "name": "Create Game Session",
                     "request": {
@@ -395,24 +362,17 @@
                             },
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"game_session\": {\n        \"min_players\": 2,\n        \"max_players\": 4\n    }\n}"
+                            "raw": "{\n    \"game_session\": {\n        \"min_players\": 2,\n        \"max_players\": 2\n    }\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/game_sessions/create/{{player_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "create",
-                                "{{player_id}}"
-                            ]
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions"]
                         }
                     },
                     "event": [
@@ -420,9 +380,15 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "// Save game session ID",
                                     "const response = pm.response.json();",
-                                    "if (response && response.id) {",
-                                    "    pm.environment.set('game_session_id', response.id);",
+                                    "if (response && response.data && response.data.id) {",
+                                    "    pm.environment.set('game_session_id', response.data.id);",
+                                    "    console.log('Game session ID saved:', response.data.id);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -431,31 +397,36 @@
                     ]
                 },
                 {
+                    "name": "Get Game Session",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions/{{game_session_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions", "{{game_session_id}}"]
+                        }
+                    }
+                },
+                {
                     "name": "Join Game Session",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/join/{{player_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}",
-                                "join",
-                                "{{player_id}}"
-                            ]
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions/{{game_session_id}}/join",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions", "{{game_session_id}}", "join"]
                         }
                     }
                 },
@@ -465,57 +436,19 @@
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/start",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}",
-                                "start"
-                            ]
-                        },
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"player_id\": \"{{player_id}}\"\n}"
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions/{{game_session_id}}/start",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions", "{{game_session_id}}", "start"]
                         }
                     }
                 },
                 {
-                    "name": "Get Game Session",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Game State",
+                    "name": "Update Game Session (Make Move)",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -525,285 +458,7 @@
                             },
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"game_session\": {\n        \"state\": {\n            \"board\": [1, 0, 0, 0, 0, 0, 0, 0, 0]\n        }\n    }\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Game state is updated', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.state.board).to.eql([1, 0, 0, 0, 0, 0, 0, 0, 0]);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Finish Game",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"game_session\": {\n        \"status\": \"finished\",\n        \"winner\": 0\n    }\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Game is finished', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.status).to.eql('finished');",
-                                    "    pm.expect(response.state.winner).to.eql(0);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Leave Game",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/leave/{{player_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}",
-                                "leave",
-                                "{{player_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Player is removed', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    const playerIds = response.players.map(p => p.id);",
-                                    "    pm.expect(playerIds).to.not.include(parseInt(pm.environment.get('player_id')));",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Cleanup Old Games",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/game_sessions/cleanup",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "cleanup"
-                            ]
-                        },
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"before\": \"{{$timestamp}}\"\n}"
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});",
-                                    "",
-                                    "pm.test('Cleanup successful', function () {",
-                                    "    const response = pm.response.json();",
-                                    "    pm.expect(response.message).to.eql('Cleanup completed');",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Sessions",
-            "item": [
-                {
-                    "name": "Refresh Session",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/sessions/refresh",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "sessions",
-                                "refresh"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Delete Session",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/sessions/{{session_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "sessions",
-                                "{{session_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Game Sessions (Extra)",
-            "item": [
-                {
-                    "name": "Move in Game Session",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
@@ -811,345 +466,67 @@
                             "raw": "{{game_move_body}}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}/move",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}",
-                                "move"
-                            ]
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions/{{game_session_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions", "{{game_session_id}}"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 },
                 {
-                    "name": "Delete Game Session",
+                    "name": "Leave Game Session",
                     "request": {
                         "method": "DELETE",
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/api/game_sessions/{{game_session_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "game_sessions",
-                                "{{game_session_id}}"
-                            ]
+                            "raw": "{{base_url}}/api/games/{{game_id}}/sessions/{{game_session_id}}/leave",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "games", "{{game_id}}", "sessions", "{{game_session_id}}", "leave"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 }
             ]
         },
         {
-            "name": "Users",
+            "name": "Admin - Users",
             "item": [
                 {
-                    "name": "Create User",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{{user_create_body}}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/users",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Get User",
+                    "name": "List All Users",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/users/{{user_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users",
-                                "{{user_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Update User",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{{user_update_body}}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/users/{{user_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users",
-                                "{{user_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Delete User",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/users/{{user_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users",
-                                "{{user_id}}"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Get Current User",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/users/me",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users",
-                                "me"
-                            ]
-                        }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "Admin",
-            "item": [
-                {
-                    "name": "List Users",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/users",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 },
                 {
-                    "name": "Get Admin User",
+                    "name": "Get User by ID",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "url": {
                             "raw": "{{base_url}}/api/admin/users/{{user_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users",
-                                "{{user_id}}"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users", "{{user_id}}"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 },
                 {
                     "name": "Create Admin User",
@@ -1157,119 +534,111 @@
                         "method": "POST",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{{admin_user_create_body}}"
+                            "raw": "{\n    \"user\": {\n        \"email\": \"admin@example.com\",\n        \"password\": \"adminpassword\",\n        \"password_confirmation\": \"adminpassword\",\n        \"role\": \"admin\"\n    }\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/admin/users",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 },
                 {
-                    "name": "Update Admin User",
+                    "name": "Update User",
                     "request": {
                         "method": "PUT",
                         "header": [
                             {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{{admin_user_update_body}}"
+                            "raw": "{\n    \"user\": {\n        \"email\": \"updated@example.com\"\n    }\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/admin/users/{{user_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users",
-                                "{{user_id}}"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users", "{{user_id}}"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
+                    }
                 },
                 {
-                    "name": "Make Admin",
+                    "name": "Make User Admin",
                     "request": {
                         "method": "POST",
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{}"
-                        },
                         "url": {
                             "raw": "{{base_url}}/api/admin/users/{{user_id}}/make_admin",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users",
-                                "{{user_id}}",
-                                "make_admin"
-                            ]
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users", "{{user_id}}", "make_admin"]
+                        }
+                    }
+                },
+                {
+                    "name": "Remove Admin Role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/users/{{user_id}}/remove_admin",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "users", "{{user_id}}", "remove_admin"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin - Games",
+            "item": [
+                {
+                    "name": "Create Game Type",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{create_game_body}}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/games",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "games"]
                         }
                     },
                     "event": [
@@ -1277,9 +646,16 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "// Save created game ID",
+                                    "const response = pm.response.json();",
+                                    "if (response && response.data && response.data.id) {",
+                                    "    pm.environment.set('created_game_id', response.data.id);",
+                                    "    console.log('Created game ID saved:', response.data.id);",
+                                    "}"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -1287,50 +663,93 @@
                     ]
                 },
                 {
-                    "name": "Remove Admin",
+                    "name": "Update Game Type",
                     "request": {
-                        "method": "POST",
+                        "method": "PUT",
                         "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{jwt_token}}"
-                            },
                             {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
                             }
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{}"
+                            "raw": "{{update_game_body}}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/api/admin/users/{{user_id}}/remove_admin",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "admin",
-                                "users",
-                                "{{user_id}}",
-                                "remove_admin"
-                            ]
+                            "raw": "{{base_url}}/api/admin/games/{{game_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "games", "{{game_id}}"]
                         }
-                    },
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status code is 200', function () {",
-                                    "    pm.response.to.have.status(200);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
+                    }
+                },
+                {
+                    "name": "Delete Game Type",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
                             }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/games/{{game_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "games", "{{game_id}}"]
                         }
-                    ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin - Game Sessions",
+            "item": [
+                {
+                    "name": "Delete Game Session",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/game_sessions/{{game_session_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "game_sessions", "{{game_session_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Cleanup Old Sessions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"before\": \"{{cleanup_before_timestamp}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/game_sessions/cleanup",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "admin", "game_sessions", "cleanup"]
+                        }
+                    }
                 }
             ]
         }

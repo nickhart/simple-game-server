@@ -12,6 +12,9 @@ import {
   CreateGameSessionRequest,
   JoinGameSessionRequest,
   UpdateGameSessionRequest,
+  CreateUserRequest,
+  UpdateUserRequest,
+  CreateGameRequest,
   GameSessionUpdateMessage,
   GameServerError,
 } from './types';
@@ -28,16 +31,25 @@ export class GameServerClient extends EventEmitter {
     this.apiUrl = config.apiUrl.replace(/\/$/, ''); // Remove trailing slash
     this.wsUrl = config.wsUrl || this.apiUrl.replace(/^http/, 'ws') + '/cable';
     this.token = config.token;
+    // console.log('🔑 GameServerClient constructor - token:', this.token);
+  }
+
+  // Expose token for debugging
+  get authToken(): string | undefined {
+    return this.token;
   }
 
   // Authentication
   async login(credentials: LoginRequest): Promise<string> {
-    const response = await this.request<{ token: string }>('/api/tokens/login', {
+    const response = await this.request<{ data: { access_token: string } }>('/api/tokens/login', {
       method: 'POST',
-      body: JSON.stringify({ user: credentials }),
+      body: JSON.stringify({ session: credentials }),
     });
 
-    this.token = response.token;
+    // console.log('🔑 Raw login response:', response);
+    // console.log('🔑 Extracted token:', response.data.access_token);
+    
+    this.token = response.data.access_token;
     return this.token;
   }
 
@@ -51,23 +63,27 @@ export class GameServerClient extends EventEmitter {
 
   // Player Management
   async createPlayer(data: CreatePlayerRequest): Promise<Player> {
-    return this.request<Player>('/api/players', {
+    const response = await this.request<{ data: Player }>('/api/players', {
       method: 'POST',
       body: JSON.stringify({ player: data }),
     });
+    return response.data;
   }
 
   async getCurrentPlayer(): Promise<Player> {
-    return this.request<Player>('/api/players/me');
+    const response = await this.request<{ data: Player }>('/api/players/me');
+    return response.data;
   }
 
   // Game Management
   async getGames(): Promise<Game[]> {
-    return this.request<Game[]>('/api/games');
+    const response = await this.request<{ data: Game[] }>('/api/games');
+    return response.data;
   }
 
   async getGame(id: number): Promise<Game> {
-    return this.request<Game>(`/api/games/${id}`);
+    const response = await this.request<{ data: Game }>(`/api/games/${id}`);
+    return response.data;
   }
 
   async getGameByName(name: string): Promise<Game> {
@@ -81,37 +97,43 @@ export class GameServerClient extends EventEmitter {
 
   // Game Session Management
   async createGameSession(gameId: number, data: CreateGameSessionRequest = {}): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions`, {
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   }
 
   async getGameSessions(gameId: number): Promise<GameSession[]> {
-    return this.request<GameSession[]>(`/api/games/${gameId}/sessions`);
+    const response = await this.request<{ data: GameSession[] }>(`/api/games/${gameId}/sessions`);
+    return response.data;
   }
 
   async getGameSession(gameId: number, sessionId: number): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}`);
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions/${sessionId}`);
+    return response.data;
   }
 
   async joinGameSession(gameId: number, sessionId: number, data: JoinGameSessionRequest = {}): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}/join`, {
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions/${sessionId}/join`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   }
 
   async leaveGameSession(gameId: number, sessionId: number): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}/leave`, {
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions/${sessionId}/leave`, {
       method: 'POST',
     });
+    return response.data;
   }
 
   async startGameSession(gameId: number, sessionId: number): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}/start`, {
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions/${sessionId}/start`, {
       method: 'POST',
     });
+    return response.data;
   }
 
   async updateGameSession(
@@ -119,10 +141,11 @@ export class GameServerClient extends EventEmitter {
     sessionId: number,
     data: UpdateGameSessionRequest
   ): Promise<GameSession> {
-    return this.request<GameSession>(`/api/games/${gameId}/sessions/${sessionId}`, {
+    const response = await this.request<{ data: GameSession }>(`/api/games/${gameId}/sessions/${sessionId}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ game_session: data }),
     });
+    return response.data;
   }
 
   // WebSocket Management
@@ -218,6 +241,85 @@ export class GameServerClient extends EventEmitter {
     this.removeAllListeners();
   }
 
+  // User Management
+  async createUser(data: CreateUserRequest): Promise<User> {
+    const response = await this.request<{ data: User }>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ user: data }),
+    });
+    return response.data;
+  }
+
+  async updateUser(userId: number, data: UpdateUserRequest): Promise<User> {
+    const response = await this.request<{ data: User }>(`/api/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ user: data }),
+    });
+    return response.data;
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    await this.request(`/api/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const response = await this.request<{ data: User }>('/api/users/me');
+    return response.data;
+  }
+
+  // Admin Game Management
+  async createGame(data: CreateGameRequest): Promise<Game> {
+    const response = await this.request<{ data: Game }>('/api/admin/games', {
+      method: 'POST',
+      body: JSON.stringify(data), // No wrapper - matches Ruby client
+    });
+    return response.data;
+  }
+
+  async updateGame(gameId: number, data: CreateGameRequest): Promise<Game> {
+    const response = await this.request<{ data: Game }>(`/api/admin/games/${gameId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data), // No wrapper - matches Ruby client
+    });
+    return response.data;
+  }
+
+  async deleteGame(gameId: number): Promise<void> {
+    await this.request(`/api/admin/games/${gameId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Admin User Management
+  async createAdminUser(data: CreateUserRequest): Promise<User> {
+    const response = await this.request<{ data: User }>('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({ user: data }),
+    });
+    return response.data;
+  }
+
+  async makeUserAdmin(userId: number): Promise<User> {
+    const response = await this.request<{ data: User }>(`/api/admin/users/${userId}/make_admin`, {
+      method: 'POST',
+    });
+    return response.data;
+  }
+
+  async removeUserAdmin(userId: number): Promise<User> {
+    const response = await this.request<{ data: User }>(`/api/admin/users/${userId}/remove_admin`, {
+      method: 'POST',
+    });
+    return response.data;
+  }
+
+  async listAllUsers(): Promise<User[]> {
+    const response = await this.request<{ data: User[] }>('/api/admin/users');
+    return response.data;
+  }
+
   // HTTP Request Helper
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.apiUrl}${path}`;
@@ -230,6 +332,9 @@ export class GameServerClient extends EventEmitter {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+      // console.log('🔑 Adding Authorization header:', headers['Authorization']);
+    } else {
+      // console.log('🔑 No token available for request');
     }
 
     const response = await fetch(url, {
