@@ -15,7 +15,7 @@ jobs:
     continue-on-error: true  # This ensures the check won't block PR merging
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
