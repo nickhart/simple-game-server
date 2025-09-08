@@ -44,7 +44,7 @@ jobs:
         echo "_Note: This is for information only and does not block merging. Updates are handled automatically by Dependabot._" >> dependency_report.md
 
     - name: Comment on PR
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       if: always()
       with:
         script: |
